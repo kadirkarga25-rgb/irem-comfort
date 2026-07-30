@@ -1,0 +1,6 @@
+{
+  "name": "İrem Comfort",
+  "description": "Manisa Ayakkabıcılar Sitesi - Hakiki Deri Bayan Comfort Sandalet ve Terlik İmalatı.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
