@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import { createServer as createViteServer } from "vite";
 import nodemailer from "nodemailer";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -18,15 +17,6 @@ app.use((req, res, next) => {
 
   if (req.method === "OPTIONS") {
     return res.sendStatus(200);
-  }
-
-  // Normalize path if /api prefix is stripped by Vercel
-  if (!req.url.startsWith("/api/") && !req.url.startsWith("/api?")) {
-    if (req.url === "/api") {
-      req.url = "/api/";
-    } else if (req.url.startsWith("/") && !req.url.startsWith("/assets/") && !req.url.startsWith("/_functions/")) {
-      req.url = "/api" + req.url;
-    }
   }
 
   next();
@@ -1414,6 +1404,7 @@ app.all("/api/*", (req, res) => {
 async function startServer() {
   // Vite middleware in development
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
