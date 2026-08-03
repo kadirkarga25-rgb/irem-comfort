@@ -1,6 +1,6 @@
 import React from 'react';
-import { CONTACT_DATA } from '../../constants/data';
 import { Phone, Sparkles, BookOpen, ChevronRight } from 'lucide-react';
+import { useAppImages } from '../../context/ImageContext';
 
 interface AnnouncementTickerProps {
   onContactClick?: () => void;
@@ -11,13 +11,13 @@ export const AnnouncementTicker: React.FC<AnnouncementTickerProps> = ({
   onContactClick,
   className = ''
 }) => {
-  const tickerItems = [
-    { text: "YENİ SEZON HAKİKİ DERİ BAYAN COMFORT SANDALET VE TERLİK KOLEKSİYONU", tag: "Koleksiyon" },
-    { text: "TRENDYOL RESMİ MAĞAZAMIZ AÇILDI — ONLİNE ALIŞVERİŞ İÇİN BİZE ULAŞIN", tag: "Trendyol" },
-    { text: "ANATOMİK TABANLI YUMUŞAK SAYA BAYAN TERLİK & SABO İMALATI", tag: "Yerli İmalat" },
-    { text: `YENİ SEZON KATALOĞU VE BİLGİ HATTI: ${CONTACT_DATA.phoneDisplay}`, tag: "İletişim" },
-    { text: "MANİSA AYAKKABICILAR SİTESİ ÜRETİM ATÖLYEMİZDEN DOĞRUDAN DANIŞMA", tag: "Atölye" },
-  ];
+  const { announcements, contactData } = useAppImages();
+
+  const tickerItems = (announcements && announcements.length > 0 ? announcements : [
+    "YENİ SEZON HAKİKİ DERİ BAYAN COMFORT SANDALET VE TERLİK KOLEKSİYONU",
+    `YENİ SEZON KATALOĞU VE BİLGİ HATTI: ${contactData?.phoneDisplay || '0533 029 71 25'}`,
+    "MANİSA AYAKKABICILAR SİTESİ ÜRETİM ATÖLYEMİZDEN DOĞRUDAN DANIŞMA"
+  ]).map(text => ({ text, tag: "Duyuru" }));
 
   // Repeat items for seamless smooth infinite looping
   const repeatedItems = [...tickerItems, ...tickerItems, ...tickerItems, ...tickerItems];

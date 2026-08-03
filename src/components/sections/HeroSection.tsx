@@ -13,7 +13,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   onDiscoverClick,
   onCraftsmanshipClick
 }) => {
-  const { images } = useAppImages();
+  const { images, heroConfig } = useAppImages();
 
   return (
     <section id="hero" className="relative min-h-screen pt-28 sm:pt-36 pb-20 flex flex-col justify-between overflow-hidden bg-white">
@@ -36,7 +36,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             >
               <Sparkles className="w-4 h-4 text-[#0A2D6F]" />
               <span className="text-xs font-semibold tracking-widest uppercase text-[#0A2D6F]">
-                Kuruluş {BRAND_ESTABLISHED} • Manisa Ayakkabıcılar Sitesi İmalatı
+                {heroConfig?.badgeText || `Kuruluş ${BRAND_ESTABLISHED} • Manisa Ayakkabıcılar Sitesi İmalatı`}
               </span>
             </motion.div>
 
@@ -47,12 +47,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               transition={{ duration: 0.9, delay: 0.3 }}
               className="space-y-4"
             >
-              <h1 className="text-4xl sm:text-6xl xl:text-7xl font-light tracking-tight text-[#111111] leading-[1.1]">
-                Bayan <span className="font-bold text-[#0A2D6F] font-serif-luxury">Comfort</span> Deri Sandalet & <span className="italic font-serif-luxury text-[#163E87]">Terlik</span>.
+              <h1 className="text-3xl sm:text-5xl xl:text-6xl font-light tracking-tight text-[#111111] leading-[1.15]">
+                {heroConfig?.title || 'Bayan Comfort Deri Sandalet & Terlik.'}
               </h1>
 
               <p className="text-base sm:text-lg lg:text-xl text-[#111111]/70 font-light max-w-2xl leading-relaxed">
-                %100 Hakiki deri saya, ortopedik kavisli anatomik taban ve Manisa atölyemizin usta el işçiliği. Gün boyu adımlarınıza hafiflik ve zarif konfor katan yeni sezon modellerimizi keşfedin.
+                {heroConfig?.description || '%100 Hakiki deri saya, ortopedik kavisli anatomik taban ve Manisa atölyemizin usta el işçiliği.'}
               </p>
             </motion.div>
 
@@ -67,7 +67,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 onClick={onDiscoverClick}
                 className="group inline-flex items-center gap-3 px-8 py-4 rounded-full bg-[#082C6C] text-white font-semibold text-sm tracking-wider uppercase transition-all duration-300 hover:bg-[#163E87] hover:shadow-xl hover:shadow-[#082C6C]/25 active:scale-95 cursor-pointer"
               >
-                <span>Koleksiyonu Keşfet</span>
+                <span>{heroConfig?.primaryBtnText || 'Koleksiyonu Keşfet'}</span>
                 <ArrowDownRight className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:translate-y-1" />
               </button>
 
@@ -87,7 +87,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 onClick={onCraftsmanshipClick}
                 className="inline-flex items-center gap-2 px-6 py-4 rounded-full border border-[#082C6C]/20 text-[#082C6C] font-semibold text-sm tracking-wider uppercase transition-all duration-300 hover:bg-[#082C6C]/5 hover:border-[#082C6C] cursor-pointer"
               >
-                <span>Atölyemiz</span>
+                <span>{heroConfig?.secondaryBtnText || 'Atölyemiz'}</span>
               </button>
             </motion.div>
 
@@ -147,10 +147,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   <span className="inline-block w-2 h-2 rounded-full bg-[#0A2D6F] animate-ping" />
                 </div>
                 <h3 className="text-lg font-bold text-[#111111] font-serif-luxury">
-                  Çift Tokalı Hakiki Deri Terlik
+                  {heroConfig?.signatureModelTitle || 'Çift Tokalı Hakiki Deri Terlik'}
                 </h3>
                 <p className="text-xs text-[#111111]/70 line-clamp-1">
-                  Yumuşak Dana Derisi Saya • Anatomik Yumuşak Konfor Taban
+                  {heroConfig?.signatureModelSub || 'Yumuşak Dana Derisi Saya • Anatomik Yumuşak Konfor Taban'}
                 </p>
               </div>
             </motion.div>

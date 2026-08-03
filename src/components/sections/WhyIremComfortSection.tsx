@@ -39,7 +39,7 @@ export const WhyIremComfortSection: React.FC = () => {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="text-3xl sm:text-5xl font-light tracking-tight text-[#111111]"
           >
-            Neden <span className="font-serif-luxury font-bold text-[#0A2D6F]">İrem Comfort</span>?
+            Neden <span className="font-serif-luxury font-bold text-[#0A2D6F]">Biz</span>?
           </motion.h2>
 
           <motion.p

@@ -5,12 +5,14 @@ import { COLLECTION_ITEMS, CRAFTSMANSHIP_STEPS } from '../../constants/data';
 import { LogoFull } from '../brand/LogoFull';
 import { FairModal } from '../ui/FairModal';
 import { ImageCropModal, CropTargetSpecs } from './ImageCropModal';
+import { EMAIL_TEMPLATES, renderEmailHtml } from '../../utils/emailTemplates';
 import { 
   Lock, Key, User, LogOut, ExternalLink, Image as ImageIcon, 
   Upload, RotateCcw, Check, Sparkles, Sliders, Layers, Eye, Link, 
   ShieldCheck, AlertCircle, ArrowLeft, Home, Calendar, MapPin, 
   QrCode, ToggleLeft, ToggleRight, Send, MessageSquare, Crop, Info,
-  Mail, Server, AtSign, Save, MailCheck, CheckCircle2, Shield
+  Mail, Server, AtSign, Save, MailCheck, CheckCircle2, Shield,
+  Users, Download, Copy, Trash2, Plus, Search, Phone
 } from 'lucide-react';
 
 const TARGET_SPECS_MAP: Record<string, CropTargetSpecs> = {
@@ -75,9 +77,24 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     updateCraftsmanshipImage,
     updateCollectionImage,
     resetAllImages,
+    heroConfig,
+    updateHeroConfig,
+    resetHeroConfig,
     fairConfig,
     updateFairConfig,
-    resetFairConfig
+    resetFairConfig,
+    contactData,
+    updateContactData,
+    resetContactData,
+    announcements,
+    updateAnnouncements,
+    resetAnnouncements,
+    collectionItems,
+    updateCollectionItem,
+    resetCollectionItems,
+    craftsmanshipSteps,
+    updateCraftsmanshipStep,
+    resetCraftsmanshipSteps
   } = useAppImages();
 
   // Authentication State
@@ -90,10 +107,54 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Admin Panel Tabs
-  const [activeTab, setActiveTab] = useState<'fair' | 'general' | 'collection' | 'craftsmanship' | 'presets' | 'leads' | 'email'>('fair');
+  const [activeTab, setActiveTab] = useState<'fair' | 'general' | 'collection' | 'craftsmanship' | 'contact' | 'presets' | 'leads' | 'newsletter' | 'email'>('fair');
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [isPreviewFairOpen, setIsPreviewFairOpen] = useState(false);
   const [contactLeads, setContactLeads] = useState<any[]>([]);
+
+  // Newsletter Subscribers & Builder State
+  const [subscribers, setSubscribers] = useState<any[]>([]);
+  const [subscriberSearch, setSubscriberSearch] = useState('');
+  const [newSubEmail, setNewSubEmail] = useState('');
+  const [isSubscribersLoading, setIsSubscribersLoading] = useState(false);
+
+  // Newsletter Template Builder State
+  const [newsletterSubTab, setNewsletterSubTab] = useState<'builder' | 'subscribers'>('builder');
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('catalog');
+  const [newsletterSubject, setNewsletterSubject] = useState('');
+  const [newsletterBadge, setNewsletterBadge] = useState('');
+  const [newsletterTitle, setNewsletterTitle] = useState('');
+  const [newsletterSubtitle, setNewsletterSubtitle] = useState('');
+  const [newsletterBody, setNewsletterBody] = useState('');
+  const [newsletterCtaText, setNewsletterCtaText] = useState('');
+  const [newsletterCtaUrl, setNewsletterCtaUrl] = useState('');
+  const [newsletterBanner, setNewsletterBanner] = useState('');
+  const [newsletterOfferBox, setNewsletterOfferBox] = useState('');
+  const [isSendingBulk, setIsSendingBulk] = useState(false);
+  const [bulkSendResult, setBulkSendResult] = useState<any>(null);
+  const [previewTab, setPreviewTab] = useState<'edit' | 'html_preview'>('edit');
+
+  // Announcement Ticker Input State
+  const [newAnnouncementText, setNewAnnouncementText] = useState('');
+
+  // Function to apply default values for selected email template
+  const applyTemplateDefaults = (tplId: string) => {
+    const tpl = EMAIL_TEMPLATES.find(t => t.id === tplId) || EMAIL_TEMPLATES[0];
+    setSelectedTemplateId(tpl.id);
+    setNewsletterSubject(tpl.defaultSubject);
+    setNewsletterBadge(tpl.defaultBadge || '');
+    setNewsletterTitle(tpl.defaultTitle);
+    setNewsletterSubtitle(tpl.defaultSubtitle || '');
+    setNewsletterBody(tpl.defaultBody);
+    setNewsletterCtaText(tpl.defaultCtaText || '');
+    setNewsletterCtaUrl(tpl.defaultCtaUrl || '');
+    setNewsletterBanner(tpl.defaultBanner || '');
+    setNewsletterOfferBox(tpl.defaultSpecialOfferBox || '');
+  };
+
+  useEffect(() => {
+    applyTemplateDefaults('catalog');
+  }, []);
 
   // Email Config State
   const [emailConfig, setEmailConfig] = useState({
@@ -148,10 +209,219 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
         }
       };
 
+      const loadSubscribers = async () => {
+        setIsSubscribersLoading(true);
+        try {
+          const res = await fetch('/api/newsletter/subscribers');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.subscribers && Array.isArray(data.subscribers)) {
+              setSubscribers(data.subscribers);
+              setIsSubscribersLoading(false);
+              return;
+            }
+          }
+        } catch (e) {
+          console.log('Subscriber fetch fallback');
+        }
+        const local = JSON.parse(localStorage.getItem('irem_newsletter_subscribers') || '[]');
+        const formatted = local.map((email: string, i: number) => ({
+          id: `local-${i}`,
+          email,
+          createdAt: new Date().toISOString(),
+          source: 'Web Form'
+        }));
+        setSubscribers(formatted);
+        setIsSubscribersLoading(false);
+      };
+
       loadLeads();
       loadEmailConfig();
+      loadSubscribers();
     }
   }, [isAuthenticated, activeTab]);
+
+  const handleAddSubscriber = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubEmail || !newSubEmail.includes('@')) {
+      alert('Lütfen geçerli bir e-posta yazınız.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newSubEmail, source: 'Admin Panel' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('E-posta abonesi eklendi!');
+        setNewSubEmail('');
+        if (data.subscriber) {
+          setSubscribers(prev => [data.subscriber, ...prev.filter(s => s.email !== data.subscriber.email)]);
+        }
+      }
+    } catch (e) {
+      alert('Ekleme işlemi başarısız.');
+    }
+  };
+
+  const handleDeleteSubscriber = async (id: string) => {
+    try {
+      await fetch(`/api/newsletter/subscribers/${id}`, { method: 'DELETE' });
+      setSubscribers(prev => prev.filter(s => s.id !== id && s.email !== id));
+      showToast('Abone silindi.');
+    } catch (e) {
+      console.error('Silme hatası', e);
+    }
+  };
+
+  const handleCopyEmails = () => {
+    const emailsStr = subscribers.map(s => s.email).join(', ');
+    navigator.clipboard.writeText(emailsStr);
+    showToast(`${subscribers.length} adet e-posta adresi panoya kopyalandı!`);
+  };
+
+  const handleDownloadCSV = () => {
+    const headers = 'ID,E-Posta,Kayıt Tarihi,Kaynak\n';
+    const rows = subscribers.map(s => `"${s.id}","${s.email}","${new Date(s.createdAt).toLocaleString('tr-TR')}","${s.source || 'Web'}"`).join('\n');
+    const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `irem_comfort_bulten_aboneleri_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Aboneler CSV dosyası olarak indirildi.');
+  };
+
+  const handleSendBulkNewsletter = async () => {
+    setIsSendingBulk(true);
+    setBulkSendResult(null);
+
+    let currentSubscribers = subscribers;
+
+    // Fetch latest subscribers list directly from server API
+    try {
+      const res = await fetch('/api/newsletter/subscribers');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.subscribers && Array.isArray(data.subscribers) && data.subscribers.length > 0) {
+          currentSubscribers = data.subscribers;
+          setSubscribers(data.subscribers);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch subscribers dynamically:', err);
+    }
+
+    const targetEmails = currentSubscribers.map(s => s.email).filter(Boolean);
+
+    if (targetEmails.length === 0) {
+      setIsSendingBulk(false);
+      showToast('Gönderilecek kayıtlı e-bülten abonesi bulunamadı. Lütfen en az 1 e-posta abonesi ekleyin.');
+      return;
+    }
+
+    if (!newsletterSubject.trim()) {
+      setIsSendingBulk(false);
+      showToast('Lütfen e-posta konu başlığını giriniz.');
+      return;
+    }
+
+    const compiledHtml = renderEmailHtml({
+      title: newsletterTitle,
+      subtitle: newsletterSubtitle,
+      bodyText: newsletterBody,
+      ctaText: newsletterCtaText,
+      ctaUrl: newsletterCtaUrl,
+      bannerImage: newsletterBanner,
+      badgeText: newsletterBadge,
+      specialOfferBox: newsletterOfferBox,
+      contactPhone: contactData.phoneDisplay,
+      contactEmail: contactData.email,
+      contactAddress: contactData.address
+    });
+
+    try {
+      const response = await fetch('/api/newsletter/send-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: newsletterSubject,
+          htmlBody: compiledHtml,
+          targetEmails
+        })
+      });
+
+      const data = await response.json();
+      setIsSendingBulk(false);
+      setBulkSendResult(data);
+
+      if (data.success) {
+        showToast(data.message || 'Toplu e-posta gönderimi tamamlandı!');
+      } else {
+        showToast(`Gönderim hatası: ${data.error || 'Ayrıntı alınamadı'}`);
+      }
+    } catch (e: any) {
+      setIsSendingBulk(false);
+      showToast('Sunucu hatası: Gönderim isteği iletilemedi.');
+    }
+  };
+
+  const handleSendTestNewsletter = async () => {
+    if (!testEmailAddress || !testEmailAddress.includes('@')) {
+      alert('Lütfen geçerli bir test e-posta adresi yazınız.');
+      return;
+    }
+    if (!newsletterSubject.trim()) {
+      alert('Lütfen e-posta konu başlığını giriniz.');
+      return;
+    }
+
+    const compiledHtml = renderEmailHtml({
+      title: newsletterTitle,
+      subtitle: newsletterSubtitle,
+      bodyText: newsletterBody,
+      ctaText: newsletterCtaText,
+      ctaUrl: newsletterCtaUrl,
+      bannerImage: newsletterBanner,
+      badgeText: newsletterBadge,
+      specialOfferBox: newsletterOfferBox,
+      contactPhone: contactData.phoneDisplay,
+      contactEmail: contactData.email,
+      contactAddress: contactData.address
+    });
+
+    setIsTestingEmail(true);
+    setBulkSendResult(null);
+
+    try {
+      const response = await fetch('/api/newsletter/send-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: `[TEST] ${newsletterSubject}`,
+          htmlBody: compiledHtml,
+          targetEmails: [testEmailAddress]
+        })
+      });
+
+      const data = await response.json();
+      setIsTestingEmail(false);
+      setBulkSendResult(data);
+
+      if (data.success) {
+        showToast(`Test bülteni '${testEmailAddress}' adresine gönderildi!`);
+      } else {
+        alert(`Test gönderimi başarısız: ${data.error || 'Ayrıntı alınamadı'}`);
+      }
+    } catch (e) {
+      setIsTestingEmail(false);
+      alert('Sunucu hatası: Test e-postası iletilemedi.');
+    }
+  };
 
   const handleSaveEmailConfig = async () => {
     setIsEmailSaving(true);
@@ -546,6 +816,18 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
           </button>
 
           <button
+            onClick={() => setActiveTab('contact')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'contact'
+                ? 'bg-[#082C6C] text-white shadow'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Phone className="w-4 h-4 text-emerald-400" />
+            <span>İletişim & Duyuru Bandı</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('leads')}
             className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'leads'
@@ -555,6 +837,18 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
           >
             <MessageSquare className="w-4 h-4 text-emerald-500" />
             <span>Gelen Müşteri Talepleri ({contactLeads.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('newsletter')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'newsletter'
+                ? 'bg-[#082C6C] text-white shadow'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Users className="w-4 h-4 text-blue-400" />
+            <span>📧 Haber Bülteni & Şablonlar ({subscribers.length})</span>
           </button>
 
           <button
@@ -849,6 +1143,103 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
         {/* Tab 1: General (Hero & About) */}
         {activeTab === 'general' && (
           <div className="space-y-6">
+            
+            {/* Hero Text & Headline Editor */}
+            <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <h3 className="font-bold text-[#111111] text-base flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    <span>Ana Sayfa Manşet Metinleri & Başlık Yönetimi</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">Ana sayfa açılış manşetindeki rozet, başlık, açıklama ve buton yazılarını düzenleyin.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetHeroConfig();
+                    showToast('Hero metinleri varsayılan değerlerine sıfırlandı!');
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Sıfırla</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Üst Rozet Yazısı (Pill Badge)</label>
+                  <input
+                    type="text"
+                    value={heroConfig.badgeText}
+                    onChange={(e) => updateHeroConfig({ badgeText: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Ana Manşet Başlığı</label>
+                  <input
+                    type="text"
+                    value={heroConfig.title}
+                    onChange={(e) => updateHeroConfig({ title: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-bold text-[#082C6C]"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Açıklama Paragrafı</label>
+                  <textarea
+                    rows={3}
+                    value={heroConfig.description}
+                    onChange={(e) => updateHeroConfig({ description: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-normal leading-relaxed"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">1. Buton Yazısı (Sol)</label>
+                  <input
+                    type="text"
+                    value={heroConfig.primaryBtnText}
+                    onChange={(e) => updateHeroConfig({ primaryBtnText: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">2. Buton Yazısı (Sağ)</label>
+                  <input
+                    type="text"
+                    value={heroConfig.secondaryBtnText}
+                    onChange={(e) => updateHeroConfig({ secondaryBtnText: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Sağ Kapak Kartı Başlığı</label>
+                  <input
+                    type="text"
+                    value={heroConfig.signatureModelTitle}
+                    onChange={(e) => updateHeroConfig({ signatureModelTitle: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Sağ Kapak Kartı Alt Yazısı</label>
+                  <input
+                    type="text"
+                    value={heroConfig.signatureModelSub}
+                    onChange={(e) => updateHeroConfig({ signatureModelSub: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-medium"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Hero Main Image */}
             <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -956,20 +1347,74 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
             </div>
 
             <div className="grid grid-cols-1 gap-6">
-              {COLLECTION_ITEMS.map((item) => {
+              {collectionItems.map((item) => {
                 const currentImgs = images.collectionImages[item.id] || {
                   image: item.image,
                   secondaryImage: item.secondaryImage
                 };
 
                 return (
-                  <div key={item.id} className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+                  <div key={item.id} className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-5">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                       <div>
                         <span className="text-[10px] uppercase font-extrabold text-[#082C6C] bg-[#082C6C]/10 px-2 py-0.5 rounded">
                           {item.category}
                         </span>
                         <h4 className="font-bold text-[#111111] text-base mt-1">{item.name}</h4>
+                      </div>
+                      <span className="text-xs text-slate-400 font-mono">ID: {item.id}</span>
+                    </div>
+
+                    {/* Product Text Details Inputs */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/70 p-4 rounded-xl border border-slate-200">
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 block mb-1">Ürün Adı / Başlık</label>
+                        <input
+                          type="text"
+                          value={item.name}
+                          onChange={(e) => updateCollectionItem(item.id, { name: e.target.value })}
+                          className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white font-semibold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 block mb-1">Kategori</label>
+                        <input
+                          type="text"
+                          value={item.category}
+                          onChange={(e) => updateCollectionItem(item.id, { category: e.target.value })}
+                          className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 block mb-1">Alt Başlık / Slogan</label>
+                        <input
+                          type="text"
+                          value={item.subtitle || ''}
+                          onChange={(e) => updateCollectionItem(item.id, { subtitle: e.target.value })}
+                          className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 block mb-1">Öne Çıkan Vurgu (Tagline)</label>
+                        <input
+                          type="text"
+                          value={item.tagline || ''}
+                          onChange={(e) => updateCollectionItem(item.id, { tagline: e.target.value })}
+                          className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="text-xs font-bold text-slate-700 block mb-1">Ürün Detay Açıklaması</label>
+                        <textarea
+                          rows={2}
+                          value={item.description || ''}
+                          onChange={(e) => updateCollectionItem(item.id, { description: e.target.value })}
+                          className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white"
+                        />
                       </div>
                     </div>
 
@@ -1050,7 +1495,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {CRAFTSMANSHIP_STEPS.map((step) => {
+              {craftsmanshipSteps.map((step) => {
                 const currentImg = images.craftsmanshipImages[step.number] || step.image;
 
                 return (
@@ -1066,6 +1511,39 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                         </div>
                       </div>
                       <span className="text-[10px] font-mono text-amber-900 bg-amber-100 px-2 py-0.5 rounded font-bold">1200x800 px</span>
+                    </div>
+
+                    {/* Step Text Fields */}
+                    <div className="space-y-3 bg-slate-50/70 p-3.5 rounded-xl border border-slate-200">
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 block mb-1">Aşama Başlığı</label>
+                        <input
+                          type="text"
+                          value={step.title}
+                          onChange={(e) => updateCraftsmanshipStep(step.number, { title: e.target.value })}
+                          className="w-full px-2.5 py-1.5 text-xs rounded-md border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white font-semibold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 block mb-1">Alt Başlık / Vurgu</label>
+                        <input
+                          type="text"
+                          value={step.subtitle}
+                          onChange={(e) => updateCraftsmanshipStep(step.number, { subtitle: e.target.value })}
+                          className="w-full px-2.5 py-1.5 text-xs rounded-md border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 block mb-1">Aşama Açıklama Metni</label>
+                        <textarea
+                          rows={2}
+                          value={step.description}
+                          onChange={(e) => updateCraftsmanshipStep(step.number, { description: e.target.value })}
+                          className="w-full px-2.5 py-1.5 text-xs rounded-md border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white"
+                        />
+                      </div>
                     </div>
 
                     <div className="flex gap-4 items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
@@ -1126,6 +1604,213 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Tab 4.5: CONTACT INFO & ANNOUNCEMENT TICKER MANAGEMENT */}
+        {activeTab === 'contact' && (
+          <div className="space-y-6">
+            
+            {/* Site Contact Details Form */}
+            <div className="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="font-bold text-[#111111] text-lg flex items-center gap-2">
+                    <Phone className="w-5 h-5 text-[#082C6C]" />
+                    <span>İletişim, Adres & Sosyal Medya Bağlantıları</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Header, Footer ve İletişim sayfasında görüntülenen telefon, adres ve Trendyol mağaza bilgileri.
+                  </p>
+                </div>
+                <button
+                  onClick={resetContactData}
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Sıfırla</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Müşteri Danışma Hattı (Görünür Metin)</label>
+                  <input
+                    type="text"
+                    value={contactData.phoneDisplay}
+                    onChange={(e) => updateContactData({ phoneDisplay: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-semibold"
+                    placeholder="0533 029 71 25"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Arama Linki Telefonu (Ülke Kodlu)</label>
+                  <input
+                    type="text"
+                    value={contactData.phone}
+                    onChange={(e) => updateContactData({ phone: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-mono"
+                    placeholder="+905330297125"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">WhatsApp Sipariş Hattı (Görünür Metin)</label>
+                  <input
+                    type="text"
+                    value={contactData.whatsappDisplay}
+                    onChange={(e) => updateContactData({ whatsappDisplay: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-semibold"
+                    placeholder="0533 029 71 25"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">WhatsApp Numarası (Rakamlar)</label>
+                  <input
+                    type="text"
+                    value={contactData.whatsapp}
+                    onChange={(e) => updateContactData({ whatsapp: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-mono"
+                    placeholder="905330297125"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Kurumsal E-Posta Adresi</label>
+                  <input
+                    type="email"
+                    value={contactData.email}
+                    onChange={(e) => updateContactData({ email: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50"
+                    placeholder="info@iremcomfort.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Showroom & Atölye Çalışma Saatleri</label>
+                  <input
+                    type="text"
+                    value={contactData.showroomHours}
+                    onChange={(e) => updateContactData({ showroomHours: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50"
+                    placeholder="Hafta İçi: 08:30 - 19:00"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Trendyol Mağaza Bağlantısı (URL)</label>
+                  <input
+                    type="text"
+                    value={contactData.trendyolUrl}
+                    onChange={(e) => updateContactData({ trendyolUrl: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50"
+                    placeholder="https://www.trendyol.com/..."
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Instagram Profil URL</label>
+                  <input
+                    type="text"
+                    value={contactData.instagramUrl || ''}
+                    onChange={(e) => updateContactData({ instagramUrl: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50"
+                    placeholder="https://www.instagram.com/irem.comfort"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Manisa Atölye & Showroom Açık Adresi</label>
+                  <textarea
+                    rows={2}
+                    value={contactData.address}
+                    onChange={(e) => updateContactData({ address: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Announcement Ticker Editor */}
+            <div className="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="font-bold text-[#111111] text-lg flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-amber-500" />
+                    <span>En Üstteki Akıcı Duyuru Bandı Metinleri</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Sitenin en üstündeki lacivert bantta sürekli kayan duyuru ve haber mesajları.
+                  </p>
+                </div>
+                <button
+                  onClick={resetAnnouncements}
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Sıfırla</span>
+                </button>
+              </div>
+
+              {/* Add New Announcement Form */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newAnnouncementText}
+                  onChange={(e) => setNewAnnouncementText(e.target.value)}
+                  placeholder="Yeni kayan duyuru satırı ekleyin..."
+                  className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-medium"
+                />
+                <button
+                  onClick={() => {
+                    if (newAnnouncementText.trim()) {
+                      updateAnnouncements([...announcements, newAnnouncementText.trim()]);
+                      setNewAnnouncementText('');
+                      showToast('Duyuru eklendi!');
+                    }
+                  }}
+                  className="px-4 py-2 bg-[#082C6C] hover:bg-[#163E87] text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                >
+                  <Plus className="w-4 h-4 text-amber-300" />
+                  <span>Duyuru Ekle</span>
+                </button>
+              </div>
+
+              {/* Announcements List */}
+              <div className="space-y-3">
+                {announcements.map((line, idx) => (
+                  <div key={idx} className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                    <span className="w-6 h-6 rounded-full bg-[#082C6C]/10 text-[#082C6C] text-[11px] font-bold flex items-center justify-center shrink-0">
+                      {idx + 1}
+                    </span>
+                    <input
+                      type="text"
+                      value={line}
+                      onChange={(e) => {
+                        const updated = [...announcements];
+                        updated[idx] = e.target.value;
+                        updateAnnouncements(updated);
+                      }}
+                      className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white font-medium"
+                    />
+                    <button
+                      onClick={() => {
+                        const updated = announcements.filter((_, i) => i !== idx);
+                        updateAnnouncements(updated);
+                        showToast('Duyuru satırı silindi.');
+                      }}
+                      className="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors cursor-pointer"
+                      title="Sil"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         )}
 
@@ -1236,6 +1921,447 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Tab 5.5: NEWSLETTER BUILDER & SUBSCRIBERS */}
+        {activeTab === 'newsletter' && (
+          <div className="space-y-6">
+            
+            {/* Sub-navigation bar between Builder and Subscribers List */}
+            <div className="flex items-center gap-2 p-1.5 bg-slate-200/70 rounded-2xl w-fit">
+              <button
+                onClick={() => setNewsletterSubTab('builder')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                  newsletterSubTab === 'builder'
+                    ? 'bg-[#082C6C] text-white shadow-sm'
+                    : 'text-slate-700 hover:bg-slate-300/60'
+                }`}
+              >
+                <Send className="w-3.5 h-3.5 text-amber-300" />
+                <span>🚀 E-Bülten Hazırla & Toplu Gönder</span>
+              </button>
+
+              <button
+                onClick={() => setNewsletterSubTab('subscribers')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                  newsletterSubTab === 'subscribers'
+                    ? 'bg-[#082C6C] text-white shadow-sm'
+                    : 'text-slate-700 hover:bg-slate-300/60'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5 text-blue-300" />
+                <span>👥 Aboneler Listesi ({subscribers.length})</span>
+              </button>
+            </div>
+
+            {/* SECTION 1: E-NEWSLETTER BUILDER */}
+            {newsletterSubTab === 'builder' && (
+              <div className="space-y-6">
+                
+                {/* 1. Template Chooser Cards */}
+                <div className="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                  <div>
+                    <h3 className="font-bold text-[#111111] text-base flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-amber-500" />
+                      <span>Hazır HTML E-Posta Şablonları</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Aşağıdaki hazır şablonlardan birini seçerek metinlerini, ürün başlıklarını ve bağlantılarını düzenleyebilirsiniz.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {EMAIL_TEMPLATES.map((tpl) => {
+                      const isSelected = selectedTemplateId === tpl.id;
+                      return (
+                        <div
+                          key={tpl.id}
+                          onClick={() => applyTemplateDefaults(tpl.id)}
+                          className={`p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
+                            isSelected
+                              ? 'bg-blue-50/70 border-[#082C6C] shadow-md ring-2 ring-[#082C6C]/20'
+                              : 'bg-white border-slate-200 hover:border-[#082C6C]/40 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div>
+                            <h4 className="font-bold text-slate-900 text-xs sm:text-sm">{tpl.name}</h4>
+                            <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">{tpl.description}</p>
+                          </div>
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded w-fit ${
+                            isSelected ? 'bg-[#082C6C] text-white' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {isSelected ? '✓ Seçili Şablon' : 'Şablonu Seç'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Editor & Live Preview Split */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  
+                  {/* Left Column: Form Controls */}
+                  <div className="lg:col-span-6 p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                    <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                      <h4 className="font-bold text-[#111111] text-sm flex items-center gap-2">
+                        <Sliders className="w-4 h-4 text-[#082C6C]" />
+                        <span>E-Posta Metin & İçerik Düzenleyici</span>
+                      </h4>
+                      <span className="text-[10px] bg-amber-100 text-amber-900 px-2 py-0.5 rounded font-bold">
+                        Dinamik HTML
+                      </span>
+                    </div>
+
+                    <div className="space-y-3.5 text-xs">
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">E-Posta Konu Başlığı (Subject)</label>
+                        <input
+                          type="text"
+                          value={newsletterSubject}
+                          onChange={(e) => setNewsletterSubject(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-semibold text-xs"
+                          placeholder="E-posta gelen kutusunda görünecek başlık..."
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="font-bold text-slate-700 block mb-1">Üst Rozet Metni</label>
+                          <input
+                            type="text"
+                            value={newsletterBadge}
+                            onChange={(e) => setNewsletterBadge(e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 text-xs font-medium"
+                            placeholder="Örn: YENİ SEZON KATALOĞU"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="font-bold text-slate-700 block mb-1">Afiş Görsel URL</label>
+                          <input
+                            type="text"
+                            value={newsletterBanner}
+                            onChange={(e) => setNewsletterBanner(e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 text-xs"
+                            placeholder="https://..."
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">Ana Başlık (H1)</label>
+                        <input
+                          type="text"
+                          value={newsletterTitle}
+                          onChange={(e) => setNewsletterTitle(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 text-xs font-bold text-[#082C6C]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">Alt Başlık (H2)</label>
+                        <input
+                          type="text"
+                          value={newsletterSubtitle}
+                          onChange={(e) => setNewsletterSubtitle(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 text-xs"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">Gövde Metni / Paragraflar</label>
+                        <textarea
+                          rows={6}
+                          value={newsletterBody}
+                          onChange={(e) => setNewsletterBody(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 text-xs font-normal leading-relaxed"
+                          placeholder="Paragraf araları için boş satır bırakabilirsiniz..."
+                        />
+                      </div>
+
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">Vurgu Kutusu / Özel Fırsat Metni (İsteğe Bağlı)</label>
+                        <input
+                          type="text"
+                          value={newsletterOfferBox}
+                          onChange={(e) => setNewsletterOfferBox(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-blue-50/50 text-xs font-semibold text-blue-900"
+                          placeholder="Örn: ⚡ Bu ay verilen siparişlerde kargo ücretsiz..."
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="font-bold text-slate-700 block mb-1">Buton Üzerindeki Yazı</label>
+                          <input
+                            type="text"
+                            value={newsletterCtaText}
+                            onChange={(e) => setNewsletterCtaText(e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 text-xs font-bold"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="font-bold text-slate-700 block mb-1">Buton Yönlendirme Linki (URL)</label>
+                          <input
+                            type="text"
+                            value={newsletterCtaUrl}
+                            onChange={(e) => setNewsletterCtaUrl(e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Live HTML Preview & Send Action */}
+                  <div className="lg:col-span-6 space-y-4">
+                    
+                    {/* Bulk Send Action Box */}
+                    <div className="p-6 bg-[#082C6C] text-white rounded-2xl shadow-xl space-y-4 border border-white/10">
+                      <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                        <div>
+                          <h4 className="font-bold text-base flex items-center gap-2">
+                            <Send className="w-5 h-5 text-amber-300" />
+                            <span>Toplu Gönderim Merkezi</span>
+                          </h4>
+                          <p className="text-xs text-white/70 mt-0.5">
+                            Hazırladığınız bu bülten sistemdeki tüm e-posta abonelerine iletilecektir.
+                          </p>
+                        </div>
+                        <span className="bg-amber-400 text-slate-900 font-extrabold text-xs px-3 py-1 rounded-full">
+                          {subscribers.length} Abone
+                        </span>
+                      </div>
+
+                      {bulkSendResult && (
+                        <div className={`p-4 rounded-xl text-xs font-medium border ${
+                          bulkSendResult.success ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/30' : 'bg-rose-500/20 text-rose-200 border-rose-500/30'
+                        }`}>
+                          <p className="font-bold">{bulkSendResult.message || (bulkSendResult.success ? 'Gönderim tamamlandı' : 'Gönderim başarısız')}</p>
+                          {bulkSendResult.isSimulation && (
+                            <p className="mt-1 text-[11px] opacity-80">
+                              ℹ️ SMTP bilgileri henüz tanımlanmadığı için gönderim simülasyon olarak günlüğe kaydedildi. Gerçek gönderim için "E-Posta & SMTP Ayarları" sekmesinden SMTP bilgilerinizi giriniz.
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      <button
+                        onClick={handleSendBulkNewsletter}
+                        disabled={isSendingBulk}
+                        className="w-full py-3.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-sm rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                      >
+                        {isSendingBulk ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+                            <span>Toplu E-Postalar Gönderiliyor...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4" />
+                            <span>Tüm Abonelere ({subscribers.length > 0 ? subscribers.length : 'Kayıtlı'}) Bülteni Gönder</span>
+                          </>
+                        )}
+                      </button>
+
+                      <div className="pt-3 border-t border-white/10 space-y-2">
+                        <label className="text-xs font-bold text-amber-200 block">
+                          🧪 Kendine Test E-Postası Gönder (Önizlemeyi E-Postana At)
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="email"
+                            value={testEmailAddress}
+                            onChange={(e) => setTestEmailAddress(e.target.value)}
+                            placeholder="Örn: info@iremcomfort.com"
+                            className="flex-1 px-3 py-2 text-xs bg-white/10 text-white rounded-xl border border-white/20 focus:outline-none focus:border-amber-300 placeholder:text-white/50"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleSendTestNewsletter}
+                            disabled={isTestingEmail || !testEmailAddress}
+                            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-amber-300 font-bold text-xs rounded-xl border border-amber-400/40 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          >
+                            {isTestingEmail ? 'Gönderiliyor...' : 'Test Et'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Live HTML Preview Box */}
+                    <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                          <Eye className="w-4 h-4 text-[#082C6C]" />
+                          <span>E-Posta Canlı Önizlemesi (Müşteri Ekranı)</span>
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400">Görüntüleme Modu</span>
+                      </div>
+
+                      <div className="w-full h-[500px] border border-slate-200 rounded-xl overflow-hidden bg-slate-100">
+                        <iframe
+                          title="HTML Newsletter Preview"
+                          srcDoc={renderEmailHtml({
+                            title: newsletterTitle,
+                            subtitle: newsletterSubtitle,
+                            bodyText: newsletterBody,
+                            ctaText: newsletterCtaText,
+                            ctaUrl: newsletterCtaUrl,
+                            bannerImage: newsletterBanner,
+                            badgeText: newsletterBadge,
+                            specialOfferBox: newsletterOfferBox,
+                            contactPhone: contactData.phoneDisplay,
+                            contactEmail: contactData.email,
+                            contactAddress: contactData.address
+                          })}
+                          className="w-full h-full border-none"
+                        />
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+              </div>
+            )}
+
+            {/* SECTION 2: SUBSCRIBERS LIST TABLE */}
+            {newsletterSubTab === 'subscribers' && (
+              <div className="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                
+                {/* Header & Quick Action Buttons */}
+                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                  <div>
+                    <h3 className="font-bold text-[#111111] text-lg flex items-center gap-2">
+                      <Users className="w-5 h-5 text-[#082C6C]" />
+                      <span>Haber Bülteni & Katalog Aboneleri Listesi</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Sitedeki e-bülten ve katalog formundan veya fuar kayıtlarından aboneliğe kaydolan tüm e-posta adresleri.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleCopyEmails}
+                      disabled={subscribers.length === 0}
+                      className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      <Copy className="w-3.5 h-3.5 text-[#082C6C]" />
+                      <span>Tüm E-Postaları Kopyala</span>
+                    </button>
+
+                    <button
+                      onClick={handleDownloadCSV}
+                      disabled={subscribers.length === 0}
+                      className="px-3.5 py-2 rounded-xl bg-[#082C6C] hover:bg-[#163E87] text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+                    >
+                      <Download className="w-3.5 h-3.5 text-amber-300" />
+                      <span>CSV İndir</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Add New Subscriber & Search Bar */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                  {/* Manual Add Form */}
+                  <form onSubmit={handleAddSubscriber} className="lg:col-span-6 flex gap-2">
+                    <input
+                      type="email"
+                      required
+                      value={newSubEmail}
+                      onChange={(e) => setNewSubEmail(e.target.value)}
+                      placeholder="Manuel yeni e-posta abonesi ekle..."
+                      className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-medium"
+                    />
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1 cursor-pointer shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Abone Ekle</span>
+                    </button>
+                  </form>
+
+                  {/* Filter Search */}
+                  <div className="lg:col-span-6 relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                      <Search className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      value={subscriberSearch}
+                      onChange={(e) => setSubscriberSearch(e.target.value)}
+                      placeholder="E-postaya göre filtrele..."
+                      className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-medium"
+                    />
+                  </div>
+                </div>
+
+                {/* Subscribers Table */}
+                {isSubscribersLoading ? (
+                  <div className="p-8 text-center text-xs text-slate-500 font-medium">
+                    Aboneler yükleniyor...
+                  </div>
+                ) : subscribers.length === 0 ? (
+                  <div className="p-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-500 space-y-2">
+                    <Mail className="w-8 h-8 text-slate-400 mx-auto" />
+                    <p className="text-sm font-semibold">Henüz e-bülten abonesi bulunmuyor.</p>
+                    <p className="text-xs">Sitedeki e-bülten alanından abone olan müşteriler burada listelenecektir.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                        <tr>
+                          <th className="p-3">#</th>
+                          <th className="p-3">E-Posta Adresi</th>
+                          <th className="p-3">Kayıt Tarihi</th>
+                          <th className="p-3">Kaynak</th>
+                          <th className="p-3 text-right">İşlem</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {subscribers
+                          .filter(s => s.email.toLowerCase().includes(subscriberSearch.toLowerCase()))
+                          .map((sub, idx) => (
+                            <tr key={sub.id || idx} className="hover:bg-slate-50 transition-colors">
+                              <td className="p-3 font-mono text-slate-400">{idx + 1}</td>
+                              <td className="p-3 font-semibold text-[#082C6C]">
+                                <a href={`mailto:${sub.email}`} className="hover:underline">
+                                  {sub.email}
+                                </a>
+                              </td>
+                              <td className="p-3 text-slate-600 font-mono">
+                                {sub.createdAt ? new Date(sub.createdAt).toLocaleString('tr-TR') : 'Bugün'}
+                              </td>
+                              <td className="p-3">
+                                <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-[10px] font-bold uppercase border border-blue-200">
+                                  {sub.source || 'Web Form'}
+                                </span>
+                              </td>
+                              <td className="p-3 text-right">
+                                <button
+                                  onClick={() => handleDeleteSubscriber(sub.id)}
+                                  className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors cursor-pointer"
+                                  title="Aboneyi Sil"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+              </div>
+            )}
+
           </div>
         )}
 

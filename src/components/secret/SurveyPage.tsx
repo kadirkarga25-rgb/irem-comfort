@@ -211,19 +211,35 @@ export function SurveyPage({ onReturnToSite }: SurveyPageProps) {
     const avgScore = calculateAverage();
 
     try {
-      // Send to server API contact/lead handler or EmailJS proxy
-      await fetch('/api/contact', {
+      await fetch('/api/survey', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: formData.name || 'Anket Müşterisi',
-          email: formData.email || 'bilgi yapılmadı',
-          phone: formData.phone || 'bilgi yapılmadı',
-          note: `[MÜŞTERİ DENEYİM ANKETİ] Model: ${formData.model}, Numara: ${formData.size}, Platform: ${formData.platform}, Ortalama Puan: ${avgScore}/5, NPS: ${formData.npsScore}/10, Yorum: ${formData.comment}`
+          phone: formData.phone,
+          email: formData.email,
+          platform: formData.platform,
+          model: formData.model,
+          color: formData.color,
+          size: formData.size,
+          overall: formData.overall,
+          comfort: formData.comfort,
+          quality: formData.quality,
+          ortho: formData.ortho,
+          light: formData.light,
+          design: formData.design,
+          price: formData.price,
+          packaging: formData.packaging,
+          shipping: formData.shipping,
+          fit: formData.fit,
+          likes: formData.likes,
+          comment: formData.comment,
+          npsScore: formData.npsScore,
+          avgScore: avgScore
         })
       });
     } catch (err) {
-      console.log('Survey submitted via client calculation');
+      console.error('Survey submission API error:', err);
     } finally {
       setIsSubmitting(false);
       if (avgScore >= 4) setThanksType('good');
@@ -883,9 +899,32 @@ export function SurveyPage({ onReturnToSite }: SurveyPageProps) {
                 </p>
               </div>
 
+              {/* 50 TL Discount Coupon Box */}
+              <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl text-center space-y-1 my-3 shadow-sm">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-amber-800 block">
+                  🎁 Teşekkür Hediyeniz — 50 TL İndirim Kodunuz
+                </span>
+                <span className="text-2xl font-black font-mono text-[#082C6C] bg-white px-4 py-1 rounded-lg border border-amber-400 inline-block tracking-wider my-1">
+                  THANKS50
+                </span>
+                <p className="text-[11px] text-amber-900 font-medium">
+                  <strong>Trendyol Mağazamızda</strong>, web sitemizde ve WhatsApp sipariş hattımızda geçerlidir.
+                </p>
+              </div>
+
               <div className="space-y-2 pt-2">
                 <a
-                  href="https://ty.gl/965fqo5yu60yf"
+                  href="https://www.trendyol.com/magaza/irem-comfort-m-1286942?sst=0&channelId=1"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full py-3 bg-[#f27a1a] hover:bg-[#d6650d] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-orange-500/20"
+                >
+                  <ShoppingBag className="w-4 h-4 text-white" />
+                  <span>Trendyol Mağazamıza Git ve Alışveriş Yap</span>
+                </a>
+
+                <a
+                  href="https://www.trendyol.com/magaza/irem-comfort-m-1286942?sst=0&channelId=1"
                   target="_blank"
                   rel="noreferrer"
                   className="w-full py-3 bg-[#082C6C] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2"
@@ -929,6 +968,31 @@ export function SurveyPage({ onReturnToSite }: SurveyPageProps) {
                 </p>
               </div>
 
+              {/* 50 TL Discount Coupon Box */}
+              <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl text-center space-y-1 my-3 shadow-sm">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-amber-800 block">
+                  🎁 Teşekkür Hediyeniz — 50 TL İndirim Kodunuz
+                </span>
+                <span className="text-2xl font-black font-mono text-[#082C6C] bg-white px-4 py-1 rounded-lg border border-amber-400 inline-block tracking-wider my-1">
+                  THANKS50
+                </span>
+                <p className="text-[11px] text-amber-900 font-medium">
+                  <strong>Trendyol Mağazamızda</strong>, web sitemizde ve WhatsApp sipariş hattımızda geçerlidir.
+                </p>
+              </div>
+
+              <div className="pb-2">
+                <a
+                  href="https://www.trendyol.com/magaza/irem-comfort-m-1286942?sst=0&channelId=1"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full py-2.5 bg-[#f27a1a] hover:bg-[#d6650d] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm"
+                >
+                  <ShoppingBag className="w-4 h-4 text-white" />
+                  <span>Trendyol Mağazamıza Git</span>
+                </a>
+              </div>
+
               {onReturnToSite && (
                 <div className="pt-2">
                   <button
@@ -953,6 +1017,19 @@ export function SurveyPage({ onReturnToSite }: SurveyPageProps) {
                 </h2>
                 <p className="text-xs text-slate-600 leading-relaxed max-w-sm mx-auto">
                   Lütfen bize yaşadığınız sorunu iletiniz. Müşteri temsilcilerimiz size yardımcı olmak ve telafi etmek için hazır beklemektedir.
+                </p>
+              </div>
+
+              {/* 50 TL Discount Coupon Box */}
+              <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl text-center space-y-1 my-3 shadow-sm">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-amber-800 block">
+                  🎁 Teşekkür Hediyeniz — 50 TL İndirim Kodunuz
+                </span>
+                <span className="text-2xl font-black font-mono text-[#082C6C] bg-white px-4 py-1 rounded-lg border border-amber-400 inline-block tracking-wider my-1">
+                  THANKS50
+                </span>
+                <p className="text-[11px] text-amber-900 font-medium">
+                  <strong>Trendyol Mağazamızda</strong>, web sitemizde ve WhatsApp sipariş hattımızda geçerlidir.
                 </p>
               </div>
 

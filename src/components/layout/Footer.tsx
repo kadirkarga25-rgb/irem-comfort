@@ -2,13 +2,19 @@ import React from 'react';
 import { LogoFull } from '../brand/LogoFull';
 import { CONTACT_DATA, BRAND_NAME } from '../../constants/data';
 import { ArrowUp, Instagram, MessageCircle, Mail, MapPin, ShoppingBag } from 'lucide-react';
+import { useAppImages } from '../../context/ImageContext';
+import { LegalDocType } from '../ui/LegalModal';
 
 interface FooterProps {
   onNavigate: (sectionId: string) => void;
   onAdminClick?: () => void;
+  onOpenLegalDoc?: (docType: LegalDocType) => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onNavigate, onAdminClick }) => {
+export const Footer: React.FC<FooterProps> = ({ onNavigate, onAdminClick, onOpenLegalDoc }) => {
+  const { contactData: liveContact } = useAppImages();
+  const contact = liveContact || CONTACT_DATA;
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -31,9 +37,9 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onAdminClick }) => {
             </p>
 
             <div className="flex items-center space-x-3 pt-2">
-              {CONTACT_DATA.trendyolUrl && (
+              {contact.trendyolUrl && (
                 <a
-                  href={CONTACT_DATA.trendyolUrl}
+                  href={contact.trendyolUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-3.5 py-2 rounded-full bg-[#F27A1A] hover:bg-[#d9660c] text-white text-xs font-bold tracking-wider uppercase flex items-center gap-1.5 transition-all shadow-md"
@@ -45,7 +51,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onAdminClick }) => {
               )}
 
               <a
-                href="https://www.instagram.com/irem.comfort"
+                href={contact.instagramUrl || "https://www.instagram.com/irem.comfort"}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-full bg-white/10 hover:bg-white text-white hover:text-[#082C6C] flex items-center justify-center transition-all"
@@ -55,7 +61,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onAdminClick }) => {
               </a>
 
               <a
-                href={`https://wa.me/${CONTACT_DATA.whatsapp}`}
+                href={`https://wa.me/${contact.whatsapp}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-full bg-white/10 hover:bg-white text-white hover:text-[#0A2D6F] flex items-center justify-center transition-all"
@@ -65,7 +71,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onAdminClick }) => {
               </a>
 
               <a
-                href={`mailto:${CONTACT_DATA.email}`}
+                href={`mailto:${contact.email}`}
                 className="w-10 h-10 rounded-full bg-white/10 hover:bg-white text-white hover:text-[#0A2D6F] flex items-center justify-center transition-all"
                 aria-label="Email"
               >
@@ -102,7 +108,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onAdminClick }) => {
               </li>
               <li>
                 <button onClick={() => onNavigate('why-us')} className="hover:text-white transition-colors cursor-pointer">
-                  Neden İrem Comfort?
+                  Neden Biz?
                 </button>
               </li>
               <li>
@@ -121,7 +127,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onAdminClick }) => {
             <div className="space-y-3 text-sm text-white/80 font-light">
               <div className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-white/60 shrink-0 mt-1" />
-                <span>{CONTACT_DATA.address}</span>
+                <span>{contact.address}</span>
               </div>
               <p className="text-xs text-white/60 pt-2 border-t border-white/10">
                 Manisa • İstanbul • Özel Proje Gönderimi
@@ -135,9 +141,25 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onAdminClick }) => {
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/50">
           <p>© {new Date().getFullYear()} {BRAND_NAME}. Tüm Hakları Saklıdır. www.iremcomfort.com</p>
 
-          <div className="flex items-center gap-6">
-            <span className="hover:text-white transition-colors">Gizlilik Politikamız</span>
-            <span className="hover:text-white transition-colors">KVKK</span>
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+            <button
+              onClick={() => onOpenLegalDoc && onOpenLegalDoc('privacy')}
+              className="hover:text-white transition-colors cursor-pointer text-xs"
+            >
+              Gizlilik Politikamız
+            </button>
+            <button
+              onClick={() => onOpenLegalDoc && onOpenLegalDoc('kvkk')}
+              className="hover:text-white transition-colors cursor-pointer text-xs"
+            >
+              KVKK Metni
+            </button>
+            <button
+              onClick={() => onOpenLegalDoc && onOpenLegalDoc('cookies')}
+              className="hover:text-white transition-colors cursor-pointer text-xs"
+            >
+              Çerez Politikası
+            </button>
             {onAdminClick ? (
               <button
                 onClick={onAdminClick}

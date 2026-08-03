@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CONTACT_DATA } from '../../constants/data';
 import { Phone, MessageCircle, Instagram, Mail, MapPin, Send, CheckCircle2, Clock, BadgeCheck, ExternalLink, ShoppingBag } from 'lucide-react';
+import { useAppImages } from '../../context/ImageContext';
 
 interface ContactSectionProps {
   prefilledSubject?: string;
 }
 
 export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject = '' }) => {
+  const { contactData: liveContact } = useAppImages();
+  const contact = liveContact || CONTACT_DATA;
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',

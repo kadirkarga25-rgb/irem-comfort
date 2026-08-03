@@ -1,5 +1,21 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { COLLECTION_ITEMS, CRAFTSMANSHIP_STEPS } from '../constants/data';
+import { 
+  COLLECTION_ITEMS, 
+  CRAFTSMANSHIP_STEPS, 
+  CONTACT_DATA, 
+  ANNOUNCEMENT_TICKER 
+} from '../constants/data';
+import { CollectionItem, CraftsmanshipStep, ContactInfo } from '../types';
+
+export interface HeroConfig {
+  badgeText: string;
+  title: string;
+  description: string;
+  primaryBtnText: string;
+  secondaryBtnText: string;
+  signatureModelTitle: string;
+  signatureModelSub: string;
+}
 
 export interface FairConfig {
   enabled: boolean;
@@ -25,6 +41,16 @@ export interface AppImages {
 const DEFAULT_HERO_IMAGE = 'https://images.unsplash.com/photo-1603808033176-9d134e6f2c74?auto=format&fit=crop&q=80&w=1200';
 const DEFAULT_ABOUT_IMAGE = 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&q=80&w=1200';
 
+export const DEFAULT_HERO_CONFIG: HeroConfig = {
+  badgeText: 'Kuruluş 1993 • Manisa Ayakkabıcılar Sitesi İmalatı',
+  title: 'Bayan Comfort Deri Sandalet & Terlik.',
+  description: '%100 Hakiki deri saya, ortopedik kavisli anatomik taban ve Manisa atölyemizin usta el işçiliği. Gün boyu adımlarınıza hafiflik ve zarif konfor katan yeni sezon modellerimizi keşfedin.',
+  primaryBtnText: 'Koleksiyonu Keşfet',
+  secondaryBtnText: 'Atölyemiz',
+  signatureModelTitle: 'Çift Tokalı Hakiki Deri Terlik',
+  signatureModelSub: 'Yumuşak Dana Derisi Saya • Anatomik Yumuşak Konfor Taban'
+};
+
 export const DEFAULT_FAIR_CONFIG: FairConfig = {
   enabled: true,
   name: 'AYMOD Uluslararası Ayakkabı Moda Fuarı',
@@ -36,7 +62,7 @@ export const DEFAULT_FAIR_CONFIG: FairConfig = {
   posterUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&q=80&w=1200',
   qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://iremcomfort.com/fuar-stanti',
   badgeText: 'RESMİ FUAR DAVETİ',
-  whatsappContact: '905336688329'
+  whatsappContact: '905330297125'
 };
 
 const getDefaultImages = (): AppImages => {
@@ -69,10 +95,35 @@ interface ImageContextType {
   updateCollectionImage: (itemId: string, field: 'image' | 'secondaryImage', url: string) => void;
   resetAllImages: () => void;
   
+  // Hero Text & Banner Config
+  heroConfig: HeroConfig;
+  updateHeroConfig: (newConfig: Partial<HeroConfig>) => void;
+  resetHeroConfig: () => void;
+
   // Fair Config
   fairConfig: FairConfig;
   updateFairConfig: (newConfig: Partial<FairConfig>) => void;
   resetFairConfig: () => void;
+
+  // Contact Info Config
+  contactData: ContactInfo;
+  updateContactData: (newContact: Partial<ContactInfo>) => void;
+  resetContactData: () => void;
+
+  // Announcements Ticker Config
+  announcements: string[];
+  updateAnnouncements: (list: string[]) => void;
+  resetAnnouncements: () => void;
+
+  // Collection Items Dynamic Store
+  collectionItems: CollectionItem[];
+  updateCollectionItem: (itemId: string, newItem: Partial<CollectionItem>) => void;
+  resetCollectionItems: () => void;
+
+  // Craftsmanship Steps Dynamic Store
+  craftsmanshipSteps: CraftsmanshipStep[];
+  updateCraftsmanshipStep: (stepNumber: string, newStep: Partial<CraftsmanshipStep>) => void;
+  resetCraftsmanshipSteps: () => void;
 
   isManagerOpen: boolean;
   setIsManagerOpen: (open: boolean) => void;
@@ -81,7 +132,12 @@ interface ImageContextType {
 const ImageContext = createContext<ImageContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_KEY = 'irem_comfort_app_images_v1';
+const LOCAL_STORAGE_HERO_KEY = 'irem_comfort_hero_config_v1';
 const LOCAL_STORAGE_FAIR_KEY = 'irem_comfort_fair_config_v1';
+const LOCAL_STORAGE_CONTACT_KEY = 'irem_comfort_contact_v1';
+const LOCAL_STORAGE_ANNOUNCEMENTS_KEY = 'irem_comfort_announcements_v1';
+const LOCAL_STORAGE_COLLECTION_KEY = 'irem_comfort_collection_items_v1';
+const LOCAL_STORAGE_CRAFTSMANSHIP_KEY = 'irem_comfort_craftsmanship_v1';
 
 export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [images, setImages] = useState<AppImages>(() => {
@@ -103,6 +159,18 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return getDefaultImages();
   });
 
+  const [heroConfig, setHeroConfig] = useState<HeroConfig>(() => {
+    try {
+      const savedHero = localStorage.getItem(LOCAL_STORAGE_HERO_KEY);
+      if (savedHero) {
+        return { ...DEFAULT_HERO_CONFIG, ...JSON.parse(savedHero) };
+      }
+    } catch (e) {
+      console.error('Failed to parse saved hero config', e);
+    }
+    return DEFAULT_HERO_CONFIG;
+  });
+
   const [fairConfig, setFairConfig] = useState<FairConfig>(() => {
     try {
       const savedFair = localStorage.getItem(LOCAL_STORAGE_FAIR_KEY);
@@ -115,76 +183,228 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return DEFAULT_FAIR_CONFIG;
   });
 
+  const [contactData, setContactData] = useState<ContactInfo>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_CONTACT_KEY);
+      if (saved) return { ...CONTACT_DATA, ...JSON.parse(saved) };
+    } catch (e) {}
+    return CONTACT_DATA;
+  });
+
+  const [announcements, setAnnouncements] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_ANNOUNCEMENTS_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return ANNOUNCEMENT_TICKER;
+  });
+
+  const [collectionItems, setCollectionItems] = useState<CollectionItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_COLLECTION_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return COLLECTION_ITEMS;
+  });
+
+  const [craftsmanshipSteps, setCraftsmanshipSteps] = useState<CraftsmanshipStep[]>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_CRAFTSMANSHIP_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return CRAFTSMANSHIP_STEPS;
+  });
+
   const [isManagerOpen, setIsManagerOpen] = useState(false);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(images));
-    } catch (e) {
-      console.error('Failed to save images to localStorage', e);
-    }
+    try { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(images)); } catch (e) {}
   }, [images]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_STORAGE_FAIR_KEY, JSON.stringify(fairConfig));
-    } catch (e) {
-      console.error('Failed to save fair config to localStorage', e);
-    }
+    try { localStorage.setItem(LOCAL_STORAGE_HERO_KEY, JSON.stringify(heroConfig)); } catch (e) {}
+  }, [heroConfig]);
+
+  useEffect(() => {
+    try { localStorage.setItem(LOCAL_STORAGE_FAIR_KEY, JSON.stringify(fairConfig)); } catch (e) {}
   }, [fairConfig]);
 
+  useEffect(() => {
+    try { localStorage.setItem(LOCAL_STORAGE_CONTACT_KEY, JSON.stringify(contactData)); } catch (e) {}
+  }, [contactData]);
+
+  useEffect(() => {
+    try { localStorage.setItem(LOCAL_STORAGE_ANNOUNCEMENTS_KEY, JSON.stringify(announcements)); } catch (e) {}
+  }, [announcements]);
+
+  useEffect(() => {
+    try { localStorage.setItem(LOCAL_STORAGE_COLLECTION_KEY, JSON.stringify(collectionItems)); } catch (e) {}
+  }, [collectionItems]);
+
+  useEffect(() => {
+    try { localStorage.setItem(LOCAL_STORAGE_CRAFTSMANSHIP_KEY, JSON.stringify(craftsmanshipSteps)); } catch (e) {}
+  }, [craftsmanshipSteps]);
+
+  // Sync settings with Backend Server on App Boot
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data?.success && data?.settings) {
+          const s = data.settings;
+          if (s.images) setImages(s.images);
+          if (s.heroConfig) setHeroConfig(s.heroConfig);
+          if (s.fairConfig) setFairConfig(s.fairConfig);
+          if (s.contactData) setContactData(s.contactData);
+          if (s.announcements) setAnnouncements(s.announcements);
+          if (s.collectionItems) setCollectionItems(s.collectionItems);
+          if (s.craftsmanshipSteps) setCraftsmanshipSteps(s.craftsmanshipSteps);
+        }
+      })
+      .catch(err => console.error("Could not fetch global settings from server:", err));
+  }, []);
+
+  const saveToServer = (payload: Record<string, any>) => {
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ settings: payload }),
+    }).catch(err => console.error("Failed saving to server:", err));
+  };
+
   const updateHeroImage = (url: string) => {
-    setImages(prev => ({ ...prev, heroImage: url }));
+    setImages(prev => {
+      const next = { ...prev, heroImage: url };
+      saveToServer({ images: next });
+      return next;
+    });
   };
 
   const updateAboutImage = (url: string) => {
-    setImages(prev => ({ ...prev, aboutImage: url }));
+    setImages(prev => {
+      const next = { ...prev, aboutImage: url };
+      saveToServer({ images: next });
+      return next;
+    });
   };
 
   const updateCraftsmanshipImage = (stepNumber: string, url: string) => {
-    setImages(prev => ({
-      ...prev,
-      craftsmanshipImages: {
-        ...prev.craftsmanshipImages,
-        [stepNumber]: url
-      }
-    }));
+    setImages(prev => {
+      const next = {
+        ...prev,
+        craftsmanshipImages: {
+          ...prev.craftsmanshipImages,
+          [stepNumber]: url
+        }
+      };
+      saveToServer({ images: next });
+      return next;
+    });
   };
 
   const updateCollectionImage = (itemId: string, field: 'image' | 'secondaryImage', url: string) => {
-    setImages(prev => ({
-      ...prev,
-      collectionImages: {
-        ...prev.collectionImages,
-        [itemId]: {
-          ...prev.collectionImages[itemId],
-          [field]: url
+    setImages(prev => {
+      const next = {
+        ...prev,
+        collectionImages: {
+          ...prev.collectionImages,
+          [itemId]: {
+            ...prev.collectionImages[itemId],
+            [field]: url
+          }
         }
-      }
-    }));
+      };
+      saveToServer({ images: next });
+      return next;
+    });
   };
 
   const resetAllImages = () => {
     const defaults = getDefaultImages();
     setImages(defaults);
-    try {
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-    } catch (e) {
-      // ignore
-    }
+    saveToServer({ images: defaults });
+    try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch (e) {}
+  };
+
+  const updateHeroConfig = (newConfig: Partial<HeroConfig>) => {
+    setHeroConfig(prev => {
+      const next = { ...prev, ...newConfig };
+      saveToServer({ heroConfig: next });
+      return next;
+    });
+  };
+
+  const resetHeroConfig = () => {
+    setHeroConfig(DEFAULT_HERO_CONFIG);
+    saveToServer({ heroConfig: DEFAULT_HERO_CONFIG });
+    try { localStorage.removeItem(LOCAL_STORAGE_HERO_KEY); } catch (e) {}
   };
 
   const updateFairConfig = (newConfig: Partial<FairConfig>) => {
-    setFairConfig(prev => ({ ...prev, ...newConfig }));
+    setFairConfig(prev => {
+      const next = { ...prev, ...newConfig };
+      saveToServer({ fairConfig: next });
+      return next;
+    });
   };
 
   const resetFairConfig = () => {
     setFairConfig(DEFAULT_FAIR_CONFIG);
-    try {
-      localStorage.removeItem(LOCAL_STORAGE_FAIR_KEY);
-    } catch (e) {
-      // ignore
-    }
+    saveToServer({ fairConfig: DEFAULT_FAIR_CONFIG });
+    try { localStorage.removeItem(LOCAL_STORAGE_FAIR_KEY); } catch (e) {}
+  };
+
+  const updateContactData = (newContact: Partial<ContactInfo>) => {
+    setContactData(prev => {
+      const next = { ...prev, ...newContact };
+      saveToServer({ contactData: next });
+      return next;
+    });
+  };
+
+  const resetContactData = () => {
+    setContactData(CONTACT_DATA);
+    saveToServer({ contactData: CONTACT_DATA });
+    try { localStorage.removeItem(LOCAL_STORAGE_CONTACT_KEY); } catch (e) {}
+  };
+
+  const updateAnnouncements = (list: string[]) => {
+    setAnnouncements(list);
+    saveToServer({ announcements: list });
+  };
+
+  const resetAnnouncements = () => {
+    setAnnouncements(ANNOUNCEMENT_TICKER);
+    saveToServer({ announcements: ANNOUNCEMENT_TICKER });
+    try { localStorage.removeItem(LOCAL_STORAGE_ANNOUNCEMENTS_KEY); } catch (e) {}
+  };
+
+  const updateCollectionItem = (itemId: string, newItem: Partial<CollectionItem>) => {
+    setCollectionItems(prev => {
+      const next = prev.map(item => item.id === itemId ? { ...item, ...newItem } : item);
+      saveToServer({ collectionItems: next });
+      return next;
+    });
+  };
+
+  const resetCollectionItems = () => {
+    setCollectionItems(COLLECTION_ITEMS);
+    saveToServer({ collectionItems: COLLECTION_ITEMS });
+    try { localStorage.removeItem(LOCAL_STORAGE_COLLECTION_KEY); } catch (e) {}
+  };
+
+  const updateCraftsmanshipStep = (stepNumber: string, newStep: Partial<CraftsmanshipStep>) => {
+    setCraftsmanshipSteps(prev => {
+      const next = prev.map(step => step.number === stepNumber ? { ...step, ...newStep } : step);
+      saveToServer({ craftsmanshipSteps: next });
+      return next;
+    });
+  };
+
+  const resetCraftsmanshipSteps = () => {
+    setCraftsmanshipSteps(CRAFTSMANSHIP_STEPS);
+    saveToServer({ craftsmanshipSteps: CRAFTSMANSHIP_STEPS });
+    try { localStorage.removeItem(LOCAL_STORAGE_CRAFTSMANSHIP_KEY); } catch (e) {}
   };
 
   return (
@@ -196,9 +416,24 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateCraftsmanshipImage,
         updateCollectionImage,
         resetAllImages,
+        heroConfig,
+        updateHeroConfig,
+        resetHeroConfig,
         fairConfig,
         updateFairConfig,
         resetFairConfig,
+        contactData,
+        updateContactData,
+        resetContactData,
+        announcements,
+        updateAnnouncements,
+        resetAnnouncements,
+        collectionItems,
+        updateCollectionItem,
+        resetCollectionItems,
+        craftsmanshipSteps,
+        updateCraftsmanshipStep,
+        resetCraftsmanshipSteps,
         isManagerOpen,
         setIsManagerOpen
       }}

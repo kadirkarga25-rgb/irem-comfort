@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Lenis from 'lenis';
 import { OpeningExperience } from './components/opening/OpeningExperience';
 import { Header } from './components/layout/Header';
@@ -8,6 +8,7 @@ import { CollectionSection } from './components/sections/CollectionSection';
 import { CraftsmanshipSection } from './components/sections/CraftsmanshipSection';
 import { WhyIremComfortSection } from './components/sections/WhyIremComfortSection';
 import { ContactSection } from './components/sections/ContactSection';
+import { NewsletterSection } from './components/sections/NewsletterSection';
 import { Footer } from './components/layout/Footer';
 import { ImageProvider } from './context/ImageContext';
 import { AdminPage } from './components/admin/AdminPage';
@@ -17,12 +18,15 @@ import { PasswordResetPage } from './components/secret/PasswordResetPage';
 import { RemoteManagementPage } from './components/secret/RemoteManagementPage';
 import { SurveyPage } from './components/secret/SurveyPage';
 import { NotFoundPage } from './components/ui/NotFoundPage';
+import { LegalModal, LegalDocType } from './components/ui/LegalModal';
+import { CookieConsent } from './components/ui/CookieConsent';
 
 export default function App() {
   const [scrollY, setScrollY] = useState(0);
   const [activeSection, setActiveSection] = useState('hero');
   const [contactPrefill, setContactPrefill] = useState('');
-  const [isFairModalOpen, setIsFairModalOpen] = useState(true);
+  const [isFairModalOpen, setIsFairModalOpen] = useState(false);
+  const [legalModalDoc, setLegalModalDoc] = useState<LegalDocType | null>(null);
   
   // Route state: check if URL contains /admin, #admin, or ?admin
   const [isAdminView, setIsAdminView] = useState<boolean>(() => {
@@ -131,6 +135,8 @@ export default function App() {
     };
   }, []);
 
+  const lenisRef = useRef<Lenis | null>(null);
+
   // Initialize Lenis Smooth Scroll
   useEffect(() => {
     if (isAdminView || isResetView || isRemoteView || isSurveyView || isNotFoundView) return; // Don't run lenis inside special/404 pages
@@ -142,7 +148,9 @@ export default function App() {
       prevent: (node) => node.classList?.contains('lenis-prevent') || node.hasAttribute('data-lenis-prevent'),
     });
 
-    if (isFairModalOpen) {
+    lenisRef.current = lenis;
+
+    if (isFairModalOpen || Boolean(legalModalDoc)) {
       lenis.stop();
     } else {
       lenis.start();
@@ -156,20 +164,52 @@ export default function App() {
 
     animationFrameId = requestAnimationFrame(raf);
 
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
+    const sectionIds = ['hero', 'about', 'collection', 'craftsmanship', 'why-us', 'contact'];
+
+    const updateActiveSection = () => {
+      const currentScroll = window.scrollY + 140;
+
+      // Bottom of page check
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 60) {
+        setActiveSection('contact');
+        return;
+      }
+
+      let foundSection = 'hero';
+      for (let i = sectionIds.length - 1; i >= 0; i--) {
+        const id = sectionIds[i];
+        const el = document.getElementById(id);
+        if (el) {
+          if (currentScroll >= el.offsetTop - 20) {
+            foundSection = id;
+            break;
+          }
+        }
+      }
+      setActiveSection((prev) => (prev !== foundSection ? foundSection : prev));
     };
 
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+      updateActiveSection();
+    };
+
+    lenis.on('scroll', handleScroll);
     window.addEventListener('scroll', handleScroll, { passive: true });
+
+    // Initial check
+    updateActiveSection();
 
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('scroll', handleScroll);
+      lenis.off('scroll', handleScroll);
       lenis.destroy();
+      lenisRef.current = null;
     };
-  }, [isAdminView, isResetView, isRemoteView, isSurveyView, isNotFoundView, isFairModalOpen]);
+  }, [isAdminView, isResetView, isRemoteView, isSurveyView, isNotFoundView, isFairModalOpen, legalModalDoc]);
 
-  // Track active section for navigation highlighting
+  // Secondary Intersection Observer backup for static positions
   useEffect(() => {
     if (isAdminView || isNotFoundView) return;
 
@@ -184,7 +224,7 @@ export default function App() {
     };
 
     const observer = new IntersectionObserver(handleObserver, {
-      rootMargin: '-20% 0px -60% 0px',
+      rootMargin: '-30% 0px -50% 0px',
       threshold: 0
     });
 
@@ -198,8 +238,13 @@ export default function App() {
 
   const scrollToSection = (sectionId: string) => {
     const target = document.getElementById(sectionId);
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth' });
+    if (!target) return;
+
+    if (lenisRef.current) {
+      lenisRef.current.scrollTo(target, { offset: -80 });
+    } else {
+      const y = target.getBoundingClientRect().top + window.pageYOffset - 80;
+      window.scrollTo({ top: y, behavior: 'smooth' });
     }
   };
 
@@ -247,6 +292,7 @@ export default function App() {
             scrollY={scrollY}
             activeSection={activeSection}
             onNavigate={scrollToSection}
+            onOpenFairModal={() => setIsFairModalOpen(true)}
           />
 
           {/* 3. Main Sections */}
@@ -265,12 +311,27 @@ export default function App() {
             <WhyIremComfortSection />
 
             <ContactSection prefilledSubject={contactPrefill} />
+
+            <NewsletterSection />
           </main>
 
           {/* 4. Footer */}
           <Footer
             onNavigate={scrollToSection}
             onAdminClick={() => setIsAdminView(true)}
+            onOpenLegalDoc={(doc) => setLegalModalDoc(doc)}
+          />
+
+          {/* Legal Modal (Privacy, KVKK, Cookies) */}
+          <LegalModal
+            isOpen={Boolean(legalModalDoc)}
+            initialType={legalModalDoc || 'privacy'}
+            onClose={() => setLegalModalDoc(null)}
+          />
+
+          {/* Cookie Consent Banner */}
+          <CookieConsent
+            onOpenLegalDoc={(doc) => setLegalModalDoc(doc)}
           />
         </div>
       )}

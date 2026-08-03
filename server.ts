@@ -398,6 +398,339 @@ app.get("/api/contact/leads", (_req, res) => {
   res.json({ leads: contactLeads });
 });
 
+// Newsletter Memory Store & Endpoints
+export interface NewsletterSubscriber {
+  id: string;
+  email: string;
+  createdAt: string;
+  source?: string;
+}
+
+const newsletterSubscribers: NewsletterSubscriber[] = [
+  { id: 'sub-1', email: 'kargakadir4525@gmail.com', createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), source: 'Web Form' },
+  { id: 'sub-2', email: 'info@iremcomfort.com', createdAt: new Date(Date.now() - 86400000 * 5).toISOString(), source: 'Web Form' }
+];
+
+app.post("/api/newsletter/subscribe", (req, res) => {
+  try {
+    const { email, source } = req.body || {};
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return res.status(400).json({ success: false, error: "Lütfen geçerli bir e-posta adresi yazınız." });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const existing = newsletterSubscribers.find(s => s.email === cleanEmail);
+    if (existing) {
+      return res.json({
+        success: true,
+        message: "E-posta adresiniz zaten bülten aboneliğimize kayıtlıdır.",
+        subscriber: existing
+      });
+    }
+
+    const newSub: NewsletterSubscriber = {
+      id: `sub-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      email: cleanEmail,
+      createdAt: new Date().toISOString(),
+      source: source || 'Web Form'
+    };
+
+    newsletterSubscribers.unshift(newSub);
+    console.log(`[NEWSLETTER SUB] New subscriber added: ${cleanEmail}`);
+
+    return res.json({
+      success: true,
+      message: "İrem Comfort e-bülten ve katalog bilgilendirme listesine kaydınız başarıyla oluşturuldu!",
+      subscriber: newSub
+    });
+  } catch (err) {
+    console.error("Error in /api/newsletter/subscribe:", err);
+    return res.status(500).json({ success: false, error: "Sunucu hatası oluştu." });
+  }
+});
+
+app.get("/api/newsletter/subscribers", (_req, res) => {
+  res.json({ subscribers: newsletterSubscribers });
+});
+
+app.delete("/api/newsletter/subscribers/:id", (req, res) => {
+  try {
+    const { id } = req.params;
+    const index = newsletterSubscribers.findIndex(s => s.id === id || s.email === id);
+    if (index !== -1) {
+      const removed = newsletterSubscribers.splice(index, 1);
+      return res.json({ success: true, message: "Abone başarıyla silindi.", removed: removed[0] });
+    }
+    return res.status(404).json({ success: false, error: "Abone bulunamadı." });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: "Abone silinirken hata oluştu." });
+  }
+});
+
+app.post("/api/newsletter/send-bulk", async (req, res) => {
+  try {
+    const { subject, htmlBody, targetEmails } = req.body || {};
+
+    if (!subject || !htmlBody) {
+      return res.status(400).json({ success: false, error: "Konu başlığı ve e-posta içeriği gereklidir." });
+    }
+
+    const recipients: string[] = Array.isArray(targetEmails) && targetEmails.length > 0
+      ? targetEmails
+      : newsletterSubscribers.map(s => s.email);
+
+    if (recipients.length === 0) {
+      return res.status(400).json({ success: false, error: "E-posta gönderilecek kayıtlı abone bulunamadı." });
+    }
+
+    let sentCount = 0;
+    let failedCount = 0;
+    const errors: string[] = [];
+
+    // Use getTransporter helper to get configured SMTP transporter
+    const transporter = getTransporter(currentEmailConfig);
+
+    for (const email of recipients) {
+      try {
+        if (transporter) {
+          await transporter.sendMail({
+            from: `"${currentEmailConfig.senderName || 'İrem Comfort'}" <${currentEmailConfig.senderEmail || currentEmailConfig.smtpUser}>`,
+            to: email,
+            subject: subject,
+            html: htmlBody,
+          });
+          sentCount++;
+        } else {
+          // Log simulation mode
+          console.log(`[BULK NEWSLETTER SIMULATION] Sent email to: ${email} | Subject: "${subject}"`);
+          sentCount++;
+        }
+      } catch (sendErr: any) {
+        failedCount++;
+        errors.push(`${email}: ${sendErr?.message || 'Gönderim hatası'}`);
+        console.error(`Failed to send email to ${email}:`, sendErr);
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: transporter 
+        ? `${sentCount} aboneye e-posta bülteni başarıyla iletildi.${failedCount > 0 ? ` (${failedCount} tanesi iletilemedi)` : ''}`
+        : `${sentCount} aboneye simülasyon modunda işlendi. Gerçek e-posta gönderimi için lütfen 'E-Posta & SMTP' sekmesinden SMTP şifrenizi giriniz.`,
+      sentCount,
+      failedCount,
+      recipients,
+      isSimulation: !transporter,
+      errors: errors.length > 0 ? errors : undefined
+    });
+  } catch (err) {
+    console.error("Error sending bulk newsletter:", err);
+    return res.status(500).json({ success: false, error: "Toplu e-posta bülteni gönderilirken hata oluştu." });
+  }
+});
+
+// GLOBAL SITE SETTINGS ENDPOINTS (PERSISTENT ACROSS ALL DEVICES)
+let globalSiteSettings: any = null;
+
+app.get("/api/settings", (_req, res) => {
+  res.json({ success: true, settings: globalSiteSettings });
+});
+
+app.post("/api/settings", (req, res) => {
+  try {
+    const { settings } = req.body || {};
+    if (!settings || typeof settings !== 'object') {
+      return res.status(400).json({ success: false, error: "Geçersiz ayar verisi." });
+    }
+    globalSiteSettings = {
+      ...(globalSiteSettings || {}),
+      ...settings,
+      updatedAt: new Date().toISOString()
+    };
+    console.log(`[GLOBAL SETTINGS UPDATED] Admin saved new site configuration at ${globalSiteSettings.updatedAt}`);
+    return res.json({ success: true, message: "Site ayarları sunucuya kaydedildi.", settings: globalSiteSettings });
+  } catch (err) {
+    console.error("Error saving global settings:", err);
+    return res.status(500).json({ success: false, error: "Ayarlar kaydedilirken sunucu hatası oluştu." });
+  }
+});
+
+// SURVEY SUBMISSION & AUTOMATIC DUAL EMAIL ENDPOINT
+app.post("/api/survey", async (req, res) => {
+  try {
+    const {
+      fullName, phone, email, platform, model, color, size,
+      overall, comfort, quality, ortho, light, design, price, packaging, shipping,
+      fit, likes, comment, npsScore, avgScore
+    } = req.body || {};
+
+    const customerName = (fullName || 'Anket Müşterisi').trim();
+    const customerEmail = (email || '').trim().toLowerCase();
+    const customerPhone = (phone || '').trim();
+    const productModel = (model || 'Belirtilmedi').trim();
+    const scoreVal = avgScore || overall || 5;
+
+    console.log(`[SURVEY RECEIVED] From: ${customerName} (${customerEmail || 'E-posta yok'}) | Model: ${productModel} | Score: ${scoreVal}`);
+
+    // 1. Prepare Admin Notification Email HTML
+    const adminSurveyHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; background-color: #f8fafc; padding: 20px; color: #111; }
+          .card { max-width: 650px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; }
+          .header { background: #082C6C; padding: 24px; color: white; text-align: center; }
+          .title { margin: 0; font-size: 20px; font-weight: bold; }
+          .sub { font-size: 12px; color: #f59e0b; margin-top: 5px; font-weight: bold; text-transform: uppercase; }
+          .body { padding: 24px; font-size: 13px; line-height: 1.6; }
+          .table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+          .table td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+          .lbl { font-weight: bold; color: #082C6C; width: 35%; }
+          .box { background: #f1f5f9; padding: 12px; border-radius: 8px; border-left: 4px solid #082C6C; margin-top: 5px; }
+          .score-badge { background: #f59e0b; color: #000; padding: 4px 10px; border-radius: 12px; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="header">
+            <h1 class="title">📋 Yeni Müşteri Anket Değerlendirmesi</h1>
+            <div class="sub">İrem Comfort Müşteri Deneyimi Bildirimi</div>
+          </div>
+          <div class="body">
+            <p>Sayın Yetkili, web siteniz üzerinden yeni bir müşteri deneyim anketi dolduruldu:</p>
+            <table class="table">
+              <tr><td class="lbl">Müşteri Adı:</td><td><strong>${customerName}</strong></td></tr>
+              <tr><td class="lbl">Telefon:</td><td>${customerPhone ? `<a href="tel:${customerPhone}">${customerPhone}</a>` : '<em>Girilmedi</em>'}</td></tr>
+              <tr><td class="lbl">E-Posta:</td><td>${customerEmail ? `<a href="mailto:${customerEmail}">${customerEmail}</a>` : '<em>Girilmedi</em>'}</td></tr>
+              <tr><td class="lbl">Satın Alınan Platform:</td><td>${platform || 'Belirtilmedi'}</td></tr>
+              <tr><td class="lbl">Model & Numara:</td><td><strong>${productModel}</strong> (Numara: ${size || '-'}, Renk: ${color || '-'})</td></tr>
+              <tr><td class="lbl">Genel Memnuniyet:</td><td><span class="score-badge">${overall || 0} / 5 Yıldız</span> (Ortalama: ${scoreVal}/5)</td></tr>
+              <tr><td class="lbl">Tavsiye Puanı (NPS):</td><td><strong>${npsScore !== null && npsScore !== undefined ? npsScore : '-'} / 10</strong></td></tr>
+              <tr><td class="lbl">Kalıp Uyumu:</td><td>${fit || '-'}</td></tr>
+              <tr><td class="lbl">Beğenilen Özellikler:</td><td>${Array.isArray(likes) && likes.length > 0 ? likes.join(', ') : '-'}</td></tr>
+              <tr>
+                <td class="lbl" style="vertical-align: top;">Müşteri Yorumu:</td>
+                <td><div class="box">${comment || 'Yorum girilmedi.'}</div></td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // 2. Prepare Customer Thank You Email HTML with THANKS50 Coupon & Trendyol Link
+    const customerThankYouHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f8fafc; padding: 20px; color: #1e293b; margin: 0; }
+          .card { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+          .header { background: linear-gradient(135deg, #082C6C, #163E87); padding: 32px; text-align: center; color: white; }
+          .brand { margin: 0; font-family: Georgia, serif; font-size: 26px; font-weight: bold; letter-spacing: 1.5px; }
+          .tag { margin: 8px 0 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #f59e0b; font-weight: bold; }
+          .content { padding: 32px; line-height: 1.6; font-size: 14px; }
+          .coupon-box { background: linear-gradient(135deg, #fffbeb, #fef3c7); border: 2px dashed #f59e0b; padding: 24px; border-radius: 16px; text-align: center; margin: 24px 0; }
+          .coupon-title { color: #78350f; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
+          .coupon-code { font-family: monospace, monospace; font-size: 28px; font-weight: 900; color: #082C6C; background: #ffffff; padding: 10px 24px; border-radius: 10px; display: inline-block; margin: 12px 0; border: 1px solid #f59e0b; letter-spacing: 3px; }
+          .coupon-desc { color: #92400e; font-size: 13px; font-weight: bold; margin: 0; }
+          .btn-trendyol { display: inline-block; background: #f27a1a; color: #ffffff !important; text-decoration: none; padding: 14px 28px; border-radius: 30px; font-weight: bold; font-size: 13px; margin: 8px 4px; text-align: center; box-shadow: 0 4px 12px rgba(242,122,26,0.25); }
+          .btn-wa { display: inline-block; background: #25D366; color: #ffffff !important; text-decoration: none; padding: 14px 28px; border-radius: 30px; font-weight: bold; font-size: 13px; margin: 8px 4px; text-align: center; box-shadow: 0 4px 12px rgba(37,211,102,0.25); }
+          .footer { font-size: 11px; color: #64748b; text-align: center; padding: 20px; border-top: 1px solid #e2e8f0; background: #fafafa; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="header">
+            <h1 class="brand">İREM COMFORT</h1>
+            <p class="tag">Bayan Hakiki Deri Comfort Terlik & Sandalet</p>
+          </div>
+          <div class="content">
+            <h2 style="color: #082C6C; font-family: Georgia, serif; font-size: 20px; margin-top: 0;">
+              Sayın ${customerName},
+            </h2>
+            <p>
+              İrem Comfort müşteri memnuniyeti anketimizi doldurduğunuz ve değerli görüşlerinizi bizimle paylaştığınız için yürekten teşekkür ederiz.
+            </p>
+            <p>
+              Ayakkabılarımızın konforu ve kalitesi hakkındaki değerlendirmeleriniz, Manisa atölyemizdeki usta işçiliğimizi daha da mükemmelleştirmemiz için bizlere ilham veriyor.
+            </p>
+
+            <div class="coupon-box">
+              <p class="coupon-title">🎁 Ankete Katılım Teşekkür Hediyeniz</p>
+              <div class="coupon-code">THANKS50</div>
+              <p class="coupon-desc">
+                Tüm siparişlerinizde ve <strong>Trendyol Mağazamızda</strong> geçerli <strong>50 TL İndirim Kodunuz</strong> tanımlanmıştır!
+              </p>
+            </div>
+
+            <p style="text-align: center; color: #475569; font-size: 13px; margin-bottom: 20px;">
+              İndirim kodunuzu Trendyol resmi mağazamızda, web sitemizde veya WhatsApp sipariş hattımızda belirterek anında 50 TL indirimden faydalanabilirsiniz.
+            </p>
+
+            <div style="text-align: center;">
+              <a href="https://www.trendyol.com/magaza/irem-comfort-m-1286942?sst=0&channelId=1" class="btn-trendyol" target="_blank">
+                🛍️ Trendyol Mağazamıza Git ve Alışveriş Yap
+              </a>
+              <a href="https://wa.me/905330297125?text=Merhaba%2C%20anket%20kat%C4%B1l%C4%B1m%20indirim%20kodum%3A%20THANKS50" class="btn-wa" target="_blank">
+                💬 WhatsApp Sipariş Hattı (50 TL İndirimli)
+              </a>
+            </div>
+          </div>
+          <div class="footer">
+            <strong>İrem Comfort Ayakkabıcılık</strong><br />
+            Manisa Ayakkabıcılar Sitesi | Tel: 0533 029 71 25 | E-Posta: info@iremcomfort.com
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // 3. Dispatch Emails via Nodemailer if SMTP ready
+    const transporter = getTransporter();
+    if (transporter) {
+      try {
+        // Send to info@iremcomfort.com & admin emails
+        const adminRecipients = currentEmailConfig.adminEmails || 'info@iremcomfort.com';
+        await transporter.sendMail({
+          from: `"${currentEmailConfig.senderName || 'İrem Comfort'}" <${currentEmailConfig.senderEmail || 'info@iremcomfort.com'}>`,
+          to: adminRecipients,
+          subject: `[ANKET BİLDİRİMİ] ${customerName} - ${productModel} (${scoreVal}/5 Puan)`,
+          html: adminSurveyHtml,
+        });
+
+        // Send to customer if email is provided
+        if (customerEmail && customerEmail.includes('@')) {
+          await transporter.sendMail({
+            from: `"${currentEmailConfig.senderName || 'İrem Comfort'}" <${currentEmailConfig.senderEmail || 'info@iremcomfort.com'}>`,
+            to: customerEmail,
+            subject: 'İrem Comfort — Ankete Katıldığınız İçin Teşekkürler! (50 TL İndirim Kodunuz)',
+            html: customerThankYouHtml,
+          });
+        }
+      } catch (mailErr) {
+        console.error("Survey email dispatch error:", mailErr);
+      }
+    } else {
+      console.log(`[SURVEY SIMULATION] Emails generated for Admin (${currentEmailConfig.adminEmails}) and Customer (${customerEmail})`);
+    }
+
+    return res.json({
+      success: true,
+      message: "Anketiniz başarıyla alındı. Teşekkür ederiz!",
+      couponCode: "THANKS50"
+    });
+
+  } catch (err) {
+    console.error("Error in /api/survey:", err);
+    return res.status(500).json({ success: false, error: "Anket kaydedilirken sunucu hatası oluştu." });
+  }
+});
+
 // Password Reset Endpoint (Compatibility for Wix _functions/submitReset & Express)
 const resetHandler = (req: express.Request, res: express.Response) => {
   try {

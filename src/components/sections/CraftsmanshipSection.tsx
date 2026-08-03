@@ -5,10 +5,11 @@ import { ShieldCheck, Cpu, Sparkles, Award, CheckCircle2 } from 'lucide-react';
 import { useAppImages } from '../../context/ImageContext';
 
 export const CraftsmanshipSection: React.FC = () => {
-  const { images } = useAppImages();
+  const { images, craftsmanshipSteps } = useAppImages();
   const [activeStepIndex, setActiveStepIndex] = useState(0);
 
-  const activeStep = CRAFTSMANSHIP_STEPS[activeStepIndex];
+  const stepsToDisplay = craftsmanshipSteps && craftsmanshipSteps.length > 0 ? craftsmanshipSteps : CRAFTSMANSHIP_STEPS;
+  const activeStep = stepsToDisplay[activeStepIndex] || stepsToDisplay[0];
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
@@ -63,7 +64,7 @@ export const CraftsmanshipSection: React.FC = () => {
           
           {/* Left Timeline Step Selector */}
           <div className="lg:col-span-5 space-y-4">
-            {CRAFTSMANSHIP_STEPS.map((step, idx) => {
+            {stepsToDisplay.map((step, idx) => {
               const isActive = activeStepIndex === idx;
 
               return (

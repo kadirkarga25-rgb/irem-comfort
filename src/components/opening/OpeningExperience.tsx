@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogoIC } from '../brand/LogoIC';
 
@@ -7,21 +7,77 @@ interface OpeningExperienceProps {
   scrollY: number;
 }
 
-export const OpeningExperience: React.FC<OpeningExperienceProps> = ({ scrollY }) => {
+export const OpeningExperience: React.FC<OpeningExperienceProps> = ({ onIntroComplete, scrollY }) => {
   const [isDismissed, setIsDismissed] = useState(false);
   const [isMounted, setIsMounted] = useState(true);
+  const touchStartY = useRef<number>(0);
 
-  // When user scrolls down even 15px, start collapsing the opening screen
-  useEffect(() => {
-    if (scrollY > 20 && !isDismissed) {
+  const dismiss = () => {
+    if (!isDismissed) {
       setIsDismissed(true);
+      if (onIntroComplete) onIntroComplete();
+    }
+  };
+
+  // If window scrolled past 10px, dismiss
+  useEffect(() => {
+    if (scrollY > 10 && !isDismissed) {
+      dismiss();
     }
   }, [scrollY, isDismissed]);
 
-  // Handle manual trigger click/touch to explore
-  const handleStartExplore = () => {
-    setIsDismissed(true);
-    window.scrollTo({ top: 120, behavior: 'smooth' });
+  // Window event listeners for global scroll / keys / touch
+  useEffect(() => {
+    if (isDismissed) return;
+
+    const handleGlobalWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) > 2 || Math.abs(e.deltaX) > 2) {
+        dismiss();
+      }
+    };
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (['ArrowDown', 'PageDown', 'Space', ' ', 'Enter'].includes(e.key)) {
+        dismiss();
+      }
+    };
+
+    const handleGlobalScroll = () => {
+      if (window.scrollY > 5) {
+        dismiss();
+      }
+    };
+
+    window.addEventListener('wheel', handleGlobalWheel, { passive: true });
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    window.addEventListener('scroll', handleGlobalScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('wheel', handleGlobalWheel);
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+      window.removeEventListener('scroll', handleGlobalScroll);
+    };
+  }, [isDismissed]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0]?.clientY || 0;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const currentY = e.touches[0]?.clientY || 0;
+    if (Math.abs(touchStartY.current - currentY) > 5) {
+      dismiss();
+    }
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (Math.abs(e.deltaY) > 2 || Math.abs(e.deltaX) > 2) {
+      dismiss();
+    }
+  };
+
+  const handleContainerClick = () => {
+    dismiss();
   };
 
   // Unmount overlay after animation finishes
@@ -29,25 +85,25 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({ scrollY })
     if (isDismissed) {
       const timer = setTimeout(() => {
         setIsMounted(false);
-      }, 900);
+      }, 500);
       return () => clearTimeout(timer);
     }
   }, [isDismissed]);
 
   if (!isMounted) return null;
 
-  // Calculate morph progress (0 = centered full, 1 = moved to top left)
-  const morphProgress = Math.min(1, Math.max(0, scrollY / 180));
-
   return (
     <AnimatePresence>
       {!isDismissed && (
         <motion.div
           initial={{ opacity: 1 }}
-          animate={{ opacity: isDismissed ? 0 : 1 - morphProgress }}
+          animate={{ opacity: isDismissed ? 0 : 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          onClick={handleStartExplore}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          onClick={handleContainerClick}
+          onWheel={handleWheel}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
           className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white cursor-pointer select-none overflow-hidden"
           style={{
             pointerEvents: isDismissed ? 'none' : 'auto'

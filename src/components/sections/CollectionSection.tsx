@@ -13,15 +13,17 @@ interface CollectionSectionProps {
 export const CollectionSection: React.FC<CollectionSectionProps> = ({
   onInquireProduct
 }) => {
-  const { images } = useAppImages();
+  const { images, collectionItems } = useAppImages();
   const [selectedCategory, setSelectedCategory] = useState<string>('Tümü');
   const [activeModalItem, setActiveModalItem] = useState<CollectionItem | null>(null);
 
   const categories = ['Tümü', 'Bayan Comfort Terlik', 'Bayan Comfort Sandalet', 'Sabo & Ortopedik Terlik', 'Mantar Taban Terlik'];
 
+  const itemsToDisplay = collectionItems && collectionItems.length > 0 ? collectionItems : COLLECTION_ITEMS;
+
   const filteredItems = selectedCategory === 'Tümü'
-    ? COLLECTION_ITEMS
-    : COLLECTION_ITEMS.filter(item => item.category === selectedCategory);
+    ? itemsToDisplay
+    : itemsToDisplay.filter(item => item.category === selectedCategory);
 
   return (
     <section id="collection" className="py-24 sm:py-32 bg-white relative">

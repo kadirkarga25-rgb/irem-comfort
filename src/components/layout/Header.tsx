@@ -4,18 +4,21 @@ import { LogoFull } from '../brand/LogoFull';
 import { Menu, X, PhoneCall, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import { CONTACT_DATA } from '../../constants/data';
 import { AnnouncementTicker } from './AnnouncementTicker';
+import { FairInvitationStrip } from './FairInvitationStrip';
 import { useAppImages } from '../../context/ImageContext';
 
 interface HeaderProps {
   scrollY: number;
   activeSection: string;
   onNavigate: (sectionId: string) => void;
+  onOpenFairModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   scrollY,
   activeSection,
-  onNavigate
+  onNavigate,
+  onOpenFairModal
 }) => {
   const { setIsManagerOpen } = useAppImages();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -31,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'about', label: 'Hakkımızda' },
     { id: 'collection', label: 'Koleksiyon' },
     { id: 'craftsmanship', label: 'Zanaat' },
-    { id: 'why-us', label: 'Neden İrem Comfort' },
+    { id: 'why-us', label: 'Neden Biz' },
     { id: 'contact', label: 'İletişim' }
   ];
 
@@ -84,8 +87,8 @@ export const Header: React.FC<HeaderProps> = ({
                     {isActive && (
                       <motion.div
                         layoutId="activeNavIndicator"
-                        className="absolute bottom-0 left-3.5 right-3.5 h-[2px] bg-[#0A2D6F] rounded-full"
-                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                        className="absolute bottom-0 left-3.5 right-3.5 h-[2.5px] bg-[#0A2D6F] rounded-full"
+                        transition={{ type: 'spring', stiffness: 500, damping: 35, mass: 0.5 }}
                       />
                     )}
                   </button>
@@ -129,6 +132,11 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Continuous Announcement Ticker Right Below Header Nav Bar */}
         <AnnouncementTicker onContactClick={() => handleNavClick('contact')} />
+
+        {/* Fair Invitation Banner (If active) */}
+        {onOpenFairModal && (
+          <FairInvitationStrip onOpenFairModal={onOpenFairModal} />
+        )}
       </motion.header>
 
       {/* Mobile Drawer Menu */}
