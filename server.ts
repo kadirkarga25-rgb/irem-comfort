@@ -10,7 +10,30 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
+// CORS & Preflight Handling
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+
+  // Normalize path if /api prefix is stripped by Vercel
+  if (!req.url.startsWith("/api/") && !req.url.startsWith("/api?")) {
+    if (req.url === "/api") {
+      req.url = "/api/";
+    } else if (req.url.startsWith("/") && !req.url.startsWith("/assets/") && !req.url.startsWith("/_functions/")) {
+      req.url = "/api" + req.url;
+    }
+  }
+
+  next();
+});
+
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Memory store for contact leads & Email configuration
 export interface ContactLead {
@@ -1383,6 +1406,11 @@ app.get("/anket-html", (_req, res) => {
 });
 
 
+// Fallback JSON 404 handler for any unmatched API endpoints (prevents HTML response)
+app.all("/api/*", (req, res) => {
+  res.status(404).json({ success: false, error: `API endpoint '${req.path}' not found.` });
+});
+
 async function startServer() {
   // Vite middleware in development
   if (process.env.NODE_ENV !== "production") {
@@ -1404,7 +1432,10 @@ async function startServer() {
   });
 }
 
-startServer();
+// Only start standalone server when NOT running inside Vercel serverless environment
+if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
+  startServer();
+}
 
 export default app;
 
