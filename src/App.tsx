@@ -7,7 +7,9 @@ import { AboutSection } from './components/sections/AboutSection';
 import { CollectionSection } from './components/sections/CollectionSection';
 import { CraftsmanshipSection } from './components/sections/CraftsmanshipSection';
 import { WhyIremComfortSection } from './components/sections/WhyIremComfortSection';
+import { FaqSection } from './components/sections/FaqSection';
 import { ContactSection } from './components/sections/ContactSection';
+
 import { NewsletterSection } from './components/sections/NewsletterSection';
 import { Footer } from './components/layout/Footer';
 import { ImageProvider } from './context/ImageContext';
@@ -164,7 +166,7 @@ export default function App() {
 
     animationFrameId = requestAnimationFrame(raf);
 
-    const sectionIds = ['hero', 'about', 'collection', 'craftsmanship', 'why-us', 'contact'];
+    const sectionIds = ['hero', 'about', 'collection', 'craftsmanship', 'why-us', 'faq', 'contact'];
 
     const updateActiveSection = () => {
       const currentScroll = window.scrollY + 140;
@@ -213,7 +215,7 @@ export default function App() {
   useEffect(() => {
     if (isAdminView || isNotFoundView) return;
 
-    const sectionIds = ['hero', 'about', 'collection', 'craftsmanship', 'why-us', 'contact'];
+    const sectionIds = ['hero', 'about', 'collection', 'craftsmanship', 'why-us', 'faq', 'contact'];
     
     const handleObserver = (entries: IntersectionObserverEntry[]) => {
       entries.forEach((entry) => {
@@ -280,8 +282,7 @@ export default function App() {
         <NotFoundPage onReturnToSite={returnToPublicSite} />
       ) : (
         <div className="min-h-screen bg-white text-[#111111] relative selection:bg-[#0A2D6F] selection:text-white">
-          {/* Active Fair Popup & Top Banner */}
-          <FairTopBanner onOpenModal={() => setIsFairModalOpen(true)} />
+          {/* Fair Modal (When activated from Admin) */}
           <FairModal isOpen={isFairModalOpen} onClose={() => setIsFairModalOpen(false)} />
 
           {/* 1. Opening Experience Overlay */}
@@ -310,7 +311,10 @@ export default function App() {
 
             <WhyIremComfortSection />
 
+            <FaqSection />
+
             <ContactSection prefilledSubject={contactPrefill} />
+
 
             <NewsletterSection />
           </main>

@@ -7,12 +7,13 @@ interface LogoICProps {
 }
 
 /**
- * Precision SVG vector component for İrem Comfort circular IC icon logo
+ * Official precision vector SVG component for İrem Comfort circular IC icon logo
+ * Renders the circular ring with a top-right gap and the 'i' and 'c' letters centered inside the ring.
  */
 export const LogoIC: React.FC<LogoICProps> = ({
   className = '',
   size = 48,
-  color = '#082C6C'
+  color = '#0A2D6F'
 }) => {
   return (
     <svg
@@ -24,29 +25,32 @@ export const LogoIC: React.FC<LogoICProps> = ({
       className={`inline-block shrink-0 transition-all duration-300 ${className}`}
       aria-label="İrem Comfort IC Logo"
     >
-      {/* Outer Circle Ring with Top-Right Slit/Gap */}
+      {/* Outer Circle Ring with Top-Right Gap */}
       <path
-        d="M 124 22 A 80 80 0 1 1 142 32"
+        d="M 160 52 A 78 78 0 1 1 118 25"
         stroke={color}
-        strokeWidth="13"
+        strokeWidth="11"
         strokeLinecap="round"
         fill="none"
       />
 
-      {/* Letter 'i' - Round Dot */}
-      <circle cx="80" cy="73" r="9.5" fill={color} />
+      {/* Inside Glyph Group - 'i' and 'c' perfectly centered inside the ring */}
+      <g>
+        {/* Letter 'i' - Top Dot */}
+        <circle cx="68" cy="68" r="8" fill={color} />
 
-      {/* Letter 'i' - Vertical Bar */}
-      <rect x="73" y="91" width="14" height="44" rx="2" fill={color} />
+        {/* Letter 'i' - Vertical Stem */}
+        <rect x="61" y="88" width="14" height="48" rx="3" fill={color} />
 
-      {/* Letter 'c' - Lowercase Arc */}
-      <path
-        d="M 132 96 C 121 89 107 90 99 98 C 90 107 90 121 99 130 C 108 139 122 139 132 131"
-        stroke={color}
-        strokeWidth="14"
-        strokeLinecap="round"
-        fill="none"
-      />
+        {/* Letter 'c' - Lowercase Arc */}
+        <path
+          d="M 131 92 A 23 23 0 1 0 131 132"
+          stroke={color}
+          strokeWidth="13"
+          strokeLinecap="round"
+          fill="none"
+        />
+      </g>
     </svg>
   );
 };

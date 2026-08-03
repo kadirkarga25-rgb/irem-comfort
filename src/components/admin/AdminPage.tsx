@@ -5,6 +5,7 @@ import { COLLECTION_ITEMS, CRAFTSMANSHIP_STEPS } from '../../constants/data';
 import { LogoFull } from '../brand/LogoFull';
 import { FairModal } from '../ui/FairModal';
 import { ImageCropModal, CropTargetSpecs } from './ImageCropModal';
+import { FaqAdminTab } from './FaqAdminTab';
 import { EMAIL_TEMPLATES, renderEmailHtml } from '../../utils/emailTemplates';
 import { 
   Lock, Key, User, LogOut, ExternalLink, Image as ImageIcon, 
@@ -12,8 +13,9 @@ import {
   ShieldCheck, AlertCircle, ArrowLeft, Home, Calendar, MapPin, 
   QrCode, ToggleLeft, ToggleRight, Send, MessageSquare, Crop, Info,
   Mail, Server, AtSign, Save, MailCheck, CheckCircle2, Shield,
-  Users, Download, Copy, Trash2, Plus, Search, Phone
+  Users, Download, Copy, Trash2, Plus, Search, Phone, HelpCircle
 } from 'lucide-react';
+
 
 const TARGET_SPECS_MAP: Record<string, CropTargetSpecs> = {
   hero: {
@@ -107,7 +109,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Admin Panel Tabs
-  const [activeTab, setActiveTab] = useState<'fair' | 'general' | 'collection' | 'craftsmanship' | 'contact' | 'presets' | 'leads' | 'newsletter' | 'email'>('fair');
+  const [activeTab, setActiveTab] = useState<'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'presets' | 'leads' | 'newsletter' | 'email'>('fair');
+
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [isPreviewFairOpen, setIsPreviewFairOpen] = useState(false);
   const [contactLeads, setContactLeads] = useState<any[]>([]);
@@ -816,6 +819,18 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
           </button>
 
           <button
+            onClick={() => setActiveTab('faq')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'faq'
+                ? 'bg-[#082C6C] text-white shadow'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <HelpCircle className="w-4 h-4 text-amber-400" />
+            <span>Sıkça Sorulan Sorular (SSS)</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('contact')}
             className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'contact'
@@ -823,6 +838,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
+
             <Phone className="w-4 h-4 text-emerald-400" />
             <span>İletişim & Duyuru Bandı</span>
           </button>
@@ -1607,8 +1623,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
           </div>
         )}
 
+        {/* Tab 4.4: FAQ MANAGEMENT */}
+        {activeTab === 'faq' && (
+          <FaqAdminTab showToast={showToast} />
+        )}
+
         {/* Tab 4.5: CONTACT INFO & ANNOUNCEMENT TICKER MANAGEMENT */}
         {activeTab === 'contact' && (
+
           <div className="space-y-6">
             
             {/* Site Contact Details Form */}

@@ -3,9 +3,10 @@ import {
   COLLECTION_ITEMS, 
   CRAFTSMANSHIP_STEPS, 
   CONTACT_DATA, 
-  ANNOUNCEMENT_TICKER 
+  ANNOUNCEMENT_TICKER,
+  DEFAULT_FAQ_ITEMS
 } from '../constants/data';
-import { CollectionItem, CraftsmanshipStep, ContactInfo } from '../types';
+import { CollectionItem, CraftsmanshipStep, ContactInfo, FaqItem } from '../types';
 
 export interface HeroConfig {
   badgeText: string;
@@ -52,7 +53,7 @@ export const DEFAULT_HERO_CONFIG: HeroConfig = {
 };
 
 export const DEFAULT_FAIR_CONFIG: FairConfig = {
-  enabled: true,
+  enabled: false,
   name: 'AYMOD Uluslararası Ayakkabı Moda Fuarı',
   location: 'İstanbul Fuar Merkezi (İFM) - Yeşilköy',
   standNumber: 'Hall 4 - Stand B214',
@@ -125,6 +126,13 @@ interface ImageContextType {
   updateCraftsmanshipStep: (stepNumber: string, newStep: Partial<CraftsmanshipStep>) => void;
   resetCraftsmanshipSteps: () => void;
 
+  // FAQ Items Dynamic Store
+  faqItems: FaqItem[];
+  updateFaqItem: (id: string, newFaq: Partial<FaqItem>) => void;
+  addFaqItem: (newFaq: Omit<FaqItem, 'id'>) => void;
+  deleteFaqItem: (id: string) => void;
+  resetFaqItems: () => void;
+
   isManagerOpen: boolean;
   setIsManagerOpen: (open: boolean) => void;
 }
@@ -138,6 +146,8 @@ const LOCAL_STORAGE_CONTACT_KEY = 'irem_comfort_contact_v1';
 const LOCAL_STORAGE_ANNOUNCEMENTS_KEY = 'irem_comfort_announcements_v1';
 const LOCAL_STORAGE_COLLECTION_KEY = 'irem_comfort_collection_items_v1';
 const LOCAL_STORAGE_CRAFTSMANSHIP_KEY = 'irem_comfort_craftsmanship_v1';
+const LOCAL_STORAGE_FAQ_KEY = 'irem_comfort_faq_v1';
+
 
 export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [images, setImages] = useState<AppImages>(() => {
@@ -175,7 +185,8 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const savedFair = localStorage.getItem(LOCAL_STORAGE_FAIR_KEY);
       if (savedFair) {
-        return { ...DEFAULT_FAIR_CONFIG, ...JSON.parse(savedFair) };
+        const parsed = JSON.parse(savedFair);
+        return { ...DEFAULT_FAIR_CONFIG, ...parsed };
       }
     } catch (e) {
       console.error('Failed to parse saved fair config', e);
@@ -215,6 +226,14 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return CRAFTSMANSHIP_STEPS;
   });
 
+  const [faqItems, setFaqItems] = useState<FaqItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_FAQ_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return DEFAULT_FAQ_ITEMS;
+  });
+
   const [isManagerOpen, setIsManagerOpen] = useState(false);
 
   useEffect(() => {
@@ -245,6 +264,10 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try { localStorage.setItem(LOCAL_STORAGE_CRAFTSMANSHIP_KEY, JSON.stringify(craftsmanshipSteps)); } catch (e) {}
   }, [craftsmanshipSteps]);
 
+  useEffect(() => {
+    try { localStorage.setItem(LOCAL_STORAGE_FAQ_KEY, JSON.stringify(faqItems)); } catch (e) {}
+  }, [faqItems]);
+
   // Sync settings with Backend Server on App Boot
   useEffect(() => {
     fetch('/api/settings')
@@ -259,10 +282,12 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           if (s.announcements) setAnnouncements(s.announcements);
           if (s.collectionItems) setCollectionItems(s.collectionItems);
           if (s.craftsmanshipSteps) setCraftsmanshipSteps(s.craftsmanshipSteps);
+          if (s.faqItems) setFaqItems(s.faqItems);
         }
       })
       .catch(err => console.error("Could not fetch global settings from server:", err));
   }, []);
+
 
   const saveToServer = (payload: Record<string, any>) => {
     fetch('/api/settings', {
@@ -407,6 +432,40 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try { localStorage.removeItem(LOCAL_STORAGE_CRAFTSMANSHIP_KEY); } catch (e) {}
   };
 
+  const updateFaqItem = (id: string, newFaq: Partial<FaqItem>) => {
+    setFaqItems(prev => {
+      const next = prev.map(item => item.id === id ? { ...item, ...newFaq } : item);
+      saveToServer({ faqItems: next });
+      return next;
+    });
+  };
+
+  const addFaqItem = (newFaq: Omit<FaqItem, 'id'>) => {
+    setFaqItems(prev => {
+      const newItem: FaqItem = {
+        ...newFaq,
+        id: `faq-${Date.now()}`
+      };
+      const next = [newItem, ...prev];
+      saveToServer({ faqItems: next });
+      return next;
+    });
+  };
+
+  const deleteFaqItem = (id: string) => {
+    setFaqItems(prev => {
+      const next = prev.filter(item => item.id !== id);
+      saveToServer({ faqItems: next });
+      return next;
+    });
+  };
+
+  const resetFaqItems = () => {
+    setFaqItems(DEFAULT_FAQ_ITEMS);
+    saveToServer({ faqItems: DEFAULT_FAQ_ITEMS });
+    try { localStorage.removeItem(LOCAL_STORAGE_FAQ_KEY); } catch (e) {}
+  };
+
   return (
     <ImageContext.Provider
       value={{
@@ -434,6 +493,11 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         craftsmanshipSteps,
         updateCraftsmanshipStep,
         resetCraftsmanshipSteps,
+        faqItems,
+        updateFaqItem,
+        addFaqItem,
+        deleteFaqItem,
+        resetFaqItems,
         isManagerOpen,
         setIsManagerOpen
       }}
@@ -442,6 +506,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     </ImageContext.Provider>
   );
 };
+
 
 export const useAppImages = () => {
   const context = useContext(ImageContext);

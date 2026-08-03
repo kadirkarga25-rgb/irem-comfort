@@ -1,4 +1,4 @@
-import { CollectionItem, CraftsmanshipStep, WhyUsCard, ContactInfo } from '../types';
+import { CollectionItem, CraftsmanshipStep, WhyUsCard, ContactInfo, FaqItem } from '../types';
 
 export const BRAND_NAME = "İrem Comfort";
 export const BRAND_TAGLINE = "Hakiki Deri Bayan Comfort Sandalet & Terlik İmalatı";
@@ -284,4 +284,96 @@ export const WHY_US_CARDS: WhyUsCard[] = [
     iconName: 'ShieldCheck'
   }
 ];
+
+export const DEFAULT_FAQ_ITEMS: FaqItem[] = [
+  {
+    id: 'faq-1',
+    category: 'toptan',
+    question: 'Toptan terlik ve sandalet siparişi için minimum seri/kutu adedi nedir?',
+    answer: 'Toptan siparişlerinizde standart seri paketimiz 8 veya 10 çiftten oluşmaktadır (36-41 numara arası). Mağazalar ve bayilerimiz için minimum 1 seri (paket) sipariş verme imkanı sunuyoruz.',
+    isPopular: true,
+    isActive: true
+  },
+  {
+    id: 'faq-2',
+    category: 'toptan',
+    question: 'Kendi markamız veya özel renk/model üretimi yaptırabilir miyiz?',
+    answer: 'Evet. Yeterli seri adetlerindeki fason ve özel üretim taleplerinizde kendi etiketiniz veya firmamıza özel renk/saya kombinasyonları ile Manisa atölyemizde imalat gerçekleştirmekteyiz.',
+    isPopular: false,
+    isActive: true
+  },
+  {
+    id: 'faq-3',
+    category: 'toptan',
+    question: 'Toptan fiyat kataloğunuzu nasıl temin edebilirim?',
+    answer: 'İletişim sayfamızdaki WhatsApp butonuna tıklayarak veya 0533 029 71 25 numaramızdan müşteri temsilcimize firma/mağaza bilginizi ileterek güncel toptan fiyat kataloğumuzu talep edebilirsiniz.',
+    isPopular: true,
+    isActive: true
+  },
+  {
+    id: 'faq-4',
+    category: 'kargo',
+    question: 'Toptan ve perakende siparişlerde kargo teslim süresi ne kadardır?',
+    answer: 'Stokta hazır bulunan modellerimiz aynı gün veya en geç 24 saat içerisinde kargoya verilir. Türkiye içi tüm şehirlere anlaşmalı kargo firmalarımızla ortalama 1-3 iş günü içerisinde teslimat sağlanır.',
+    isPopular: true,
+    isActive: true
+  },
+  {
+    id: 'faq-5',
+    category: 'kargo',
+    question: 'Yurtdışına gönderim ve mikro ihrakat yapıyor musunuz?',
+    answer: 'Evet. Başta Ortadoğu, Balkanlar, Avrupa ve Türki Cumhuriyetler olmak üzere uluslararası mikro ihracat ve kargo gönderim servislerimiz mevcuttur.',
+    isPopular: false,
+    isActive: true
+  },
+  {
+    id: 'faq-6',
+    category: 'kargo',
+    question: 'Siparişimin kargo takibini nasıl yapabilirim?',
+    answer: 'Siparişiniz kargo firmasına teslim edildiğinde tarafınıza SMS ve WhatsApp bilgilendirme mesajı gönderilir. Ayrıca iletişim hattımızdan anlık durum sorgulayabilirsiniz.',
+    isPopular: false,
+    isActive: true
+  },
+  {
+    id: 'faq-7',
+    category: 'bakim',
+    question: '%100 Hakiki deri terlik ve sandaletlerin temizliği ve bakımı nasıl yapılmalıdır?',
+    answer: 'Hakiki deri ürünler nemli ve hafif sabunlu yumuşak bir bezle silinerek temizlenmelidir. Derinin doğal nem dengesini ve esnekliğini koruması için direkt güneş ışığı veya kalörifer yanında kurutulmamalı, oda sıcaklığında kurumaya bırakılmalıdır. Dönem dönem şeffaf deri bakım kremi sürülmesi ömrünü uzatır.',
+    isPopular: true,
+    isActive: true
+  },
+  {
+    id: 'faq-8',
+    category: 'bakim',
+    question: 'Deri terlikler ıslanırsa ne yapılmalıdır?',
+    answer: 'Suyla temas halinde ürünü fön makinesi veya radyatör gibi yüksek ısı kaynaklarına maruz bırakmayın. İçine kağıt havlu koyarak gölgede kurumaya bırakın. Kuruduktan sonra doğal deri besleyici krem uygulayabilirsiniz.',
+    isPopular: false,
+    isActive: true
+  },
+  {
+    id: 'faq-9',
+    category: 'bakim',
+    question: 'Anatomik deri iç taban terleme veya koku yapar mı?',
+    answer: 'İrem Comfort ürünlerimizin iç astar ve taban kaplamasında %100 doğal gözenekli hakiki deri kullanılır. Sentetik ve plastik astarların aksine ayağın hava almasını sağlar, terleme ve kokuyu en aza indirir.',
+    isPopular: true,
+    isActive: true
+  },
+  {
+    id: 'faq-10',
+    category: 'kalip',
+    question: 'İrem Comfort terlik ve sandaletlerin kalıpları tam mıdır?',
+    answer: 'Ürünlerimiz standart Türk ayak anatomisine tam (regular fit) uyumludur. Günlük hayatınızda sürekli giydiğiniz ayakkabı/terlik numaranızı tercih edebilirsiniz. Taraklı veya yüksek kavisli ayaklar için cırtlı ve tokalı ayarlanabilir modellerimiz ekstra konfor sağlar.',
+    isPopular: true,
+    isActive: true
+  },
+  {
+    id: 'faq-11',
+    category: 'kalip',
+    question: 'Numara değişimi veya iade hakkım var mıdır?',
+    answer: 'Kullanılmamış ve orijinal kutusu muhafaza edilen perakende siparişlerinizde 14 gün içerisinde numara değişimi veya iade imkanı sunmaktayız.',
+    isPopular: false,
+    isActive: true
+  }
+];
+
 

@@ -35,8 +35,10 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'collection', label: 'Koleksiyon' },
     { id: 'craftsmanship', label: 'Zanaat' },
     { id: 'why-us', label: 'Neden Biz' },
+    { id: 'faq', label: 'SSS' },
     { id: 'contact', label: 'İletişim' }
   ];
+
 
   const handleNavClick = (id: string) => {
     onNavigate(id);

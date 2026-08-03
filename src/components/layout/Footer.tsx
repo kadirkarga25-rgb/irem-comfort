@@ -112,10 +112,16 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onAdminClick, onOpen
                 </button>
               </li>
               <li>
+                <button onClick={() => onNavigate('faq')} className="hover:text-white transition-colors cursor-pointer">
+                  Sıkça Sorulan Sorular (SSS)
+                </button>
+              </li>
+              <li>
                 <button onClick={() => onNavigate('contact')} className="hover:text-white transition-colors cursor-pointer">
                   İletişim & Katalog
                 </button>
               </li>
+
             </ul>
           </div>
 

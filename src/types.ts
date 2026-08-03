@@ -48,3 +48,13 @@ export interface ContactInfo {
   showroomHours: string;
   trendyolUrl?: string;
 }
+
+export interface FaqItem {
+  id: string;
+  category: 'toptan' | 'kargo' | 'bakim' | 'kalip' | 'genel';
+  question: string;
+  answer: string;
+  isPopular?: boolean;
+  isActive?: boolean;
+}
+
