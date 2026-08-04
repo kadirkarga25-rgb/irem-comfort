@@ -16,7 +16,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   const { images, heroConfig } = useAppImages();
 
   return (
-    <section id="hero" className="relative min-h-screen pt-28 sm:pt-36 pb-20 flex flex-col justify-between overflow-hidden bg-white">
+    <section id="hero" className="relative min-h-screen pt-44 sm:pt-48 md:pt-44 lg:pt-36 pb-16 sm:pb-20 flex flex-col justify-between overflow-hidden bg-white">
       {/* Background Subtle Gradient & Mesh Accent */}
       <div className="absolute top-0 right-0 w-full md:w-2/3 h-full bg-gradient-to-l from-[#F8F8F8] via-[#F8F8F8]/50 to-transparent -z-10 pointer-events-none" />
       <div className="absolute -top-32 right-10 w-96 h-96 bg-[#0A2D6F]/5 rounded-full blur-3xl -z-10 pointer-events-none" />

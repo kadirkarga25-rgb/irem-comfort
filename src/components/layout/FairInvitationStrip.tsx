@@ -18,7 +18,7 @@ export const FairInvitationStrip: React.FC<FairInvitationStripProps> = ({
   }
 
   return (
-    <div className={`w-full bg-gradient-to-r from-[#062050] via-[#082C6C] to-[#0A3888] text-white py-2 px-4 border-b border-amber-400/30 shadow-sm relative z-30 ${className}`}>
+    <div className={`w-full bg-gradient-to-r from-[#062050] via-[#082C6C] to-[#0A3888] text-white py-1.5 sm:py-2 px-3 sm:px-4 border-b border-amber-400/30 shadow-sm relative z-30 ${className}`}>
       <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2.5 text-xs">
         
         {/* Left Info Badge */}

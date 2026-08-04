@@ -242,10 +242,12 @@ export default function App() {
     const target = document.getElementById(sectionId);
     if (!target) return;
 
+    const offset = window.innerWidth < 768 ? -150 : -90;
+
     if (lenisRef.current) {
-      lenisRef.current.scrollTo(target, { offset: -80 });
+      lenisRef.current.scrollTo(target, { offset });
     } else {
-      const y = target.getBoundingClientRect().top + window.pageYOffset - 80;
+      const y = target.getBoundingClientRect().top + window.pageYOffset + offset;
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
   };

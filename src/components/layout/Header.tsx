@@ -57,15 +57,15 @@ export const Header: React.FC<HeaderProps> = ({
         className="fixed top-0 left-0 right-0 z-40 transition-all duration-300 shadow-sm"
       >
         <div className="glass-header">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+          <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
             
-            {/* Top Left Logo (Morphs smoothly between IC and IC + iremcomfort) */}
+            {/* Top Left Logo */}
             <div 
               onClick={() => handleNavClick('hero')}
-              className="flex items-center cursor-pointer group py-2"
+              className="flex items-center cursor-pointer group py-1.5"
             >
               <LogoFull 
-                iconSize={40} 
+                iconSize={34} 
                 color="#0A2D6F" 
                 showText={showFullLogoText} 
               />

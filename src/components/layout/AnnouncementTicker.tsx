@@ -23,7 +23,7 @@ export const AnnouncementTicker: React.FC<AnnouncementTickerProps> = ({
   const repeatedItems = [...tickerItems, ...tickerItems, ...tickerItems, ...tickerItems];
 
   return (
-    <div className={`w-full bg-[#0A2D6F] text-white overflow-hidden py-2.5 sm:py-3 border-b border-white/10 shadow-md ${className}`}>
+    <div className={`w-full bg-[#0A2D6F] text-white overflow-hidden py-2 sm:py-2.5 border-b border-white/10 shadow-md ${className}`}>
       <div className="relative flex overflow-x-hidden select-none">
         <div className="animate-marquee flex whitespace-nowrap items-center shrink-0">
           {repeatedItems.map((item, idx) => (
