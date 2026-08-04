@@ -7,7 +7,7 @@ import {
   DEFAULT_FAQ_ITEMS
 } from '../constants/data';
 import { CollectionItem, CraftsmanshipStep, ContactInfo, FaqItem, AboutSlide } from '../types';
-import { db, doc, setDoc, onSnapshot } from '../lib/firebase';
+import { db, doc, setDoc, onSnapshot, deleteDoc, uploadBase64Image } from '../lib/firebase';
 
 export interface HeroConfig {
   badgeText: string;
@@ -225,11 +225,11 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (e) {}
   }, []);
 
-  // Real-time Firestore synchronization for all clients/devices/browsers
+  // Real-time Firestore synchronization across split documents
   useEffect(() => {
-    const docRef = doc(db, "site_settings", "global");
+    const unsubscribes: (() => void)[] = [];
 
-    const fetchFallbackSettings = () => {
+    const fetchFallback = () => {
       fetch('/api/settings')
         .then(res => res.json())
         .then(data => {
@@ -246,107 +246,141 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             if (s.aboutSlides) setAboutSlides(s.aboutSlides);
           }
         })
-        .catch(err => console.error("Could not fetch settings from server fallback:", err));
+        .catch(() => {});
     };
 
-    let fallbackInterval: any = null;
+    try {
+      unsubscribes.push(onSnapshot(doc(db, "site_settings", "hero"), snap => {
+        if (snap.exists() && snap.data().heroConfig) setHeroConfig(snap.data().heroConfig);
+      }, () => {}));
 
-    const unsubscribe = onSnapshot(
-      docRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          const s = snapshot.data();
-          if (s.images) setImages(s.images);
-          if (s.heroConfig) setHeroConfig(s.heroConfig);
-          if (s.fairConfig) setFairConfig(s.fairConfig);
-          if (s.contactData) setContactData(s.contactData);
-          if (s.announcements) setAnnouncements(s.announcements);
-          if (s.collectionItems) setCollectionItems(s.collectionItems);
-          if (s.craftsmanshipSteps) setCraftsmanshipSteps(s.craftsmanshipSteps);
-          if (s.faqItems) setFaqItems(s.faqItems);
-          if (s.aboutSlides) setAboutSlides(s.aboutSlides);
-        } else {
-          // Document doesn't exist yet, seed initial default settings to Firestore
-          const initialData = {
-            images: getDefaultImages(),
-            heroConfig: DEFAULT_HERO_CONFIG,
-            fairConfig: DEFAULT_FAIR_CONFIG,
-            contactData: CONTACT_DATA,
-            announcements: ANNOUNCEMENT_TICKER,
-            collectionItems: COLLECTION_ITEMS,
-            craftsmanshipSteps: CRAFTSMANSHIP_STEPS,
-            faqItems: DEFAULT_FAQ_ITEMS,
-            aboutSlides: DEFAULT_ABOUT_SLIDES,
-            updatedAt: new Date().toISOString()
-          };
-          setDoc(docRef, initialData).catch(err => {
-            console.warn("Direct client Firestore write failed (using API fallback):", err);
-          });
+      unsubscribes.push(onSnapshot(doc(db, "site_settings", "fair"), snap => {
+        if (snap.exists() && snap.data().fairConfig) setFairConfig(snap.data().fairConfig);
+      }, () => {}));
+
+      unsubscribes.push(onSnapshot(doc(db, "site_settings", "contact"), snap => {
+        if (snap.exists() && snap.data().contactData) setContactData(snap.data().contactData);
+      }, () => {}));
+
+      unsubscribes.push(onSnapshot(doc(db, "site_settings", "announcements"), snap => {
+        if (snap.exists() && (snap.data().list || snap.data().announcements)) {
+          setAnnouncements(snap.data().list || snap.data().announcements);
         }
-      },
-      (error) => {
-        console.warn("Firestore client listener warning (Permission / Rules): Falling back to server API.", error);
-        // Initial fetch + fallback polling if client Firestore rules restrict direct read
-        fetchFallbackSettings();
-        if (!fallbackInterval) {
-          fallbackInterval = setInterval(fetchFallbackSettings, 5000);
+      }, () => {}));
+
+      unsubscribes.push(onSnapshot(doc(db, "site_settings", "about"), snap => {
+        if (snap.exists() && (snap.data().slides || snap.data().aboutSlides)) {
+          setAboutSlides(snap.data().slides || snap.data().aboutSlides);
         }
-      }
-    );
+      }, () => {}));
+
+      unsubscribes.push(onSnapshot(doc(db, "site_settings", "craftsmanship"), snap => {
+        if (snap.exists() && (snap.data().steps || snap.data().craftsmanshipSteps)) {
+          setCraftsmanshipSteps(snap.data().steps || snap.data().craftsmanshipSteps);
+        }
+      }, () => {}));
+
+      unsubscribes.push(onSnapshot(doc(db, "site_settings", "faq"), snap => {
+        if (snap.exists() && (snap.data().items || snap.data().faqItems)) {
+          setFaqItems(snap.data().items || snap.data().faqItems);
+        }
+      }, () => {}));
+
+      unsubscribes.push(onSnapshot(doc(db, "site_settings", "images"), snap => {
+        if (snap.exists() && (snap.data().images || snap.data())) {
+          const imgData = snap.data().images || snap.data();
+          if (imgData.heroImage) setImages(imgData);
+        }
+      }, () => {}));
+
+      unsubscribes.push(onSnapshot(doc(db, "site_settings", "products"), snap => {
+        if (snap.exists() && (snap.data().items || snap.data().collectionItems)) {
+          setCollectionItems(snap.data().items || snap.data().collectionItems);
+        }
+      }, () => {}));
+    } catch (e) {
+      console.warn("Firestore listeners warning:", e);
+    }
+
+    fetchFallback();
 
     return () => {
-      unsubscribe();
-      if (fallbackInterval) clearInterval(fallbackInterval);
+      unsubscribes.forEach(unsub => {
+        try { unsub(); } catch (e) {}
+      });
     };
   }, []);
 
-  // Save changes permanently to Firestore Database & Backend
-  const saveToServer = async (payload: Record<string, any>) => {
+  // Save specific section to its dedicated Firestore document & backend route
+  const saveSection = async (sectionName: string, dataObj: Record<string, any>) => {
+    let docName = sectionName.replace('Config', '').replace('Data', '').replace('Items', '').replace('Steps', '').replace('Slides', '').toLowerCase();
+    if (docName === 'collection') docName = 'products';
+
+    const payload = dataObj[sectionName] !== undefined ? dataObj[sectionName] : dataObj;
+
     try {
-      const docRef = doc(db, "site_settings", "global");
-      await setDoc(docRef, { ...payload, updatedAt: new Date().toISOString() }, { merge: true });
+      const docRef = doc(db, "site_settings", docName);
+      let fieldObj: Record<string, any> = {};
+
+      if (docName === 'hero') fieldObj = { heroConfig: payload };
+      else if (docName === 'fair') fieldObj = { fairConfig: payload };
+      else if (docName === 'contact') fieldObj = { contactData: payload };
+      else if (docName === 'announcements') fieldObj = { list: payload };
+      else if (docName === 'about') fieldObj = { slides: payload };
+      else if (docName === 'craftsmanship') fieldObj = { steps: payload };
+      else if (docName === 'faq') fieldObj = { items: payload };
+      else if (docName === 'images') fieldObj = { images: payload };
+      else if (docName === 'products') fieldObj = { items: payload };
+      else fieldObj = { [sectionName]: payload };
+
+      fieldObj.updatedAt = new Date().toISOString();
+      await setDoc(docRef, fieldObj, { merge: true });
     } catch (err) {
-      console.error("Failed saving to Firestore:", err);
+      console.warn(`Firestore direct save [site_settings/${docName}] warning:`, err);
     }
 
     fetch('/api/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ settings: payload }),
-    }).catch(err => console.error("Failed saving to server route:", err));
+      body: JSON.stringify({ section: sectionName, data: payload }),
+    }).catch(err => console.error("Failed saving section to server route:", err));
   };
 
-  const updateHeroImage = (url: string) => {
+  const updateHeroImage = async (url: string) => {
+    const cleanUrl = await uploadBase64Image(url, 'hero');
     setImages(prev => {
-      const next = { ...prev, heroImage: url };
-      saveToServer({ images: next });
+      const next = { ...prev, heroImage: cleanUrl };
+      saveSection('images', { images: next });
       return next;
     });
   };
 
-  const updateAboutImage = (url: string) => {
+  const updateAboutImage = async (url: string) => {
+    const cleanUrl = await uploadBase64Image(url, 'about');
     setImages(prev => {
-      const next = { ...prev, aboutImage: url };
-      saveToServer({ images: next });
+      const next = { ...prev, aboutImage: cleanUrl };
+      saveSection('images', { images: next });
       return next;
     });
   };
 
-  const updateCraftsmanshipImage = (stepNumber: string, url: string) => {
+  const updateCraftsmanshipImage = async (stepNumber: string, url: string) => {
+    const cleanUrl = await uploadBase64Image(url, 'craftsmanship');
     setImages(prev => {
       const next = {
         ...prev,
         craftsmanshipImages: {
           ...prev.craftsmanshipImages,
-          [stepNumber]: url
+          [stepNumber]: cleanUrl
         }
       };
-      saveToServer({ images: next });
+      saveSection('images', { images: next });
       return next;
     });
   };
 
-  const updateCollectionImage = (itemId: string, field: 'image' | 'secondaryImage', url: string) => {
+  const updateCollectionImage = async (itemId: string, field: 'image' | 'secondaryImage', url: string) => {
+    const cleanUrl = await uploadBase64Image(url, 'products');
     setImages(prev => {
       const next = {
         ...prev,
@@ -354,11 +388,17 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           ...prev.collectionImages,
           [itemId]: {
             ...prev.collectionImages[itemId],
-            [field]: url
+            [field]: cleanUrl
           }
         }
       };
-      saveToServer({ images: next });
+      saveSection('images', { images: next });
+      return next;
+    });
+
+    setCollectionItems(prev => {
+      const next = prev.map(item => item.id === itemId ? { ...item, [field]: cleanUrl } : item);
+      saveSection('collectionItems', { collectionItems: next });
       return next;
     });
   };
@@ -366,113 +406,143 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const resetAllImages = () => {
     const defaults = getDefaultImages();
     setImages(defaults);
-    saveToServer({ images: defaults });
-    try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch (e) {}
+    saveSection('images', { images: defaults });
   };
 
   const updateHeroConfig = (newConfig: Partial<HeroConfig>) => {
     setHeroConfig(prev => {
       const next = { ...prev, ...newConfig };
-      saveToServer({ heroConfig: next });
+      saveSection('heroConfig', { heroConfig: next });
       return next;
     });
   };
 
   const resetHeroConfig = () => {
     setHeroConfig(DEFAULT_HERO_CONFIG);
-    saveToServer({ heroConfig: DEFAULT_HERO_CONFIG });
-    try { localStorage.removeItem(LOCAL_STORAGE_HERO_KEY); } catch (e) {}
+    saveSection('heroConfig', { heroConfig: DEFAULT_HERO_CONFIG });
   };
 
-  const updateFairConfig = (newConfig: Partial<FairConfig>) => {
+  const updateFairConfig = async (newConfig: Partial<FairConfig>) => {
+    const processed = { ...newConfig };
+    if (processed.posterUrl && processed.posterUrl.startsWith('data:image/')) {
+      processed.posterUrl = await uploadBase64Image(processed.posterUrl, 'fair');
+    }
+    if (processed.qrCodeUrl && processed.qrCodeUrl.startsWith('data:image/')) {
+      processed.qrCodeUrl = await uploadBase64Image(processed.qrCodeUrl, 'fair');
+    }
     setFairConfig(prev => {
-      const next = { ...prev, ...newConfig };
-      saveToServer({ fairConfig: next });
+      const next = { ...prev, ...processed };
+      saveSection('fairConfig', { fairConfig: next });
       return next;
     });
   };
 
   const resetFairConfig = () => {
     setFairConfig(DEFAULT_FAIR_CONFIG);
-    saveToServer({ fairConfig: DEFAULT_FAIR_CONFIG });
-    try { localStorage.removeItem(LOCAL_STORAGE_FAIR_KEY); } catch (e) {}
+    saveSection('fairConfig', { fairConfig: DEFAULT_FAIR_CONFIG });
   };
 
   const updateContactData = (newContact: Partial<ContactInfo>) => {
     setContactData(prev => {
       const next = { ...prev, ...newContact };
-      saveToServer({ contactData: next });
+      saveSection('contactData', { contactData: next });
       return next;
     });
   };
 
   const resetContactData = () => {
     setContactData(CONTACT_DATA);
-    saveToServer({ contactData: CONTACT_DATA });
-    try { localStorage.removeItem(LOCAL_STORAGE_CONTACT_KEY); } catch (e) {}
+    saveSection('contactData', { contactData: CONTACT_DATA });
   };
 
   const updateAnnouncements = (list: string[]) => {
     setAnnouncements(list);
-    saveToServer({ announcements: list });
+    saveSection('announcements', { announcements: list });
   };
 
   const resetAnnouncements = () => {
     setAnnouncements(ANNOUNCEMENT_TICKER);
-    saveToServer({ announcements: ANNOUNCEMENT_TICKER });
-    try { localStorage.removeItem(LOCAL_STORAGE_ANNOUNCEMENTS_KEY); } catch (e) {}
+    saveSection('announcements', { announcements: ANNOUNCEMENT_TICKER });
   };
 
-  const updateCollectionItem = (itemId: string, newItem: Partial<CollectionItem>) => {
+  const updateCollectionItem = async (itemId: string, newItem: Partial<CollectionItem>) => {
+    const itemToSave = { ...newItem };
+    if (itemToSave.image && itemToSave.image.startsWith('data:image/')) {
+      itemToSave.image = await uploadBase64Image(itemToSave.image, 'products');
+    }
+    if (itemToSave.secondaryImage && itemToSave.secondaryImage.startsWith('data:image/')) {
+      itemToSave.secondaryImage = await uploadBase64Image(itemToSave.secondaryImage, 'products');
+    }
     setCollectionItems(prev => {
-      const next = prev.map(item => item.id === itemId ? { ...item, ...newItem } : item);
-      saveToServer({ collectionItems: next });
+      const next = prev.map(item => item.id === itemId ? { ...item, ...itemToSave } : item);
+      saveSection('collectionItems', { collectionItems: next });
       return next;
     });
+    // Also save individual product document
+    try {
+      const prodRef = doc(db, "products", itemId);
+      setDoc(prodRef, { ...newItem, id: itemId, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
+    } catch (e) {}
   };
 
-  const addCollectionItem = (newItem: Omit<CollectionItem, 'id'>) => {
+  const addCollectionItem = async (newItem: Omit<CollectionItem, 'id'>) => {
+    const itemToSave = { ...newItem };
+    if (itemToSave.image && itemToSave.image.startsWith('data:image/')) {
+      itemToSave.image = await uploadBase64Image(itemToSave.image, 'products');
+    }
+    if (itemToSave.secondaryImage && itemToSave.secondaryImage.startsWith('data:image/')) {
+      itemToSave.secondaryImage = await uploadBase64Image(itemToSave.secondaryImage, 'products');
+    }
+    const id = `item-${Date.now()}`;
+    const itemWithId: CollectionItem = { ...itemToSave, id };
     setCollectionItems(prev => {
-      const id = `item-${Date.now()}`;
-      const itemWithId: CollectionItem = { ...newItem, id };
       const next = [itemWithId, ...prev];
-      saveToServer({ collectionItems: next });
+      saveSection('collectionItems', { collectionItems: next });
       return next;
     });
+    try {
+      const prodRef = doc(db, "products", id);
+      setDoc(prodRef, { ...itemWithId, updatedAt: new Date().toISOString() }).catch(() => {});
+    } catch (e) {}
   };
 
   const deleteCollectionItem = (itemId: string) => {
     setCollectionItems(prev => {
       const next = prev.filter(item => item.id !== itemId);
-      saveToServer({ collectionItems: next });
+      saveSection('collectionItems', { collectionItems: next });
       return next;
     });
+    try {
+      deleteDoc(doc(db, "products", itemId)).catch(() => {});
+    } catch (e) {}
   };
 
   const resetCollectionItems = () => {
     setCollectionItems(COLLECTION_ITEMS);
-    saveToServer({ collectionItems: COLLECTION_ITEMS });
-    try { localStorage.removeItem(LOCAL_STORAGE_COLLECTION_KEY); } catch (e) {}
+    saveSection('collectionItems', { collectionItems: COLLECTION_ITEMS });
   };
 
-  const updateCraftsmanshipStep = (stepNumber: string, newStep: Partial<CraftsmanshipStep>) => {
+  const updateCraftsmanshipStep = async (stepNumber: string, newStep: Partial<CraftsmanshipStep>) => {
+    const stepToSave = { ...newStep };
+    if (stepToSave.image && stepToSave.image.startsWith('data:image/')) {
+      stepToSave.image = await uploadBase64Image(stepToSave.image, 'craftsmanship');
+    }
     setCraftsmanshipSteps(prev => {
-      const next = prev.map(step => step.number === stepNumber ? { ...step, ...newStep } : step);
-      saveToServer({ craftsmanshipSteps: next });
+      const next = prev.map(step => step.number === stepNumber ? { ...step, ...stepToSave } : step);
+      saveSection('craftsmanshipSteps', { craftsmanshipSteps: next });
       return next;
     });
   };
 
   const resetCraftsmanshipSteps = () => {
     setCraftsmanshipSteps(CRAFTSMANSHIP_STEPS);
-    saveToServer({ craftsmanshipSteps: CRAFTSMANSHIP_STEPS });
-    try { localStorage.removeItem(LOCAL_STORAGE_CRAFTSMANSHIP_KEY); } catch (e) {}
+    saveSection('craftsmanshipSteps', { craftsmanshipSteps: CRAFTSMANSHIP_STEPS });
   };
 
   const updateFaqItem = (id: string, newFaq: Partial<FaqItem>) => {
     setFaqItems(prev => {
       const next = prev.map(item => item.id === id ? { ...item, ...newFaq } : item);
-      saveToServer({ faqItems: next });
+      saveSection('faqItems', { faqItems: next });
       return next;
     });
   };
@@ -484,7 +554,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         id: `faq-${Date.now()}`
       };
       const next = [newItem, ...prev];
-      saveToServer({ faqItems: next });
+      saveSection('faqItems', { faqItems: next });
       return next;
     });
   };
@@ -492,42 +562,49 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteFaqItem = (id: string) => {
     setFaqItems(prev => {
       const next = prev.filter(item => item.id !== id);
-      saveToServer({ faqItems: next });
+      saveSection('faqItems', { faqItems: next });
       return next;
     });
   };
 
   const resetFaqItems = () => {
     setFaqItems(DEFAULT_FAQ_ITEMS);
-    saveToServer({ faqItems: DEFAULT_FAQ_ITEMS });
-    try { localStorage.removeItem(LOCAL_STORAGE_FAQ_KEY); } catch (e) {}
+    saveSection('faqItems', { faqItems: DEFAULT_FAQ_ITEMS });
   };
 
-  const updateAboutSlide = (id: string, newSlide: Partial<AboutSlide>) => {
+  const updateAboutSlide = async (id: string, newSlide: Partial<AboutSlide>) => {
+    const slideToSave = { ...newSlide };
+    if (slideToSave.image && slideToSave.image.startsWith('data:image/')) {
+      slideToSave.image = await uploadBase64Image(slideToSave.image, 'about');
+    }
     setAboutSlides(prev => {
-      const next = prev.map(slide => slide.id === id ? { ...slide, ...newSlide } : slide);
-      saveToServer({ aboutSlides: next });
+      const next = prev.map(slide => slide.id === id ? { ...slide, ...slideToSave } : slide);
+      saveSection('aboutSlides', { aboutSlides: next });
       return next;
     });
   };
 
-  const addAboutSlide = (newSlide: Omit<AboutSlide, 'id'>) => {
+  const addAboutSlide = async (newSlide: Omit<AboutSlide, 'id'>) => {
+    const slideToSave = { ...newSlide };
+    if (slideToSave.image && slideToSave.image.startsWith('data:image/')) {
+      slideToSave.image = await uploadBase64Image(slideToSave.image, 'about');
+    }
+    const newItem: AboutSlide = {
+      ...slideToSave,
+      id: `slide-${Date.now()}`
+    };
     setAboutSlides(prev => {
-      const newItem: AboutSlide = {
-        ...newSlide,
-        id: `slide-${Date.now()}`
-      };
       const next = [...prev, newItem];
-      saveToServer({ aboutSlides: next });
+      saveSection('aboutSlides', { aboutSlides: next });
       return next;
     });
   };
 
   const deleteAboutSlide = (id: string) => {
     setAboutSlides(prev => {
-      if (prev.length <= 1) return prev; // keep at least 1 slide
+      if (prev.length <= 1) return prev;
       const next = prev.filter(slide => slide.id !== id);
-      saveToServer({ aboutSlides: next });
+      saveSection('aboutSlides', { aboutSlides: next });
       return next;
     });
   };
@@ -543,15 +620,14 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const next = [...prev];
       const [moved] = next.splice(index, 1);
       next.splice(newIndex, 0, moved);
-      saveToServer({ aboutSlides: next });
+      saveSection('aboutSlides', { aboutSlides: next });
       return next;
     });
   };
 
   const resetAboutSlides = () => {
     setAboutSlides(DEFAULT_ABOUT_SLIDES);
-    saveToServer({ aboutSlides: DEFAULT_ABOUT_SLIDES });
-    try { localStorage.removeItem(LOCAL_STORAGE_ABOUT_SLIDES_KEY); } catch (e) {}
+    saveSection('aboutSlides', { aboutSlides: DEFAULT_ABOUT_SLIDES });
   };
 
   return (

@@ -1,7 +1,7 @@
 import express from "express";
 import nodemailer from "nodemailer";
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc } from "firebase/firestore";
 import fs from "fs";
 import path from "path";
 
@@ -554,40 +554,177 @@ app.post("/api/newsletter/send-bulk", async (req, res) => {
   }
 });
 
-// GLOBAL SITE SETTINGS ENDPOINTS (PERSISTENT ACROSS ALL DEVICES VIA FIRESTORE)
-let globalSiteSettings: any = null;
+// MODULAR SITE SETTINGS ENDPOINTS (SPLIT COLLECTIONS & DOCUMENTS TO PREVENT >1MB LIMIT)
+let inMemorySettingsCache: any = {};
+
+function sanitizeNoBase64(obj: any): any {
+  if (!obj) return obj;
+  if (typeof obj === 'string') {
+    if (obj.startsWith('data:image/')) {
+      return 'https://images.unsplash.com/photo-1603808033176-9d134e6f2c74?auto=format&fit=crop&q=80&w=1200';
+    }
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(item => sanitizeNoBase64(item));
+  }
+  if (typeof obj === 'object') {
+    const cleaned: Record<string, any> = {};
+    for (const key of Object.keys(obj)) {
+      cleaned[key] = sanitizeNoBase64(obj[key]);
+    }
+    return cleaned;
+  }
+  return obj;
+}
 
 app.get("/api/settings", async (_req, res) => {
   try {
-    const docRef = doc(db, "site_settings", "global");
-    const snapshot = await getDoc(docRef);
-    if (snapshot.exists()) {
-      globalSiteSettings = snapshot.data();
+    const sections = ['hero', 'fair', 'contact', 'announcements', 'about', 'craftsmanship', 'faq', 'images', 'products'];
+    const merged: Record<string, any> = { ...inMemorySettingsCache };
+
+    for (const sec of sections) {
+      try {
+        const docRef = doc(db, "site_settings", sec);
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+          const data = snap.data();
+          if (sec === 'hero') merged.heroConfig = data.heroConfig || data;
+          else if (sec === 'fair') merged.fairConfig = data.fairConfig || data;
+          else if (sec === 'contact') merged.contactData = data.contactData || data;
+          else if (sec === 'announcements') merged.announcements = data.list || data.announcements || data;
+          else if (sec === 'about') merged.aboutSlides = data.slides || data.aboutSlides || data;
+          else if (sec === 'craftsmanship') merged.craftsmanshipSteps = data.steps || data.craftsmanshipSteps || data;
+          else if (sec === 'faq') merged.faqItems = data.items || data.faqItems || data;
+          else if (sec === 'images') merged.images = data.images || data;
+          else if (sec === 'products') merged.collectionItems = data.items || data.collectionItems || data;
+        }
+      } catch (secErr) {
+        // Continue loading other sections
+      }
     }
-    return res.json({ success: true, settings: globalSiteSettings });
+
+    // Try reading individual items from products collection if products doc is empty
+    if (!merged.collectionItems || (Array.isArray(merged.collectionItems) && merged.collectionItems.length === 0)) {
+      try {
+        const prodColRef = collection(db, "products");
+        const prodSnaps = await getDocs(prodColRef);
+        if (!prodSnaps.empty) {
+          const prods: any[] = [];
+          prodSnaps.forEach(docSnap => prods.push(docSnap.data()));
+          merged.collectionItems = prods;
+        }
+      } catch (prodErr) {
+        // Ignore
+      }
+    }
+
+    // Fallback to legacy global doc if no sections existed yet
+    if (Object.keys(merged).length === 0) {
+      try {
+        const globalSnap = await getDoc(doc(db, "site_settings", "global"));
+        if (globalSnap.exists()) {
+          Object.assign(merged, globalSnap.data());
+        }
+      } catch (e) {}
+    }
+
+    inMemorySettingsCache = { ...merged };
+    return res.json({ success: true, settings: merged });
   } catch (err) {
-    return res.json({ success: true, settings: globalSiteSettings });
+    return res.json({ success: true, settings: inMemorySettingsCache });
   }
 });
 
 app.post("/api/settings", async (req, res) => {
   try {
-    const { settings } = req.body || {};
-    if (!settings || typeof settings !== 'object') {
+    const { section, data, settings } = req.body || {};
+    const sanitizedData = sanitizeNoBase64(data || settings);
+
+    if (!sanitizedData || typeof sanitizedData !== 'object') {
       return res.status(400).json({ success: false, error: "Geçersiz ayar verisi." });
     }
-    globalSiteSettings = {
-      ...(globalSiteSettings || {}),
-      ...settings,
-      updatedAt: new Date().toISOString()
-    };
 
-    const docRef = doc(db, "site_settings", "global");
-    await setDoc(docRef, globalSiteSettings, { merge: true });
+    const payload = sanitizedData;
 
-    return res.json({ success: true, message: "Site ayarları veritabanına kaydedildi.", settings: globalSiteSettings });
+    // Targeted single section save (e.g. section = "heroConfig")
+    if (section) {
+      let docName = section.replace('Config', '').replace('Data', '').replace('Items', '').replace('Steps', '').replace('Slides', '').toLowerCase();
+      if (docName === 'collection') docName = 'products';
+      const docRef = doc(db, "site_settings", docName);
+      
+      let fieldObj: Record<string, any> = {};
+      if (docName === 'hero') fieldObj = { heroConfig: payload };
+      else if (docName === 'fair') fieldObj = { fairConfig: payload };
+      else if (docName === 'contact') fieldObj = { contactData: payload };
+      else if (docName === 'announcements') fieldObj = { list: payload };
+      else if (docName === 'about') fieldObj = { slides: payload };
+      else if (docName === 'craftsmanship') fieldObj = { steps: payload };
+      else if (docName === 'faq') fieldObj = { items: payload };
+      else if (docName === 'images') fieldObj = { images: payload };
+      else if (docName === 'products') fieldObj = { items: payload };
+      else fieldObj = { [section]: payload };
+
+      fieldObj.updatedAt = new Date().toISOString();
+
+      await setDoc(docRef, fieldObj, { merge: true });
+      inMemorySettingsCache[section] = payload;
+
+      return res.json({ success: true, message: `[site_settings/${docName}] kaydedildi.`, settings: inMemorySettingsCache });
+    }
+
+    // Save individual sections from a multi-key object without overwriting the whole document
+    const savePromises: Promise<any>[] = [];
+
+    if (payload.heroConfig) {
+      savePromises.push(setDoc(doc(db, "site_settings", "hero"), { heroConfig: payload.heroConfig, updatedAt: new Date().toISOString() }, { merge: true }));
+      inMemorySettingsCache.heroConfig = payload.heroConfig;
+    }
+    if (payload.fairConfig) {
+      savePromises.push(setDoc(doc(db, "site_settings", "fair"), { fairConfig: payload.fairConfig, updatedAt: new Date().toISOString() }, { merge: true }));
+      inMemorySettingsCache.fairConfig = payload.fairConfig;
+    }
+    if (payload.contactData) {
+      savePromises.push(setDoc(doc(db, "site_settings", "contact"), { contactData: payload.contactData, updatedAt: new Date().toISOString() }, { merge: true }));
+      inMemorySettingsCache.contactData = payload.contactData;
+    }
+    if (payload.announcements) {
+      savePromises.push(setDoc(doc(db, "site_settings", "announcements"), { list: payload.announcements, updatedAt: new Date().toISOString() }, { merge: true }));
+      inMemorySettingsCache.announcements = payload.announcements;
+    }
+    if (payload.aboutSlides) {
+      savePromises.push(setDoc(doc(db, "site_settings", "about"), { slides: payload.aboutSlides, updatedAt: new Date().toISOString() }, { merge: true }));
+      inMemorySettingsCache.aboutSlides = payload.aboutSlides;
+    }
+    if (payload.craftsmanshipSteps) {
+      savePromises.push(setDoc(doc(db, "site_settings", "craftsmanship"), { steps: payload.craftsmanshipSteps, updatedAt: new Date().toISOString() }, { merge: true }));
+      inMemorySettingsCache.craftsmanshipSteps = payload.craftsmanshipSteps;
+    }
+    if (payload.faqItems) {
+      savePromises.push(setDoc(doc(db, "site_settings", "faq"), { items: payload.faqItems, updatedAt: new Date().toISOString() }, { merge: true }));
+      inMemorySettingsCache.faqItems = payload.faqItems;
+    }
+    if (payload.images) {
+      savePromises.push(setDoc(doc(db, "site_settings", "images"), { images: payload.images, updatedAt: new Date().toISOString() }, { merge: true }));
+      inMemorySettingsCache.images = payload.images;
+    }
+    if (payload.collectionItems) {
+      savePromises.push(setDoc(doc(db, "site_settings", "products"), { items: payload.collectionItems, updatedAt: new Date().toISOString() }, { merge: true }));
+      if (Array.isArray(payload.collectionItems)) {
+        for (const item of payload.collectionItems) {
+          if (item?.id) {
+            savePromises.push(setDoc(doc(db, "products", item.id), { ...item, updatedAt: new Date().toISOString() }, { merge: true }));
+          }
+        }
+      }
+      inMemorySettingsCache.collectionItems = payload.collectionItems;
+    }
+
+    await Promise.all(savePromises);
+
+    return res.json({ success: true, message: "Modüler site ayarları veritabanına kaydedildi.", settings: inMemorySettingsCache });
   } catch (err) {
-    console.error("Error saving global settings:", err);
+    console.error("Error saving modular settings:", err);
     return res.status(500).json({ success: false, error: "Ayarlar kaydedilirken sunucu hatası oluştu." });
   }
 });
