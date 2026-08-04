@@ -47,6 +47,9 @@ export interface ContactInfo {
   address: string;
   showroomHours: string;
   trendyolUrl?: string;
+  lat?: number;
+  lng?: number;
+  googleMapsUrl?: string;
 }
 
 export interface FaqItem {
@@ -57,4 +60,14 @@ export interface FaqItem {
   isPopular?: boolean;
   isActive?: boolean;
 }
+
+export interface AboutSlide {
+  id: string;
+  image: string;
+  badge: string;
+  title: string;
+  subtitle: string;
+  alt: string;
+}
+
 

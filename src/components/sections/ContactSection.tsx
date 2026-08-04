@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CONTACT_DATA } from '../../constants/data';
-import { Phone, MessageCircle, Instagram, Mail, MapPin, Send, CheckCircle2, Clock, BadgeCheck, ExternalLink, ShoppingBag } from 'lucide-react';
+import { Phone, MessageCircle, Instagram, Mail, MapPin, Send, CheckCircle2, Clock, BadgeCheck, ExternalLink, ShoppingBag, Navigation } from 'lucide-react';
 import { useAppImages } from '../../context/ImageContext';
+import { ShowroomMap } from '../ui/ShowroomMap';
 
 interface ContactSectionProps {
   prefilledSubject?: string;
@@ -215,16 +216,35 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
 
             {/* Showroom Location Box */}
             <div className="p-6 rounded-2xl bg-[#0A2D6F] text-white space-y-4 shadow-xl">
-              <div className="flex items-center gap-3">
-                <MapPin className="w-5 h-5 text-white/80 shrink-0" />
-                <h4 className="font-bold text-base font-serif-luxury">Showroom & Adres</h4>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <MapPin className="w-5 h-5 text-amber-300 shrink-0" />
+                  <h4 className="font-bold text-base font-serif-luxury">Showroom & Atölye Adresi</h4>
+                </div>
+                <span className="text-[10px] uppercase tracking-wider font-extrabold bg-white/10 px-2 py-0.5 rounded text-amber-300">
+                  Manisa İmalat
+                </span>
               </div>
+
               <p className="text-xs text-white/90 leading-relaxed font-light">
-                {CONTACT_DATA.address}
+                {contact.address || CONTACT_DATA.address}
               </p>
-              <div className="pt-2 border-t border-white/10 flex items-center gap-2 text-[11px] text-white/70">
-                <Clock className="w-4 h-4 text-white/60" />
-                <span>{CONTACT_DATA.showroomHours}</span>
+
+              <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-[11px] text-white/80">
+                  <Clock className="w-4 h-4 text-amber-300/80" />
+                  <span>{contact.showroomHours || CONTACT_DATA.showroomHours}</span>
+                </div>
+
+                <a
+                  href={contact.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(contact.address || CONTACT_DATA.address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-[#0A2D6F] text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shrink-0"
+                >
+                  <Navigation className="w-3.5 h-3.5 text-[#0A2D6F]" />
+                  <span>Yol Tarifi Al</span>
+                </a>
               </div>
             </div>
 
@@ -375,6 +395,24 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
           </div>
 
         </div>
+
+        {/* Full Width Showroom Google Maps Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, delay: 0.2 }}
+          className="mt-16"
+        >
+          <ShowroomMap
+            lat={contact.lat || 38.625}
+            lng={contact.lng || 27.408}
+            address={contact.address || CONTACT_DATA.address}
+            showroomHours={contact.showroomHours || CONTACT_DATA.showroomHours}
+            phoneDisplay={contact.phoneDisplay || CONTACT_DATA.phoneDisplay}
+            googleMapsUrl={contact.googleMapsUrl}
+          />
+        </motion.div>
 
       </div>
     </section>

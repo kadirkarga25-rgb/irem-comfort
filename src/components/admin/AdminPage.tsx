@@ -30,6 +30,12 @@ const TARGET_SPECS_MAP: Record<string, CropTargetSpecs> = {
     recommendedHeight: 800,
     aspectRatioLabel: '3:2 Yatay',
   },
+  aboutSlide: {
+    title: 'Mirasımız & Atölyemiz Slayt Görseli',
+    recommendedWidth: 1200,
+    recommendedHeight: 800,
+    aspectRatioLabel: '3:2 Yatay',
+  },
   craftsmanship: {
     title: 'Zanaat & Üretim Adımı Görseli',
     recommendedWidth: 1200,
@@ -93,10 +99,18 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     resetAnnouncements,
     collectionItems,
     updateCollectionItem,
+    addCollectionItem,
+    deleteCollectionItem,
     resetCollectionItems,
     craftsmanshipSteps,
     updateCraftsmanshipStep,
-    resetCraftsmanshipSteps
+    resetCraftsmanshipSteps,
+    aboutSlides,
+    updateAboutSlide,
+    addAboutSlide,
+    deleteAboutSlide,
+    moveAboutSlide,
+    resetAboutSlides
   } = useAppImages();
 
   // Authentication State
@@ -489,7 +503,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadTarget, setUploadTarget] = useState<{
-    type: 'hero' | 'about' | 'craftsmanship' | 'collection' | 'fairPoster' | 'fairQr';
+    type: 'hero' | 'about' | 'craftsmanship' | 'collection' | 'fairPoster' | 'fairQr' | 'aboutSlide';
     id?: string;
     field?: 'image' | 'secondaryImage';
   } | null>(null);
@@ -549,6 +563,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     } else if (uploadTarget.type === 'about') {
       updateAboutImage(croppedBase64);
       showToast('Hakkımızda / Atölye görseli boyutlandırıldı ve güncellendi!');
+    } else if (uploadTarget.type === 'aboutSlide' && uploadTarget.id) {
+      updateAboutSlide(uploadTarget.id, { image: croppedBase64 });
+      showToast('Mirasımız slayt görseli boyutlandırıldı ve güncellendi!');
     } else if (uploadTarget.type === 'craftsmanship' && uploadTarget.id) {
       updateCraftsmanshipImage(uploadTarget.id, croppedBase64);
       showToast(`Zanaat Adım ${uploadTarget.id} görseli boyutlandırıldı ve güncellendi!`);
@@ -569,7 +586,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   };
 
   const triggerFileUpload = (
-    type: 'hero' | 'about' | 'craftsmanship' | 'collection' | 'fairPoster' | 'fairQr',
+    type: 'hero' | 'about' | 'craftsmanship' | 'collection' | 'fairPoster' | 'fairQr' | 'aboutSlide',
     id?: string,
     field?: 'image' | 'secondaryImage'
   ) => {
@@ -1349,146 +1366,634 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                 </div>
               </div>
             </div>
+
+            {/* Mirasımız & Atölyemiz Carousel / Slider Yönetimi */}
+            <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-3">
+                <div>
+                  <h3 className="font-bold text-[#111111] text-base flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-[#082C6C]" />
+                    <span>Mirasımız & Atölyemiz Slayt Galerisi (Slider) Yönetimi</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    "Mirasımız & Atölyemiz" bölümünde otomatik dönen premium görsel slaytlarının resimlerini, yazılarını ve sıralamasını yönetin.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      addAboutSlide({
+                        badge: 'YENİ SEZON',
+                        title: 'Hakiki Deri Konfor',
+                        subtitle: 'Atölyemizden Mükemmel Dikiş İşçiliği',
+                        image: 'https://images.unsplash.com/photo-1603808033176-9d134e6f2c74?auto=format&fit=crop&q=80&w=1200',
+                        alt: 'İrem Comfort Yeni Slayt Görseli'
+                      });
+                      showToast('Yeni slayt başarıyla eklendi!');
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl bg-[#082C6C] text-white text-xs font-bold hover:bg-[#163E87] transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Yeni Slayt Ekle</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm('Tüm slaytlar varsayılan atölye fotoğrafları ve metinlerine sıfırlansın mı?')) {
+                        resetAboutSlides();
+                        showToast('Slaytlar varsayılan değerlerine sıfırlandı!');
+                      }
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Sıfırla</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Slide Items List */}
+              <div className="space-y-4">
+                {aboutSlides.map((slide, index) => (
+                  <div
+                    key={slide.id}
+                    className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4 relative group"
+                  >
+                    {/* Item Top Bar */}
+                    <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-[#082C6C] text-white text-xs font-bold flex items-center justify-center font-mono">
+                          {index + 1}
+                        </span>
+                        <span className="text-xs font-bold text-slate-800">
+                          {slide.title || `Slayt #${index + 1}`}
+                        </span>
+                        {slide.badge && (
+                          <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full font-bold">
+                            {slide.badge}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Action buttons: Move Up, Move Down, Delete */}
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => moveAboutSlide(slide.id, 'up')}
+                          disabled={index === 0}
+                          title="Yukarı Taşı"
+                          className="p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-xs"
+                        >
+                          ▲
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveAboutSlide(slide.id, 'down')}
+                          disabled={index === aboutSlides.length - 1}
+                          title="Aşağı Taşı"
+                          className="p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer text-xs"
+                        >
+                          ▼
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (aboutSlides.length <= 1) {
+                              alert('En az 1 slayt bulunmalıdır!');
+                              return;
+                            }
+                            deleteAboutSlide(slide.id);
+                            showToast('Slayt silindi.');
+                          }}
+                          title="Slaytı Sil"
+                          className="p-1.5 rounded-lg bg-red-50 border border-red-200 hover:bg-red-100 text-red-600 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Image & Field inputs */}
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-start">
+                      {/* Image Preview & Upload Button */}
+                      <div className="sm:col-span-4 space-y-2">
+                        <div className="h-36 rounded-xl overflow-hidden border border-slate-300 relative bg-slate-900 group shadow-sm">
+                          <img
+                            src={slide.image}
+                            alt={slide.alt || slide.title}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-2.5">
+                            <span className="text-[10px] font-semibold text-white/90 truncate">
+                              {slide.title}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => triggerFileUpload('aboutSlide', slide.id)}
+                            className="w-full px-3 py-1.5 rounded-lg bg-[#082C6C] text-white text-xs font-semibold hover:bg-[#163E87] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <Crop className="w-3.5 h-3.5 text-amber-300" />
+                            <span>Fotoğraf Yükle & Kırp</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Text Fields */}
+                      <div className="sm:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                            Rozet Metni (Üst Etiket)
+                          </label>
+                          <input
+                            type="text"
+                            value={slide.badge}
+                            onChange={(e) => updateAboutSlide(slide.id, { badge: e.target.value })}
+                            placeholder="Örn: İREM COMFORT • MANİSA"
+                            className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white font-semibold text-amber-900"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                            Ana Başlık (Overlay)
+                          </label>
+                          <input
+                            type="text"
+                            value={slide.title}
+                            onChange={(e) => updateAboutSlide(slide.id, { title: e.target.value })}
+                            placeholder="Örn: Hakiki Deri."
+                            className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white font-bold text-[#082C6C]"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                            Alt Başlık / Açıklama
+                          </label>
+                          <input
+                            type="text"
+                            value={slide.subtitle}
+                            onChange={(e) => updateAboutSlide(slide.id, { subtitle: e.target.value })}
+                            placeholder="Örn: Doğal Konfor."
+                            className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white font-medium"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                            Görsel Bağlantısı (URL)
+                          </label>
+                          <input
+                            type="text"
+                            value={slide.image}
+                            onChange={(e) => updateAboutSlide(slide.id, { image: e.target.value })}
+                            placeholder="https://..."
+                            className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white text-slate-600 font-mono text-[11px]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                            SEO Alt Görsel Etiketi
+                          </label>
+                          <input
+                            type="text"
+                            value={slide.alt}
+                            onChange={(e) => updateAboutSlide(slide.id, { alt: e.target.value })}
+                            placeholder="Örn: Manisa Atölyesi Hakiki Deri..."
+                            className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white font-normal"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
         {/* Tab 2: Collection Products */}
         {activeTab === 'collection' && (
           <div className="space-y-6">
-            <div className="text-xs text-slate-600 bg-amber-50/80 p-4 rounded-xl border border-amber-200 flex items-center justify-between gap-3">
-              <span>Koleksiyon listesindeki her terlik & sandalet modeli için ana görseli ve detay kartındaki ikincil açı görselini doğrudan güncelleyebilirsiniz.</span>
-              <span className="text-[11px] font-mono text-amber-950 bg-amber-200/80 px-2.5 py-1 rounded-md font-bold whitespace-nowrap">
-                Önerilen Boyut: 1000 x 1000 px (1:1 Kare)
-              </span>
+            <div className="p-4 rounded-xl bg-amber-50/90 border border-amber-200 text-xs text-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+              <div>
+                <p className="font-bold text-amber-950 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  <span>Koleksiyon Ürünleri, Trendyol Yönlendirme Linkleri ve Detay Yönetimi</span>
+                </p>
+                <p className="text-[#111111]/70 text-[11px] mt-0.5">
+                  "Detayları İncele" penceresinde görünen tüm başlık, açıklama, renk seçenekleri, özellikler ve **ürüne özel Trendyol satın alma linklerini** buradan yönetebilirsiniz.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    addCollectionItem({
+                      name: 'İrem Comfort Yeni Model Terlik',
+                      subtitle: 'Hakiki Deri Konfor Taban',
+                      category: 'Bayan Comfort Terlik',
+                      tagline: 'Yeni sezon özel el işçiliği',
+                      description: 'Atölyemizde yüksek kaliteli hakiki deriden özenle üretilmiştir.',
+                      image: 'https://images.unsplash.com/photo-1603808033176-9d134e6f2c74?auto=format&fit=crop&q=80&w=1200',
+                      secondaryImage: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=1200',
+                      materials: ['%100 Hakiki Deri', 'Anatomik Taban'],
+                      dimensions: '36 - 41 Numara',
+                      leatherGrades: ['Nappa Hakiki Deri'],
+                      colors: [
+                        { name: 'Siyah Klasik', hex: '#1C1C1C' },
+                        { name: 'Taba Bronz', hex: '#8B5A2B' }
+                      ],
+                      features: ['Anatomik taban desteği', '%100 Hakiki deri saya'],
+                      trendyolUrl: ''
+                    });
+                    showToast('Yeni ürün koleksiyona başarıyla eklendi!');
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl bg-[#082C6C] text-white text-xs font-bold hover:bg-[#163E87] transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Yeni Ürün Ekle</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('Tüm ürün koleksiyonu varsayılan fabrika verilerine sıfırlansın mı?')) {
+                      resetCollectionItems();
+                      showToast('Ürün koleksiyonu sıfırlandı.');
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-slate-200/80 hover:bg-slate-300/80 text-slate-700 text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Sıfırla</span>
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-6">
-              {collectionItems.map((item) => {
+            <div className="grid grid-cols-1 gap-8">
+              {collectionItems.map((item, itemIdx) => {
                 const currentImgs = images.collectionImages[item.id] || {
                   image: item.image,
                   secondaryImage: item.secondaryImage
                 };
 
                 return (
-                  <div key={item.id} className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-5">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                      <div>
-                        <span className="text-[10px] uppercase font-extrabold text-[#082C6C] bg-[#082C6C]/10 px-2 py-0.5 rounded">
-                          {item.category}
+                  <div key={item.id} className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-6 relative">
+                    {/* Item Card Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-3">
+                      <div className="flex items-center gap-3">
+                        <span className="w-7 h-7 rounded-full bg-[#082C6C] text-white text-xs font-bold flex items-center justify-center font-mono shrink-0">
+                          {itemIdx + 1}
                         </span>
-                        <h4 className="font-bold text-[#111111] text-base mt-1">{item.name}</h4>
-                      </div>
-                      <span className="text-xs text-slate-400 font-mono">ID: {item.id}</span>
-                    </div>
-
-                    {/* Product Text Details Inputs */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/70 p-4 rounded-xl border border-slate-200">
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-1">Ürün Adı / Başlık</label>
-                        <input
-                          type="text"
-                          value={item.name}
-                          onChange={(e) => updateCollectionItem(item.id, { name: e.target.value })}
-                          className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white font-semibold"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-1">Kategori</label>
-                        <input
-                          type="text"
-                          value={item.category}
-                          onChange={(e) => updateCollectionItem(item.id, { category: e.target.value })}
-                          className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white"
-                        />
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] uppercase font-extrabold text-[#082C6C] bg-[#082C6C]/10 px-2 py-0.5 rounded">
+                              {item.category}
+                            </span>
+                            {item.trendyolUrl && (
+                              <span className="text-[10px] uppercase font-bold text-[#F27A1A] bg-[#F27A1A]/10 px-2 py-0.5 rounded flex items-center gap-1">
+                                <ExternalLink className="w-2.5 h-2.5" />
+                                Trendyol Linki Var
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="font-bold text-[#111111] text-base mt-0.5">{item.name}</h4>
+                        </div>
                       </div>
 
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-1">Alt Başlık / Slogan</label>
-                        <input
-                          type="text"
-                          value={item.subtitle || ''}
-                          onChange={(e) => updateCollectionItem(item.id, { subtitle: e.target.value })}
-                          className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-1">Öne Çıkan Vurgu (Tagline)</label>
-                        <input
-                          type="text"
-                          value={item.tagline || ''}
-                          onChange={(e) => updateCollectionItem(item.id, { tagline: e.target.value })}
-                          className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white"
-                        />
-                      </div>
-
-                      <div className="sm:col-span-2">
-                        <label className="text-xs font-bold text-slate-700 block mb-1">Ürün Detay Açıklaması</label>
-                        <textarea
-                          rows={2}
-                          value={item.description || ''}
-                          onChange={(e) => updateCollectionItem(item.id, { description: e.target.value })}
-                          className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white"
-                        />
+                      <div className="flex items-center gap-2 self-end sm:self-center">
+                        <span className="text-[11px] text-slate-400 font-mono bg-slate-100 px-2 py-1 rounded">
+                          ID: {item.id}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (collectionItems.length <= 1) {
+                              alert('Koleksiyonda en az 1 ürün bulunmalıdır.');
+                              return;
+                            }
+                            if (confirm(`'${item.name}' ürününü silmek istediğinize emin misiniz?`)) {
+                              deleteCollectionItem(item.id);
+                              showToast('Ürün silindi.');
+                            }
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 text-xs font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Sil</span>
+                        </button>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Main Product Image */}
-                      <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-700 block">Ana Ürün Görseli</label>
-                          <span className="text-[10px] font-mono text-amber-900 bg-amber-100 px-2 py-0.5 rounded font-bold">1000x1000 px</span>
+                    {/* Section 1: Main Text Details & Direct Trendyol Link */}
+                    <div className="space-y-4">
+                      <h5 className="text-xs font-bold uppercase tracking-wider text-[#082C6C] flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <span>1. Temel Bilgiler & Trendyol Satın Alma Linki</span>
+                      </h5>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/70 p-4 rounded-xl border border-slate-200">
+                        <div>
+                          <label className="text-xs font-bold text-slate-700 block mb-1">Ürün Adı / Başlık</label>
+                          <input
+                            type="text"
+                            value={item.name}
+                            onChange={(e) => updateCollectionItem(item.id, { name: e.target.value })}
+                            className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white font-semibold text-[#111111]"
+                          />
                         </div>
-                        <div className="flex gap-4 items-center">
-                          <div className="w-24 h-24 rounded-lg overflow-hidden border border-slate-300 shrink-0 bg-white">
-                            <img src={currentImgs.image} alt={item.name} className="w-full h-full object-cover" />
-                          </div>
-                          <div className="flex-1 space-y-2">
-                            <input
-                              type="text"
-                              value={currentImgs.image}
-                              onChange={(e) => updateCollectionImage(item.id, 'image', e.target.value)}
-                              className="w-full px-2.5 py-1.5 text-xs rounded-md border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white"
-                              placeholder="Ana Görsel URL"
-                            />
-                            <button
-                              onClick={() => triggerFileUpload('collection', item.id, 'image')}
-                              className="px-3 py-1.5 rounded-lg bg-[#082C6C] text-white text-xs font-semibold hover:bg-[#163E87] transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-                            >
-                              <Crop className="w-3.5 h-3.5 text-amber-300" />
-                              <span>Fotoğraf Yükle & Kırp</span>
-                            </button>
-                          </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-slate-700 block mb-1">Kategori</label>
+                          <input
+                            type="text"
+                            value={item.category}
+                            onChange={(e) => updateCollectionItem(item.id, { category: e.target.value })}
+                            className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white font-medium"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-slate-700 block mb-1">Alt Başlık (Slogan)</label>
+                          <input
+                            type="text"
+                            value={item.subtitle || ''}
+                            onChange={(e) => updateCollectionItem(item.id, { subtitle: e.target.value })}
+                            className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-slate-700 block mb-1">Öne Çıkan Vurgu (Tagline)</label>
+                          <input
+                            type="text"
+                            value={item.tagline || ''}
+                            onChange={(e) => updateCollectionItem(item.id, { tagline: e.target.value })}
+                            className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white"
+                          />
+                        </div>
+
+                        {/* Direct Trendyol Purchase Link */}
+                        <div className="sm:col-span-2 p-3.5 rounded-xl bg-orange-50/80 border border-orange-200 space-y-1.5">
+                          <label className="text-xs font-bold text-orange-950 flex items-center justify-between">
+                            <span className="flex items-center gap-1.5">
+                              <span className="px-2 py-0.5 rounded bg-[#F27A1A] text-white text-[10px] font-black tracking-wider uppercase">
+                                TRENDYOL
+                              </span>
+                              <span>Doğrudan Ürün Trendyol Satın Alma Linki (URL)</span>
+                            </span>
+                            <span className="text-[10px] font-normal text-orange-800 italic">
+                              (Detayları İncele butonundaki 'Trendyol'dan Satın Al' buraya yönlendirir)
+                            </span>
+                          </label>
+                          <input
+                            type="text"
+                            value={item.trendyolUrl || ''}
+                            onChange={(e) => updateCollectionItem(item.id, { trendyolUrl: e.target.value })}
+                            placeholder="https://www.trendyol.com/irem-comfort/..."
+                            className="w-full px-3 py-2 text-xs rounded-lg border border-orange-300 focus:border-[#F27A1A] focus:outline-none bg-white text-orange-950 font-mono text-[11px]"
+                          />
+                          <p className="text-[11px] text-orange-800">
+                            * Bu alanı doldurursanız müşteriler modal pencereden doğrudan bu özel ürünün Trendyol sayfasına yönlendirilir. Boş bırakılırsa genel Trendyol mağaza linkine gider.
+                          </p>
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="text-xs font-bold text-slate-700 block mb-1">Ürün Detay Açıklaması</label>
+                          <textarea
+                            rows={3}
+                            value={item.description || ''}
+                            onChange={(e) => updateCollectionItem(item.id, { description: e.target.value })}
+                            className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white font-normal leading-relaxed"
+                          />
                         </div>
                       </div>
+                    </div>
 
-                      {/* Secondary Product Image */}
-                      <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-700 block">Detay / İkinci Açı Görseli</label>
-                          <span className="text-[10px] font-mono text-amber-900 bg-amber-100 px-2 py-0.5 rounded font-bold">1000x1000 px</span>
-                        </div>
-                        <div className="flex gap-4 items-center">
-                          <div className="w-24 h-24 rounded-lg overflow-hidden border border-slate-300 shrink-0 bg-white">
-                            <img src={currentImgs.secondaryImage || currentImgs.image} alt={item.name} className="w-full h-full object-cover" />
+                    {/* Section 2: Color Options Management */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h5 className="text-xs font-bold uppercase tracking-wider text-[#082C6C] flex items-center gap-1.5">
+                          <Layers className="w-3.5 h-3.5 text-[#082C6C]" />
+                          <span>2. Deri Renk Seçenekleri ({item.colors?.length || 0} Renk)</span>
+                        </h5>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const currentColors = item.colors || [];
+                            const updatedColors = [
+                              ...currentColors,
+                              { name: 'Yeni Deri Tonu', hex: '#8B5A2B' }
+                            ];
+                            updateCollectionItem(item.id, { colors: updatedColors });
+                            showToast('Yeni renk seçeneği eklendi.');
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-[#082C6C]/10 hover:bg-[#082C6C]/20 text-[#082C6C] text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Renk Ekle</span>
+                        </button>
+                      </div>
+
+                      <div className="bg-slate-50/70 p-4 rounded-xl border border-slate-200 space-y-3">
+                        {item.colors && item.colors.length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {item.colors.map((col, colorIdx) => (
+                              <div
+                                key={colorIdx}
+                                className="flex items-center gap-2 bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs"
+                              >
+                                {/* Color Picker Circle */}
+                                <input
+                                  type="color"
+                                  value={col.hex || '#000000'}
+                                  onChange={(e) => {
+                                    const nextColors = [...item.colors];
+                                    nextColors[colorIdx] = { ...nextColors[colorIdx], hex: e.target.value };
+                                    updateCollectionItem(item.id, { colors: nextColors });
+                                  }}
+                                  className="w-8 h-8 rounded-full border border-slate-300 cursor-pointer p-0.5 bg-transparent shrink-0"
+                                  title="Renk Kodu Seç"
+                                />
+
+                                <div className="flex-1 min-w-0 space-y-1">
+                                  <input
+                                    type="text"
+                                    value={col.name}
+                                    onChange={(e) => {
+                                      const nextColors = [...item.colors];
+                                      nextColors[colorIdx] = { ...nextColors[colorIdx], name: e.target.value };
+                                      updateCollectionItem(item.id, { colors: nextColors });
+                                    }}
+                                    placeholder="Renk Adı (Örn: Siyah)"
+                                    className="w-full px-2 py-1 text-xs rounded border border-slate-200 focus:border-[#082C6C] focus:outline-none font-semibold text-slate-800"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={col.hex}
+                                    onChange={(e) => {
+                                      const nextColors = [...item.colors];
+                                      nextColors[colorIdx] = { ...nextColors[colorIdx], hex: e.target.value };
+                                      updateCollectionItem(item.id, { colors: nextColors });
+                                    }}
+                                    placeholder="#1C1C1C"
+                                    className="w-full px-2 py-0.5 text-[10px] rounded border border-slate-200 focus:border-[#082C6C] focus:outline-none font-mono text-slate-500"
+                                  />
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const nextColors = item.colors.filter((_, idx) => idx !== colorIdx);
+                                    updateCollectionItem(item.id, { colors: nextColors });
+                                  }}
+                                  className="p-1.5 rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors shrink-0 cursor-pointer"
+                                  title="Rengi Sil"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))}
                           </div>
-                          <div className="flex-1 space-y-2">
-                            <input
-                              type="text"
-                              value={currentImgs.secondaryImage || ''}
-                              onChange={(e) => updateCollectionImage(item.id, 'secondaryImage', e.target.value)}
-                              className="w-full px-2.5 py-1.5 text-xs rounded-md border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white"
-                              placeholder="İkinci Görsel URL"
-                            />
-                            <button
-                              onClick={() => triggerFileUpload('collection', item.id, 'secondaryImage')}
-                              className="px-3 py-1.5 rounded-lg bg-[#082C6C] text-white text-xs font-semibold hover:bg-[#163E87] transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
-                            >
-                              <Crop className="w-3.5 h-3.5 text-amber-300" />
-                              <span>Fotoğraf Yükle & Kırp</span>
-                            </button>
+                        ) : (
+                          <div className="text-center py-3 text-xs text-slate-400">
+                            Henüz renk seçeneği eklenmemiş. Yukarıdaki "Renk Ekle" butonunu kullanın.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Section 3: Materials, Dimensions, Features */}
+                    <div className="space-y-3">
+                      <h5 className="text-xs font-bold uppercase tracking-wider text-[#082C6C] flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-[#082C6C]" />
+                        <span>3. Malzemeler, Ölçüler & Ergonomik Özellikler</span>
+                      </h5>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/70 p-4 rounded-xl border border-slate-200">
+                        <div>
+                          <label className="text-xs font-bold text-slate-700 block mb-1">
+                            Kullanılan Malzemeler (Virgülle ayırın)
+                          </label>
+                          <input
+                            type="text"
+                            value={Array.isArray(item.materials) ? item.materials.join(', ') : (item.materials || '')}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              const parsed = raw.split(',').map(s => s.trim()).filter(Boolean);
+                              updateCollectionItem(item.id, { materials: parsed });
+                            }}
+                            placeholder="Örn: %100 Hakiki Deri, Anatomik Taban, Deri Astar"
+                            className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white font-medium"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-slate-700 block mb-1">
+                            Numara Aralığı & Ölçüler
+                          </label>
+                          <input
+                            type="text"
+                            value={item.dimensions || ''}
+                            onChange={(e) => updateCollectionItem(item.id, { dimensions: e.target.value })}
+                            placeholder="Örn: Numara Aralığı: 36 - 41 | Topuk Yüksekliği: 3.5 cm"
+                            className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white font-medium"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="text-xs font-bold text-slate-700 block mb-1">
+                            Ergonomik Özellikler (Her satıra 1 madde yazın)
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={(item.features || []).join('\n')}
+                            onChange={(e) => {
+                              const parsed = e.target.value.split('\n').filter(Boolean);
+                              updateCollectionItem(item.id, { features: parsed });
+                            }}
+                            placeholder="Anatomik kavisli özel taban desteği&#10;%100 Nefes alan hakiki deri iç kaplama&#10;Hafif poliüretan taban"
+                            className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white font-normal leading-relaxed"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 4: Product Image Management */}
+                    <div className="space-y-3">
+                      <h5 className="text-xs font-bold uppercase tracking-wider text-[#082C6C] flex items-center gap-1.5">
+                        <ImageIcon className="w-3.5 h-3.5 text-[#082C6C]" />
+                        <span>4. Ürün Fotoğrafları</span>
+                      </h5>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Main Product Image */}
+                        <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-slate-700 block">Ana Ürün Görseli</label>
+                            <span className="text-[10px] font-mono text-amber-900 bg-amber-100 px-2 py-0.5 rounded font-bold">1000x1000 px</span>
+                          </div>
+                          <div className="flex gap-4 items-center">
+                            <div className="w-24 h-24 rounded-lg overflow-hidden border border-slate-300 shrink-0 bg-white shadow-xs">
+                              <img src={currentImgs.image} alt={item.name} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1 space-y-2">
+                              <input
+                                type="text"
+                                value={currentImgs.image}
+                                onChange={(e) => updateCollectionImage(item.id, 'image', e.target.value)}
+                                className="w-full px-2.5 py-1.5 text-xs rounded-md border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white font-mono text-[11px]"
+                                placeholder="Ana Görsel URL"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => triggerFileUpload('collection', item.id, 'image')}
+                                className="px-3 py-1.5 rounded-lg bg-[#082C6C] text-white text-xs font-semibold hover:bg-[#163E87] transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                              >
+                                <Crop className="w-3.5 h-3.5 text-amber-300" />
+                                <span>Fotoğraf Yükle & Kırp</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Secondary Product Image */}
+                        <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-slate-700 block">Detay / İkinci Açı Görseli</label>
+                            <span className="text-[10px] font-mono text-amber-900 bg-amber-100 px-2 py-0.5 rounded font-bold">1000x1000 px</span>
+                          </div>
+                          <div className="flex gap-4 items-center">
+                            <div className="w-24 h-24 rounded-lg overflow-hidden border border-slate-300 shrink-0 bg-white shadow-xs">
+                              <img src={currentImgs.secondaryImage || currentImgs.image} alt={item.name} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1 space-y-2">
+                              <input
+                                type="text"
+                                value={currentImgs.secondaryImage || ''}
+                                onChange={(e) => updateCollectionImage(item.id, 'secondaryImage', e.target.value)}
+                                className="w-full px-2.5 py-1.5 text-xs rounded-md border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white font-mono text-[11px]"
+                                placeholder="İkinci Görsel URL"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => triggerFileUpload('collection', item.id, 'secondaryImage')}
+                                className="px-3 py-1.5 rounded-lg bg-[#082C6C] text-white text-xs font-semibold hover:bg-[#163E87] transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                              >
+                                <Crop className="w-3.5 h-3.5 text-amber-300" />
+                                <span>Fotoğraf Yükle & Kırp</span>
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1743,13 +2248,24 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                   />
                 </div>
 
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Google Haritalar Yol Tarifi / Konum Bağlantısı (URL)</label>
+                  <input
+                    type="text"
+                    value={contactData.googleMapsUrl || ''}
+                    onChange={(e) => updateContactData({ googleMapsUrl: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-mono text-[11px]"
+                    placeholder="https://maps.google.com/?q=..."
+                  />
+                </div>
+
                 <div className="sm:col-span-2">
                   <label className="text-xs font-bold text-slate-700 block mb-1">Manisa Atölye & Showroom Açık Adresi</label>
                   <textarea
                     rows={2}
                     value={contactData.address}
                     onChange={(e) => updateContactData({ address: e.target.value })}
-                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50"
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-medium"
                   />
                 </div>
               </div>

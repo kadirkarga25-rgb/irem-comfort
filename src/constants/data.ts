@@ -15,7 +15,8 @@ export const CONTACT_DATA: ContactInfo = {
   email: "info@iremcomfort.com",
   address: "Manisa Ayakkabıcılar Sitesi (Güzelyurt Mahallesi) 5757.Sokak No:21/A Yunusemre / Manisa 45030",
   showroomHours: "Pzt - Cmt: 08:30 - 19:00 | Pazar: Özel Randevu İle",
-  trendyolUrl: "https://www.trendyol.com/magaza/irem-comfort-m-1286942?sst=0&channelId=1"
+  trendyolUrl: "https://www.trendyol.com/magaza/irem-comfort-m-1286942?sst=0&channelId=1",
+  googleMapsUrl: "https://www.google.com/maps/search/?api=1&query=%C4%B0rem+Comfort+Manisa+Ayakkab%C4%B1c%C4%B1lar+Sitesi"
 };
 
 export const ANNOUNCEMENT_TICKER = [

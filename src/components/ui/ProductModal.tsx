@@ -16,7 +16,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   onClose,
   onInquire
 }) => {
-  const { images: storeImages } = useAppImages();
+  const { images: storeImages, contactData } = useAppImages();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
@@ -24,7 +24,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
   const itemImages = storeImages.collectionImages[item.id] || { image: item.image, secondaryImage: item.secondaryImage };
   const modalImages = [itemImages.image, itemImages.secondaryImage || itemImages.image];
-  const currentColor = selectedColor || item.colors[0]?.name;
+  const currentColor = selectedColor || (item.colors && item.colors[0]?.name);
+  const targetTrendyolUrl = item.trendyolUrl || contactData?.trendyolUrl || CONTACT_DATA.trendyolUrl;
 
   return (
     <AnimatePresence>
@@ -107,73 +108,81 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 </p>
 
                 {/* Color Palette Selector */}
-                <div className="space-y-2">
-                  <span className="text-xs font-bold text-[#111111] uppercase tracking-wider flex items-center gap-1.5">
-                    <Palette className="w-3.5 h-3.5 text-[#0A2D6F]" />
-                    <span>Deri Tonu: <strong className="text-[#0A2D6F]">{currentColor}</strong></span>
-                  </span>
-                  <div className="flex items-center gap-3 pt-1">
-                    {item.colors.map((c) => (
-                      <button
-                        key={c.name}
-                        onClick={() => setSelectedColor(c.name)}
-                        className={`w-8 h-8 rounded-full border-2 transition-transform cursor-pointer relative ${
-                          currentColor === c.name ? 'border-[#0A2D6F] scale-110 shadow-md ring-2 ring-[#0A2D6F]/20' : 'border-gray-300 hover:scale-105'
-                        }`}
-                        style={{ backgroundColor: c.hex }}
-                        title={c.name}
-                      >
-                        {currentColor === c.name && (
-                          <Check className={`w-4 h-4 absolute inset-0 m-auto ${c.hex === '#EAE6DF' || c.hex === '#F0ECE1' ? 'text-black' : 'text-white'}`} />
-                        )}
-                      </button>
-                    ))}
+                {item.colors && item.colors.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-xs font-bold text-[#111111] uppercase tracking-wider flex items-center gap-1.5">
+                      <Palette className="w-3.5 h-3.5 text-[#0A2D6F]" />
+                      <span>Deri Tonu: <strong className="text-[#0A2D6F]">{currentColor || 'Standart'}</strong></span>
+                    </span>
+                    <div className="flex items-center gap-3 pt-1 flex-wrap">
+                      {item.colors.map((c, idx) => (
+                        <button
+                          key={c.name || idx}
+                          onClick={() => setSelectedColor(c.name)}
+                          className={`w-8 h-8 rounded-full border-2 transition-transform cursor-pointer relative ${
+                            currentColor === c.name ? 'border-[#0A2D6F] scale-110 shadow-md ring-2 ring-[#0A2D6F]/20' : 'border-gray-300 hover:scale-105'
+                          }`}
+                          style={{ backgroundColor: c.hex }}
+                          title={c.name}
+                        >
+                          {currentColor === c.name && (
+                            <Check className={`w-4 h-4 absolute inset-0 m-auto ${c.hex === '#EAE6DF' || c.hex === '#F0ECE1' || c.hex === '#FFFFFF' ? 'text-black' : 'text-white'}`} />
+                          )}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Dimensions & Materials Specs */}
                 <div className="space-y-3 pt-4 border-t border-[#0A2D6F]/10 text-xs text-[#111111]/80">
-                  <div className="flex items-start gap-2">
-                    <Layers className="w-4 h-4 text-[#0A2D6F] shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="font-semibold text-[#111111]">Kullanılan Malzemeler: </strong>
-                      <span>{item.materials.join(', ')}</span>
+                  {item.materials && item.materials.length > 0 && (
+                    <div className="flex items-start gap-2">
+                      <Layers className="w-4 h-4 text-[#0A2D6F] shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="font-semibold text-[#111111]">Kullanılan Malzemeler: </strong>
+                        <span>{Array.isArray(item.materials) ? item.materials.join(', ') : item.materials}</span>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  <div className="flex items-start gap-2">
-                    <ShieldCheck className="w-4 h-4 text-[#0A2D6F] shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="font-semibold text-[#111111]">Ölçüler: </strong>
-                      <span>{item.dimensions}</span>
+                  {item.dimensions && (
+                    <div className="flex items-start gap-2">
+                      <ShieldCheck className="w-4 h-4 text-[#0A2D6F] shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="font-semibold text-[#111111]">Ölçüler: </strong>
+                        <span>{item.dimensions}</span>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Key Features */}
-                <div className="space-y-2 bg-[#F8F8F8] p-4 rounded-xl border border-[#0A2D6F]/10">
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#0A2D6F]">
-                    Ergonomik & Öne Çıkan Özellikler
-                  </span>
-                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[#111111]/80 pt-1">
-                    {item.features.map((feat, idx) => (
-                      <li key={idx} className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#0A2D6F]" />
-                        <span>{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                {item.features && item.features.length > 0 && (
+                  <div className="space-y-2 bg-[#F8F8F8] p-4 rounded-xl border border-[#0A2D6F]/10">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#0A2D6F]">
+                      Ergonomik & Öne Çıkan Özellikler
+                    </span>
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[#111111]/80 pt-1">
+                      {item.features.map((feat, idx) => (
+                        <li key={idx} className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#0A2D6F]" />
+                          <span>{feat}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
 
               {/* Inquiry & Trendyol Action Buttons */}
               <div className="pt-4 border-t border-[#0A2D6F]/10 flex flex-col sm:flex-row items-center gap-3">
-                {CONTACT_DATA.trendyolUrl && (
+                {targetTrendyolUrl && (
                   <a
-                    href={CONTACT_DATA.trendyolUrl}
+                    href={targetTrendyolUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full sm:w-auto py-3.5 px-6 rounded-full bg-[#F27A1A] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-[#d9660c] transition-all cursor-pointer shadow-lg active:scale-95"
+                    className="w-full sm:w-auto py-3.5 px-6 rounded-full bg-[#F27A1A] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-[#d9660c] transition-all cursor-pointer shadow-lg active:scale-95 shrink-0"
                   >
                     <span>Trendyol'dan Satın Al</span>
                     <ArrowRight className="w-4 h-4" />

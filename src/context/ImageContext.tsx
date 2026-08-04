@@ -6,7 +6,7 @@ import {
   ANNOUNCEMENT_TICKER,
   DEFAULT_FAQ_ITEMS
 } from '../constants/data';
-import { CollectionItem, CraftsmanshipStep, ContactInfo, FaqItem } from '../types';
+import { CollectionItem, CraftsmanshipStep, ContactInfo, FaqItem, AboutSlide } from '../types';
 
 export interface HeroConfig {
   badgeText: string;
@@ -66,6 +66,41 @@ export const DEFAULT_FAIR_CONFIG: FairConfig = {
   whatsappContact: '905330297125'
 };
 
+export const DEFAULT_ABOUT_SLIDES: AboutSlide[] = [
+  {
+    id: 'slide-1',
+    image: 'https://images.unsplash.com/photo-1603808033176-9d134e6f2c74?auto=format&fit=crop&q=80&w=1200',
+    badge: 'İREM COMFORT • MANİSA',
+    title: 'Hakiki Deri.',
+    subtitle: 'Doğal Konfor.',
+    alt: 'İrem Comfort Hakiki Deri Bayan Sandalet Model'
+  },
+  {
+    id: 'slide-2',
+    image: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&q=80&w=1200',
+    badge: '%100 HAKİKİ SAYA',
+    title: '%100 Hakiki Deri',
+    subtitle: 'Nefes Alan Yumuşak Dana ve Kuzu Derisi',
+    alt: 'Manisa Atölyesi Hakiki Deri Doku Yakın Çekim'
+  },
+  {
+    id: 'slide-3',
+    image: 'https://images.unsplash.com/photo-1531819177115-428566ccfb50?auto=format&fit=crop&q=80&w=1200',
+    badge: 'MANİSA ATÖLYESİ',
+    title: "Manisa'da Üretiliyor",
+    subtitle: 'Usta Ellerin Geleneksel Dikiş Zanaatı',
+    alt: 'Manisa Ayakkabıcılar Sitesi Deri Zanaatkarlığı'
+  },
+  {
+    id: 'slide-4',
+    image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=1200',
+    badge: 'ORTOPEDİK TABAN',
+    title: 'Anatomik Konfor',
+    subtitle: 'Ayak Kavisini Destekleyen Esnek Taban Structure',
+    alt: 'Anatomik Ortopedik Taban Mimarisi Yakın Çekim'
+  }
+];
+
 const getDefaultImages = (): AppImages => {
   const craftMap: Record<string, string> = {};
   CRAFTSMANSHIP_STEPS.forEach(step => {
@@ -119,6 +154,8 @@ interface ImageContextType {
   // Collection Items Dynamic Store
   collectionItems: CollectionItem[];
   updateCollectionItem: (itemId: string, newItem: Partial<CollectionItem>) => void;
+  addCollectionItem: (newItem: Omit<CollectionItem, 'id'>) => void;
+  deleteCollectionItem: (itemId: string) => void;
   resetCollectionItems: () => void;
 
   // Craftsmanship Steps Dynamic Store
@@ -132,6 +169,14 @@ interface ImageContextType {
   addFaqItem: (newFaq: Omit<FaqItem, 'id'>) => void;
   deleteFaqItem: (id: string) => void;
   resetFaqItems: () => void;
+
+  // About Section Slides Dynamic Store
+  aboutSlides: AboutSlide[];
+  updateAboutSlide: (id: string, newSlide: Partial<AboutSlide>) => void;
+  addAboutSlide: (newSlide: Omit<AboutSlide, 'id'>) => void;
+  deleteAboutSlide: (id: string) => void;
+  moveAboutSlide: (id: string, direction: 'up' | 'down') => void;
+  resetAboutSlides: () => void;
 
   isManagerOpen: boolean;
   setIsManagerOpen: (open: boolean) => void;
@@ -147,6 +192,7 @@ const LOCAL_STORAGE_ANNOUNCEMENTS_KEY = 'irem_comfort_announcements_v1';
 const LOCAL_STORAGE_COLLECTION_KEY = 'irem_comfort_collection_items_v1';
 const LOCAL_STORAGE_CRAFTSMANSHIP_KEY = 'irem_comfort_craftsmanship_v1';
 const LOCAL_STORAGE_FAQ_KEY = 'irem_comfort_faq_v1';
+const LOCAL_STORAGE_ABOUT_SLIDES_KEY = 'irem_comfort_about_slides_v1';
 
 
 export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -234,6 +280,14 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return DEFAULT_FAQ_ITEMS;
   });
 
+  const [aboutSlides, setAboutSlides] = useState<AboutSlide[]>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_ABOUT_SLIDES_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return DEFAULT_ABOUT_SLIDES;
+  });
+
   const [isManagerOpen, setIsManagerOpen] = useState(false);
 
   useEffect(() => {
@@ -268,6 +322,10 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try { localStorage.setItem(LOCAL_STORAGE_FAQ_KEY, JSON.stringify(faqItems)); } catch (e) {}
   }, [faqItems]);
 
+  useEffect(() => {
+    try { localStorage.setItem(LOCAL_STORAGE_ABOUT_SLIDES_KEY, JSON.stringify(aboutSlides)); } catch (e) {}
+  }, [aboutSlides]);
+
   // Sync settings with Backend Server on App Boot
   useEffect(() => {
     fetch('/api/settings')
@@ -283,6 +341,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           if (s.collectionItems) setCollectionItems(s.collectionItems);
           if (s.craftsmanshipSteps) setCraftsmanshipSteps(s.craftsmanshipSteps);
           if (s.faqItems) setFaqItems(s.faqItems);
+          if (s.aboutSlides) setAboutSlides(s.aboutSlides);
         }
       })
       .catch(err => console.error("Could not fetch global settings from server:", err));
@@ -412,6 +471,24 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
+  const addCollectionItem = (newItem: Omit<CollectionItem, 'id'>) => {
+    setCollectionItems(prev => {
+      const id = `item-${Date.now()}`;
+      const itemWithId: CollectionItem = { ...newItem, id };
+      const next = [itemWithId, ...prev];
+      saveToServer({ collectionItems: next });
+      return next;
+    });
+  };
+
+  const deleteCollectionItem = (itemId: string) => {
+    setCollectionItems(prev => {
+      const next = prev.filter(item => item.id !== itemId);
+      saveToServer({ collectionItems: next });
+      return next;
+    });
+  };
+
   const resetCollectionItems = () => {
     setCollectionItems(COLLECTION_ITEMS);
     saveToServer({ collectionItems: COLLECTION_ITEMS });
@@ -466,6 +543,57 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try { localStorage.removeItem(LOCAL_STORAGE_FAQ_KEY); } catch (e) {}
   };
 
+  const updateAboutSlide = (id: string, newSlide: Partial<AboutSlide>) => {
+    setAboutSlides(prev => {
+      const next = prev.map(slide => slide.id === id ? { ...slide, ...newSlide } : slide);
+      saveToServer({ aboutSlides: next });
+      return next;
+    });
+  };
+
+  const addAboutSlide = (newSlide: Omit<AboutSlide, 'id'>) => {
+    setAboutSlides(prev => {
+      const newItem: AboutSlide = {
+        ...newSlide,
+        id: `slide-${Date.now()}`
+      };
+      const next = [...prev, newItem];
+      saveToServer({ aboutSlides: next });
+      return next;
+    });
+  };
+
+  const deleteAboutSlide = (id: string) => {
+    setAboutSlides(prev => {
+      if (prev.length <= 1) return prev; // keep at least 1 slide
+      const next = prev.filter(slide => slide.id !== id);
+      saveToServer({ aboutSlides: next });
+      return next;
+    });
+  };
+
+  const moveAboutSlide = (id: string, direction: 'up' | 'down') => {
+    setAboutSlides(prev => {
+      const index = prev.findIndex(s => s.id === id);
+      if (index === -1) return prev;
+      if (direction === 'up' && index === 0) return prev;
+      if (direction === 'down' && index === prev.length - 1) return prev;
+
+      const newIndex = direction === 'up' ? index - 1 : index + 1;
+      const next = [...prev];
+      const [moved] = next.splice(index, 1);
+      next.splice(newIndex, 0, moved);
+      saveToServer({ aboutSlides: next });
+      return next;
+    });
+  };
+
+  const resetAboutSlides = () => {
+    setAboutSlides(DEFAULT_ABOUT_SLIDES);
+    saveToServer({ aboutSlides: DEFAULT_ABOUT_SLIDES });
+    try { localStorage.removeItem(LOCAL_STORAGE_ABOUT_SLIDES_KEY); } catch (e) {}
+  };
+
   return (
     <ImageContext.Provider
       value={{
@@ -489,6 +617,8 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         resetAnnouncements,
         collectionItems,
         updateCollectionItem,
+        addCollectionItem,
+        deleteCollectionItem,
         resetCollectionItems,
         craftsmanshipSteps,
         updateCraftsmanshipStep,
@@ -498,6 +628,12 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         addFaqItem,
         deleteFaqItem,
         resetFaqItems,
+        aboutSlides,
+        updateAboutSlide,
+        addAboutSlide,
+        deleteAboutSlide,
+        moveAboutSlide,
+        resetAboutSlides,
         isManagerOpen,
         setIsManagerOpen
       }}
