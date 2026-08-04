@@ -2,18 +2,32 @@ import express from "express";
 import nodemailer from "nodemailer";
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
-import firebaseJsonConfig from "../firebase-applet-config.json";
+import fs from "fs";
+import path from "path";
 
-const serverFirebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY || process.env.VITE_FIREBASE_API_KEY || firebaseJsonConfig.apiKey,
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN || process.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseJsonConfig.authDomain,
-  projectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || firebaseJsonConfig.projectId,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || process.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseJsonConfig.storageBucket,
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseJsonConfig.messagingSenderId,
-  appId: process.env.FIREBASE_APP_ID || process.env.VITE_FIREBASE_APP_ID || firebaseJsonConfig.appId,
-  firestoreDatabaseId: process.env.FIREBASE_DATABASE_ID || process.env.VITE_FIREBASE_DATABASE_ID || firebaseJsonConfig.firestoreDatabaseId || undefined
-};
+function loadServerFirebaseConfig() {
+  let fileConfig: Record<string, string> = {};
+  try {
+    const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+    if (fs.existsSync(configPath)) {
+      fileConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    }
+  } catch (err) {
+    // Ignore read errors on serverless runtime
+  }
 
+  return {
+    apiKey: process.env.FIREBASE_API_KEY || process.env.VITE_FIREBASE_API_KEY || fileConfig.apiKey || "AIzaSyBv8pbgdd7p6mEAXyxKyKW071wDbG8Ews",
+    authDomain: process.env.FIREBASE_AUTH_DOMAIN || process.env.VITE_FIREBASE_AUTH_DOMAIN || fileConfig.authDomain || "irem-comfort.firebaseapp.com",
+    projectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || fileConfig.projectId || "irem-comfort",
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || process.env.VITE_FIREBASE_STORAGE_BUCKET || fileConfig.storageBucket || "irem-comfort.firebasestorage.app",
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || fileConfig.messagingSenderId || "77442925908",
+    appId: process.env.FIREBASE_APP_ID || process.env.VITE_FIREBASE_APP_ID || fileConfig.appId || "1:77442925908:web:3836ae13b3be174e6b74c1",
+    firestoreDatabaseId: process.env.FIREBASE_DATABASE_ID || process.env.VITE_FIREBASE_DATABASE_ID || fileConfig.firestoreDatabaseId || undefined
+  };
+}
+
+const serverFirebaseConfig = loadServerFirebaseConfig();
 const firebaseApp = getApps().length === 0 ? initializeApp(serverFirebaseConfig) : getApp();
 const db = serverFirebaseConfig.firestoreDatabaseId
   ? getFirestore(firebaseApp, serverFirebaseConfig.firestoreDatabaseId)
