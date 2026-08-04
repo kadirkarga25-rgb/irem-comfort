@@ -7,6 +7,7 @@ import {
   DEFAULT_FAQ_ITEMS
 } from '../constants/data';
 import { CollectionItem, CraftsmanshipStep, ContactInfo, FaqItem, AboutSlide } from '../types';
+import { db, doc, setDoc, onSnapshot } from '../lib/firebase';
 
 export interface HeroConfig {
   badgeText: string;
@@ -196,143 +197,65 @@ const LOCAL_STORAGE_ABOUT_SLIDES_KEY = 'irem_comfort_about_slides_v1';
 
 
 export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [images, setImages] = useState<AppImages>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        const defaults = getDefaultImages();
-        return {
-          heroImage: parsed.heroImage || defaults.heroImage,
-          aboutImage: parsed.aboutImage || defaults.aboutImage,
-          craftsmanshipImages: { ...defaults.craftsmanshipImages, ...(parsed.craftsmanshipImages || {}) },
-          collectionImages: { ...defaults.collectionImages, ...(parsed.collectionImages || {}) }
-        };
-      }
-    } catch (e) {
-      console.error('Failed to parse saved images from localStorage', e);
-    }
-    return getDefaultImages();
-  });
-
-  const [heroConfig, setHeroConfig] = useState<HeroConfig>(() => {
-    try {
-      const savedHero = localStorage.getItem(LOCAL_STORAGE_HERO_KEY);
-      if (savedHero) {
-        return { ...DEFAULT_HERO_CONFIG, ...JSON.parse(savedHero) };
-      }
-    } catch (e) {
-      console.error('Failed to parse saved hero config', e);
-    }
-    return DEFAULT_HERO_CONFIG;
-  });
-
-  const [fairConfig, setFairConfig] = useState<FairConfig>(() => {
-    try {
-      const savedFair = localStorage.getItem(LOCAL_STORAGE_FAIR_KEY);
-      if (savedFair) {
-        const parsed = JSON.parse(savedFair);
-        return { ...DEFAULT_FAIR_CONFIG, ...parsed };
-      }
-    } catch (e) {
-      console.error('Failed to parse saved fair config', e);
-    }
-    return DEFAULT_FAIR_CONFIG;
-  });
-
-  const [contactData, setContactData] = useState<ContactInfo>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_CONTACT_KEY);
-      if (saved) return { ...CONTACT_DATA, ...JSON.parse(saved) };
-    } catch (e) {}
-    return CONTACT_DATA;
-  });
-
-  const [announcements, setAnnouncements] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_ANNOUNCEMENTS_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return ANNOUNCEMENT_TICKER;
-  });
-
-  const [collectionItems, setCollectionItems] = useState<CollectionItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_COLLECTION_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return COLLECTION_ITEMS;
-  });
-
-  const [craftsmanshipSteps, setCraftsmanshipSteps] = useState<CraftsmanshipStep[]>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_CRAFTSMANSHIP_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return CRAFTSMANSHIP_STEPS;
-  });
-
-  const [faqItems, setFaqItems] = useState<FaqItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_FAQ_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return DEFAULT_FAQ_ITEMS;
-  });
-
-  const [aboutSlides, setAboutSlides] = useState<AboutSlide[]>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_ABOUT_SLIDES_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return DEFAULT_ABOUT_SLIDES;
-  });
-
+  const [images, setImages] = useState<AppImages>(() => getDefaultImages());
+  const [heroConfig, setHeroConfig] = useState<HeroConfig>(DEFAULT_HERO_CONFIG);
+  const [fairConfig, setFairConfig] = useState<FairConfig>(DEFAULT_FAIR_CONFIG);
+  const [contactData, setContactData] = useState<ContactInfo>(CONTACT_DATA);
+  const [announcements, setAnnouncements] = useState<string[]>(ANNOUNCEMENT_TICKER);
+  const [collectionItems, setCollectionItems] = useState<CollectionItem[]>(COLLECTION_ITEMS);
+  const [craftsmanshipSteps, setCraftsmanshipSteps] = useState<CraftsmanshipStep[]>(CRAFTSMANSHIP_STEPS);
+  const [faqItems, setFaqItems] = useState<FaqItem[]>(DEFAULT_FAQ_ITEMS);
+  const [aboutSlides, setAboutSlides] = useState<AboutSlide[]>(DEFAULT_ABOUT_SLIDES);
   const [isManagerOpen, setIsManagerOpen] = useState(false);
 
+  // Clear legacy LocalStorage keys so they never interfere
   useEffect(() => {
-    try { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(images)); } catch (e) {}
-  }, [images]);
+    try {
+      [
+        'irem_comfort_app_images_v1',
+        'irem_comfort_hero_config_v1',
+        'irem_comfort_fair_config_v1',
+        'irem_comfort_contact_v1',
+        'irem_comfort_announcements_v1',
+        'irem_comfort_collection_items_v1',
+        'irem_comfort_craftsmanship_v1',
+        'irem_comfort_faq_v1',
+        'irem_comfort_about_slides_v1'
+      ].forEach(k => localStorage.removeItem(k));
+    } catch (e) {}
+  }, []);
 
+  // Real-time Firestore synchronization for all clients/devices/browsers
   useEffect(() => {
-    try { localStorage.setItem(LOCAL_STORAGE_HERO_KEY, JSON.stringify(heroConfig)); } catch (e) {}
-  }, [heroConfig]);
+    const docRef = doc(db, "site_settings", "global");
 
-  useEffect(() => {
-    try { localStorage.setItem(LOCAL_STORAGE_FAIR_KEY, JSON.stringify(fairConfig)); } catch (e) {}
-  }, [fairConfig]);
+    const fetchFallbackSettings = () => {
+      fetch('/api/settings')
+        .then(res => res.json())
+        .then(data => {
+          if (data?.success && data?.settings) {
+            const s = data.settings;
+            if (s.images) setImages(s.images);
+            if (s.heroConfig) setHeroConfig(s.heroConfig);
+            if (s.fairConfig) setFairConfig(s.fairConfig);
+            if (s.contactData) setContactData(s.contactData);
+            if (s.announcements) setAnnouncements(s.announcements);
+            if (s.collectionItems) setCollectionItems(s.collectionItems);
+            if (s.craftsmanshipSteps) setCraftsmanshipSteps(s.craftsmanshipSteps);
+            if (s.faqItems) setFaqItems(s.faqItems);
+            if (s.aboutSlides) setAboutSlides(s.aboutSlides);
+          }
+        })
+        .catch(err => console.error("Could not fetch settings from server fallback:", err));
+    };
 
-  useEffect(() => {
-    try { localStorage.setItem(LOCAL_STORAGE_CONTACT_KEY, JSON.stringify(contactData)); } catch (e) {}
-  }, [contactData]);
+    let fallbackInterval: any = null;
 
-  useEffect(() => {
-    try { localStorage.setItem(LOCAL_STORAGE_ANNOUNCEMENTS_KEY, JSON.stringify(announcements)); } catch (e) {}
-  }, [announcements]);
-
-  useEffect(() => {
-    try { localStorage.setItem(LOCAL_STORAGE_COLLECTION_KEY, JSON.stringify(collectionItems)); } catch (e) {}
-  }, [collectionItems]);
-
-  useEffect(() => {
-    try { localStorage.setItem(LOCAL_STORAGE_CRAFTSMANSHIP_KEY, JSON.stringify(craftsmanshipSteps)); } catch (e) {}
-  }, [craftsmanshipSteps]);
-
-  useEffect(() => {
-    try { localStorage.setItem(LOCAL_STORAGE_FAQ_KEY, JSON.stringify(faqItems)); } catch (e) {}
-  }, [faqItems]);
-
-  useEffect(() => {
-    try { localStorage.setItem(LOCAL_STORAGE_ABOUT_SLIDES_KEY, JSON.stringify(aboutSlides)); } catch (e) {}
-  }, [aboutSlides]);
-
-  // Sync settings with Backend Server on App Boot
-  useEffect(() => {
-    fetch('/api/settings')
-      .then(res => res.json())
-      .then(data => {
-        if (data?.success && data?.settings) {
-          const s = data.settings;
+    const unsubscribe = onSnapshot(
+      docRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const s = snapshot.data();
           if (s.images) setImages(s.images);
           if (s.heroConfig) setHeroConfig(s.heroConfig);
           if (s.fairConfig) setFairConfig(s.fairConfig);
@@ -342,18 +265,55 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           if (s.craftsmanshipSteps) setCraftsmanshipSteps(s.craftsmanshipSteps);
           if (s.faqItems) setFaqItems(s.faqItems);
           if (s.aboutSlides) setAboutSlides(s.aboutSlides);
+        } else {
+          // Document doesn't exist yet, seed initial default settings to Firestore
+          const initialData = {
+            images: getDefaultImages(),
+            heroConfig: DEFAULT_HERO_CONFIG,
+            fairConfig: DEFAULT_FAIR_CONFIG,
+            contactData: CONTACT_DATA,
+            announcements: ANNOUNCEMENT_TICKER,
+            collectionItems: COLLECTION_ITEMS,
+            craftsmanshipSteps: CRAFTSMANSHIP_STEPS,
+            faqItems: DEFAULT_FAQ_ITEMS,
+            aboutSlides: DEFAULT_ABOUT_SLIDES,
+            updatedAt: new Date().toISOString()
+          };
+          setDoc(docRef, initialData).catch(err => {
+            console.warn("Direct client Firestore write failed (using API fallback):", err);
+          });
         }
-      })
-      .catch(err => console.error("Could not fetch global settings from server:", err));
+      },
+      (error) => {
+        console.warn("Firestore client listener warning (Permission / Rules): Falling back to server API.", error);
+        // Initial fetch + fallback polling if client Firestore rules restrict direct read
+        fetchFallbackSettings();
+        if (!fallbackInterval) {
+          fallbackInterval = setInterval(fetchFallbackSettings, 5000);
+        }
+      }
+    );
+
+    return () => {
+      unsubscribe();
+      if (fallbackInterval) clearInterval(fallbackInterval);
+    };
   }, []);
 
+  // Save changes permanently to Firestore Database & Backend
+  const saveToServer = async (payload: Record<string, any>) => {
+    try {
+      const docRef = doc(db, "site_settings", "global");
+      await setDoc(docRef, { ...payload, updatedAt: new Date().toISOString() }, { merge: true });
+    } catch (err) {
+      console.error("Failed saving to Firestore:", err);
+    }
 
-  const saveToServer = (payload: Record<string, any>) => {
     fetch('/api/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ settings: payload }),
-    }).catch(err => console.error("Failed saving to server:", err));
+    }).catch(err => console.error("Failed saving to server route:", err));
   };
 
   const updateHeroImage = (url: string) => {

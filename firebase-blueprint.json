@@ -1,0 +1,20 @@
+{
+  "entities": {
+    "settings": {
+      "title": "Global Site Settings",
+      "description": "Stores site images, hero config, collection items, contact details, announcements, etc.",
+      "properties": {
+        "images": { "type": "object" },
+        "heroConfig": { "type": "object" },
+        "fairConfig": { "type": "object" },
+        "contactData": { "type": "object" },
+        "announcements": { "type": "array" },
+        "collectionItems": { "type": "array" },
+        "craftsmanshipSteps": { "type": "array" },
+        "faqItems": { "type": "array" },
+        "aboutSlides": { "type": "array" },
+        "updatedAt": { "type": "string" }
+      }
+    }
+  }
+}
