@@ -1258,6 +1258,38 @@ app.get("/api/deploy-status", async (_req, res) => {
       });
     }
 
+    const maxWaitSeconds = inMemorySettingsCache.systemConfig?.maxWaitTimeSeconds || 120;
+
+    // Check if timeout reached (configurable, default 120s)
+    if (elapsedSeconds >= maxWaitSeconds) {
+      session.status = 'READY';
+      session.stepIndex = 8;
+      session.endTime = Date.now();
+      session.durationSeconds = elapsedSeconds;
+      session.durationString = formatDuration(elapsedSeconds);
+      if (!session.logs.some(l => l.includes('Maksimum bekleme süresi'))) {
+        session.logs.push(`✓ Maksimum bekleme süresine (${maxWaitSeconds}sn) ulaşıldı. Bakım modu otomatik kapatıldı.`);
+      }
+      if (!session.logs.includes("✓ Website is live")) {
+        session.logs.push("✓ Website is live");
+      }
+
+      inMemorySettingsCache.systemConfig = {
+        ...(inMemorySettingsCache.systemConfig || {}),
+        isDeploying: false,
+        isMaintenanceMode: false,
+        lastDeployedAt: new Date().toISOString()
+      };
+      saveSettingsToFile(inMemorySettingsCache);
+
+      return res.json({
+        success: true,
+        active: true,
+        status: 'READY',
+        deployment: session
+      });
+    }
+
     // Check external Vercel & GitHub status for current commit
     const externalStatus = await checkVercelDeploymentStatus(session.repo, session.commitSha, session.userToken);
 
@@ -1267,11 +1299,11 @@ app.get("/api/deploy-status", async (_req, res) => {
       if (!session.logs.some(l => l.includes('❌'))) {
         session.logs.push("❌ Vercel build failed.");
       }
-      // Keep maintenance mode enabled until deployment succeeds or is cancelled!
+      
       inMemorySettingsCache.systemConfig = {
         ...(inMemorySettingsCache.systemConfig || {}),
         isDeploying: false,
-        isMaintenanceMode: true
+        isMaintenanceMode: false
       };
       saveSettingsToFile(inMemorySettingsCache);
 
@@ -1326,21 +1358,21 @@ app.get("/api/deploy-status", async (_req, res) => {
       }
     } else {
       // Graceful timing fallback while Vercel builds asynchronously
-      if (elapsedSeconds >= 10 && session.stepIndex < 6) {
+      if (elapsedSeconds >= Math.min(10, maxWaitSeconds / 4) && session.stepIndex < 6) {
         session.status = 'BUILDING';
         session.stepIndex = 6;
         if (!session.logs.includes("⏳ Building...")) {
           session.logs.push("⏳ Building...");
         }
       }
-      if (elapsedSeconds >= 35 && session.stepIndex < 7) {
+      if (elapsedSeconds >= Math.min(30, maxWaitSeconds / 2) && session.stepIndex < 7) {
         session.status = 'DEPLOYING';
         session.stepIndex = 7;
         if (!session.logs.includes("⏳ Deploying...")) {
           session.logs.push("⏳ Deploying...");
         }
       }
-      if (elapsedSeconds >= 65 && session.stepIndex < 8) {
+      if (elapsedSeconds >= Math.min(60, maxWaitSeconds - 10) && session.stepIndex < 8) {
         session.status = 'READY';
         session.stepIndex = 8;
         session.endTime = Date.now();
@@ -1369,6 +1401,26 @@ app.get("/api/deploy-status", async (_req, res) => {
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err?.message || "Status polling error" });
   }
+});
+
+app.post("/api/maintenance/disable", (_req, res) => {
+  if (activeDeploymentSession) {
+    activeDeploymentSession.status = 'READY';
+    if (activeDeploymentSession.logs) {
+      activeDeploymentSession.logs.push("⚠️ Maintenance mode forcibly disabled by administrator.");
+    }
+  }
+  inMemorySettingsCache.systemConfig = {
+    ...(inMemorySettingsCache.systemConfig || {}),
+    isMaintenanceMode: false,
+    isDeploying: false
+  };
+  saveSettingsToFile(inMemorySettingsCache);
+  return res.json({
+    success: true,
+    message: "Bakım modu zorla kapatıldı ve site canlıya alındı.",
+    systemConfig: inMemorySettingsCache.systemConfig
+  });
 });
 
 app.post("/api/deploy-cancel", (_req, res) => {

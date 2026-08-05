@@ -228,6 +228,7 @@ interface ImageContextType {
 export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
   isMaintenanceMode: false,
   autoMaintenanceOnDeploy: true,
+  maxWaitTimeSeconds: 120,
   isDeploying: false,
   lastDeployedAt: null,
   maintenanceTitle: "Website Maintenance",
@@ -692,8 +693,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 });
               } else if (dep.status === 'ERROR') {
                 clearInterval(pollInterval);
-                // Keep maintenance mode enabled!
-                updateSystemConfig({ isDeploying: false, isMaintenanceMode: true });
+                updateSystemConfig({ isDeploying: false, isMaintenanceMode: false });
                 resolve({
                   success: false,
                   message: dep.error || 'Deployment failed.',

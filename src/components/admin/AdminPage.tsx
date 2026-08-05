@@ -16,7 +16,7 @@ import {
   QrCode, ToggleLeft, ToggleRight, Send, MessageSquare, Crop, Info,
   Mail, Server, AtSign, Save, MailCheck, CheckCircle2, Shield,
   Users, Download, Copy, Trash2, Plus, Search, Phone, HelpCircle,
-  GitBranch, Globe, FileImage, Video, RefreshCw
+  GitBranch, Globe, FileImage, Video, RefreshCw, PowerOff
 } from 'lucide-react';
 
 
@@ -3365,53 +3365,146 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
               </div>
             </div>
 
-            {/* Section 1: Maintenance Mode (Bakım Modu) Toggle */}
+            {/* Section 1: Maintenance Mode (Bakım Modu) & Deploy Safeguards */}
             <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-6">
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="text-xl">🛠️</span>
-                    <h4 className="font-bold text-[#111111] text-base">Sitede Bakım Modu (Maintenance Mode)</h4>
+                    <h4 className="font-bold text-[#111111] text-base">Bakım Modu Ayarları (Maintenance Mode)</h4>
                   </div>
                   <p className="text-xs text-slate-500">
-                    Bakım modunu açtığınızda tüm site ziyaretçileri şık bir bakım ekranı ile karşılaşır. Yönetici paneline erişiminiz kesilmez.
+                    Sitenin ziyaretçilere açık/kapalı olma durumunu, otomatik bakım modu davranışını ve bekleme süresini buradan yapılandırabilirsiniz.
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3 bg-slate-100 p-2 rounded-xl border border-slate-200">
-                  <span className={`text-xs font-bold uppercase tracking-wider ${
-                    systemConfig.isMaintenanceMode ? 'text-amber-600' : 'text-emerald-600'
-                  }`}>
-                    {systemConfig.isMaintenanceMode ? 'SİTE BAKIMDA (KAPALI)' : 'SİTE CANLI (AÇIK)'}
-                  </span>
+                {/* Maintenance Mode Status Indicator & Manual Toggle */}
+                <div className="flex items-center gap-3 bg-slate-50 p-2.5 px-4 rounded-xl border border-slate-200">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-700">Maintenance Mode:</span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold font-mono flex items-center gap-1.5 ${
+                      systemConfig.isMaintenanceMode 
+                        ? 'bg-rose-100 text-rose-700 border border-rose-300' 
+                        : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                    }`}>
+                      {systemConfig.isMaintenanceMode ? '🔴 Enabled' : '🟢 Disabled'}
+                    </span>
+                  </div>
 
                   <button
+                    type="button"
                     onClick={() => {
                       const nextState = !systemConfig.isMaintenanceMode;
                       updateSystemConfig({ isMaintenanceMode: nextState });
-                      showToast(nextState ? 'Site bakım moduna alındı!' : 'Site canlı yayına alındı!');
+                      showToast(nextState ? 'Bakım modu etkinleştirildi!' : 'Bakım modu devre dışı bırakıldı!');
                     }}
                     className="p-1 rounded-full cursor-pointer transition-transform active:scale-95"
                   >
                     {systemConfig.isMaintenanceMode ? (
-                      <ToggleRight className="w-10 h-10 text-amber-500" />
+                      <ToggleRight className="w-9 h-9 text-rose-600" />
                     ) : (
-                      <ToggleLeft className="w-10 h-10 text-slate-400" />
+                      <ToggleLeft className="w-9 h-9 text-slate-400" />
                     )}
                   </button>
                 </div>
               </div>
 
-              {/* Editable Maintenance Message */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 block">Ziyaretçilere Gösterilecek Bakım Mesajı</label>
-                <textarea
-                  rows={2}
-                  value={systemConfig.maintenanceMessage}
-                  onChange={(e) => updateSystemConfig({ maintenanceMessage: e.target.value })}
-                  placeholder="Sitede bakım çalışması yapılmaktadır..."
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-medium"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Auto Maintenance During Deploy */}
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-800 block">Auto Maintenance During Deploy</label>
+                    <span className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded ${
+                      systemConfig.autoMaintenanceOnDeploy !== false
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-slate-200 text-slate-600'
+                    }`}>
+                      {systemConfig.autoMaintenanceOnDeploy !== false ? '☑ Enabled' : '☐ Disabled'}
+                    </span>
+                  </div>
+                  
+                  <label className="flex items-center gap-3 cursor-pointer select-none pt-1">
+                    <input
+                      type="checkbox"
+                      checked={systemConfig.autoMaintenanceOnDeploy !== false}
+                      onChange={(e) => {
+                        updateSystemConfig({ autoMaintenanceOnDeploy: e.target.checked });
+                        showToast(e.target.checked ? 'Deploy sırasında otomatik bakım modu etkinleştirildi.' : 'Deploy sırasında otomatik bakım modu devre dışı bırakıldı.');
+                      }}
+                      className="w-4 h-4 text-[#082C6C] rounded border-slate-300 focus:ring-[#082C6C] cursor-pointer"
+                    />
+                    <span className="text-xs text-slate-700 font-medium">
+                      Yayınlama (Deploy) başlatıldığında siteyi otomatik olarak bakım moduna al
+                    </span>
+                  </label>
+                  <p className="text-[11px] text-slate-500 pt-0.5">
+                    * Vercel yayınlaması tamamlandığında (READY durumuna ulaştığında) bakım modu otomatik olarak kapatılır.
+                  </p>
+                </div>
+
+                {/* Maximum Wait Time */}
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                  <label className="text-xs font-bold text-slate-800 block">Maximum Wait Time (Maksimum Bekleme Süresi)</label>
+                  <div className="flex items-center gap-3">
+                    <select
+                      value={systemConfig.maxWaitTimeSeconds || 120}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        updateSystemConfig({ maxWaitTimeSeconds: val });
+                        showToast(`Maksimum bekleme süresi ${val} saniye olarak güncellendi.`);
+                      }}
+                      className="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-300 bg-white focus:border-[#082C6C] focus:outline-none cursor-pointer"
+                    >
+                      <option value={60}>60 seconds (1 dk)</option>
+                      <option value={90}>90 seconds (1.5 dk)</option>
+                      <option value={120}>120 seconds (2 dk - Varsayılan)</option>
+                      <option value={180}>180 seconds (3 dk)</option>
+                      <option value={240}>240 seconds (4 dk)</option>
+                      <option value={300}>300 seconds (5 dk)</option>
+                    </select>
+                    <span className="text-xs font-mono font-bold text-slate-700 bg-slate-200/80 px-3 py-2 rounded-xl border border-slate-300/60">
+                      ⏱️ {systemConfig.maxWaitTimeSeconds || 120} seconds
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 pt-0.5">
+                    * Vercel veya GitHub API durumuna erişilemediğinde, site en fazla bu süre kadar bakım modunda kalır ve ardından otomatik canlıya geçer. Site asla süresiz bakımda kalmaz.
+                  </p>
+                </div>
+
+                {/* Visitor Maintenance Message */}
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs font-bold text-slate-700 block">Ziyaretçilere Gösterilecek Bakım Mesajı</label>
+                  <input
+                    type="text"
+                    value={systemConfig.maintenanceMessage}
+                    onChange={(e) => updateSystemConfig({ maintenanceMessage: e.target.value })}
+                    placeholder="Sitede bakım çalışması yapılmaktadır..."
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* Force Disable Maintenance Action */}
+              <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-slate-100">
+                <div className="text-xs text-slate-500">
+                  <span className="font-bold text-slate-700">Güvenlik Önlemi:</span> Herhangi bir takılma durumunda siteyi derhal yayına almak için aşağıdaki butonu kullanabilirsiniz.
+                </div>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    updateSystemConfig({ isMaintenanceMode: false, isDeploying: false });
+                    try {
+                      await fetch('/api/maintenance/disable', { method: 'POST' });
+                    } catch (e) {}
+                    showToast('Bakım modu zorla kapatıldı ve site canlıya alındı!');
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer active:scale-98"
+                >
+                  <PowerOff className="w-4 h-4" />
+                  <span>Force Disable Maintenance</span>
+                </button>
               </div>
             </div>
 

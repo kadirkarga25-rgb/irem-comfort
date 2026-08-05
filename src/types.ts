@@ -73,6 +73,7 @@ export interface AboutSlide {
 export interface SystemConfig {
   isMaintenanceMode: boolean;
   autoMaintenanceOnDeploy: boolean;
+  maxWaitTimeSeconds?: number;
   isDeploying: boolean;
   lastDeployedAt: string | null;
   maintenanceTitle: string;
