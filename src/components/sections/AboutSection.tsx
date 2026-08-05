@@ -184,6 +184,13 @@ export const AboutSection: React.FC = () => {
                     className="w-full h-full object-cover pointer-events-none"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
+                      if (target.src.includes('/public/uploads/')) {
+                        const parts = target.src.split('/public/uploads/');
+                        if (parts[1]) {
+                          target.src = '/uploads/' + parts[1];
+                          return;
+                        }
+                      }
                       if (!target.src.includes('irem-comfort-logo')) {
                         target.src = '/uploads/logo/irem-comfort-logo.jpg';
                       }

@@ -138,6 +138,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 className="w-full h-[480px] sm:h-[580px] object-cover object-center transform group-hover:scale-105 transition-transform duration-1000 ease-out"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
+                  if (target.src.includes('/public/uploads/')) {
+                    const parts = target.src.split('/public/uploads/');
+                    if (parts[1]) {
+                      target.src = '/uploads/' + parts[1];
+                      return;
+                    }
+                  }
                   if (!target.src.includes('irem-comfort-logo')) {
                     target.src = '/uploads/logo/irem-comfort-logo.jpg';
                   }

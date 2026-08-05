@@ -107,6 +107,13 @@ export const CollectionSection: React.FC<CollectionSectionProps> = ({
                     className="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-700 ease-out"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
+                      if (target.src.includes('/public/uploads/')) {
+                        const parts = target.src.split('/public/uploads/');
+                        if (parts[1]) {
+                          target.src = '/uploads/' + parts[1];
+                          return;
+                        }
+                      }
                       if (!target.src.includes('irem-comfort-logo')) {
                         target.src = '/uploads/logo/irem-comfort-logo.jpg';
                       }

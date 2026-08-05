@@ -669,9 +669,16 @@ function saveBase64ToFile(base64Str: string, folder: string = "gallery", customF
     const publicUrl = `/uploads/${cleanFolder}/${fileName}`;
     const publicUrlLower = publicUrl.toLowerCase();
 
+    const repo = activeDeploymentSession?.repo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
+    const branch = activeDeploymentSession?.branch || process.env.GITHUB_BRANCH || "main";
+    const githubRawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/public/uploads/${cleanFolder}/${fileName}`;
+    const githubRawUrlLower = githubRawUrl.toLowerCase();
+
     // 1. SAVE IN SERVER IN-MEMORY CACHE (CRITICAL FOR INSTANT DISPLAY ON DEPLOYED SITES)
     inMemoryUploadsCache.set(publicUrl, { buffer, contentType, updatedAt: Date.now() });
     inMemoryUploadsCache.set(publicUrlLower, { buffer, contentType, updatedAt: Date.now() });
+    inMemoryUploadsCache.set(githubRawUrl, { buffer, contentType, updatedAt: Date.now() });
+    inMemoryUploadsCache.set(githubRawUrlLower, { buffer, contentType, updatedAt: Date.now() });
 
     // 2. WRITE TO LOCAL DISK IF WRITABLE
     try {
@@ -1027,14 +1034,22 @@ app.get("/api/media", async (req, res) => {
     const folders: string[] = ["hero", "products", "logo", "gallery"];
     const filesMap = new Map<string, any>();
 
+    const branch = activeDeploymentSession?.branch || process.env.GITHUB_BRANCH || "main";
+
     const addFile = (item: { name: string; path: string; folder: string; size?: number; updatedAt?: string }) => {
       if (!item.path || filesMap.has(item.path)) return;
       const folder = item.folder || (item.path.split('/')[2] || 'gallery');
       if (!folders.includes(folder)) folders.push(folder);
-      filesMap.set(item.path, {
+
+      const relativePath = item.path.startsWith('http') ? `/uploads/${folder}/${item.name}` : item.path;
+      const fullGithubUrl = `https://raw.githubusercontent.com/${repo}/${branch}/public/uploads/${folder}/${item.name}`;
+
+      filesMap.set(relativePath, {
         id: `${folder}/${item.name}`,
         name: item.name,
-        path: item.path,
+        path: relativePath,
+        relativePath: relativePath,
+        url: fullGithubUrl,
         folder: folder,
         size: item.size || 1024,
         updatedAt: item.updatedAt || new Date().toISOString()

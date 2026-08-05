@@ -528,24 +528,48 @@ export const MediaLibraryAdminTab: React.FC = () => {
               />
             </div>
 
-            <div className="space-y-2 text-xs font-mono bg-slate-950 p-4 rounded-xl border border-slate-800 text-slate-300">
+            <div className="space-y-3 text-xs font-mono bg-slate-950 p-4 rounded-xl border border-slate-800 text-slate-300">
               <div className="flex justify-between">
                 <span className="text-slate-500">Klasör:</span>
-                <span className="text-amber-400">{previewFile.folder}</span>
+                <span className="text-amber-400 font-bold">{previewFile.folder}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Boyut:</span>
                 <span>{(previewFile.size / 1024).toFixed(1)} KB</span>
               </div>
-              <div className="flex justify-between items-center gap-2 pt-1 border-t border-slate-800">
-                <span className="text-slate-500">URL Yolu:</span>
-                <span className="text-emerald-400 truncate max-w-[300px]">{previewFile.path}</span>
-                <button
-                  onClick={() => copyToClipboard(previewFile.path)}
-                  className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded text-[10px] flex items-center gap-1 cursor-pointer"
-                >
-                  <Copy className="w-3 h-3" /> Kopyala
-                </button>
+
+              {/* Full HTTPS Internet URL */}
+              <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-800">
+                <div className="flex items-center justify-between">
+                  <span className="text-amber-400 font-sans font-bold flex items-center gap-1">
+                    🌐 Tam İnternet Görsel Bağlantısı (URL):
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(previewFile.path.startsWith('http') ? previewFile.path : `https://raw.githubusercontent.com/kargakadir4525/irem-comfort/main/public${previewFile.path}`)}
+                    className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-sans font-bold rounded-lg text-[11px] flex items-center gap-1 cursor-pointer transition shadow-xs"
+                  >
+                    <Copy className="w-3 h-3" /> Tam Linki Kopyala
+                  </button>
+                </div>
+                <div className="bg-slate-900 p-2 rounded-lg text-[11px] text-emerald-400 break-all select-all border border-slate-800">
+                  {previewFile.path.startsWith('http') ? previewFile.path : `https://raw.githubusercontent.com/kargakadir4525/irem-comfort/main/public${previewFile.path}`}
+                </div>
+              </div>
+
+              {/* Short Relative Path */}
+              <div className="flex flex-col gap-1 pt-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 font-sans text-[11px]">📁 Site İçi Kısa Yol:</span>
+                  <button
+                    onClick={() => copyToClipboard(previewFile.path.startsWith('http') ? `/uploads/${previewFile.folder}/${previewFile.name}` : previewFile.path)}
+                    className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-sans rounded text-[10px] flex items-center gap-1 cursor-pointer"
+                  >
+                    <Copy className="w-3 h-3" /> Kısa Yolu Kopyala
+                  </button>
+                </div>
+                <div className="text-[11px] text-slate-400 select-all font-mono">
+                  {previewFile.path.startsWith('http') ? `/uploads/${previewFile.folder}/${previewFile.name}` : previewFile.path}
+                </div>
               </div>
             </div>
           </div>

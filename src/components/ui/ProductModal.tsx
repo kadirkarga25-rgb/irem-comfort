@@ -107,6 +107,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                   className="w-full h-full object-cover object-center transition-all duration-300"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
+                    if (target.src.includes('/public/uploads/')) {
+                      const parts = target.src.split('/public/uploads/');
+                      if (parts[1]) {
+                        target.src = '/uploads/' + parts[1];
+                        return;
+                      }
+                    }
                     if (!target.src.includes('irem-comfort-logo')) {
                       target.src = '/uploads/logo/irem-comfort-logo.jpg';
                     }
@@ -134,6 +141,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                       className="w-full h-full object-cover" 
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
+                        if (target.src.includes('/public/uploads/')) {
+                          const parts = target.src.split('/public/uploads/');
+                          if (parts[1]) {
+                            target.src = '/uploads/' + parts[1];
+                            return;
+                          }
+                        }
                         if (!target.src.includes('irem-comfort-logo')) {
                           target.src = '/uploads/logo/irem-comfort-logo.jpg';
                         }
