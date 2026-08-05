@@ -5,6 +5,7 @@ import { COLLECTION_ITEMS, CRAFTSMANSHIP_STEPS } from '../../constants/data';
 import { LogoFull } from '../brand/LogoFull';
 import { FairModal } from '../ui/FairModal';
 import { ImageCropModal, CropTargetSpecs } from './ImageCropModal';
+import { ImageSelectModal } from './ImageSelectModal';
 import { FaqAdminTab } from './FaqAdminTab';
 import { MediaLibraryAdminTab } from './MediaLibraryAdminTab';
 import { SeoAdminTab } from './SeoAdminTab';
@@ -195,7 +196,38 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     }
   };
 
+  const [isSyncingGithub, setIsSyncingGithub] = useState<boolean>(false);
+
+  const syncAllMediaToGithub = async (quiet: boolean = false) => {
+    setIsSyncingGithub(true);
+    try {
+      const res = await fetch('/api/sync-github', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commitMessage: 'Admin: Görseller ve ayarlar GitHub deposuna aktarıldı' })
+      });
+      const data = await res.json();
+      if (data.success && !quiet) {
+        showToast('Tüm görseller ve site ayarları GitHub deposuna başarıyla yüklendi!');
+      }
+    } catch (err) {
+      console.error("Failed to sync media to GitHub:", err);
+    } finally {
+      setIsSyncingGithub(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      // Auto sync images and site settings when exiting admin
+      fetch('/api/sync-github', { method: 'POST' }).catch(() => {});
+    };
+  }, []);
+
   const confirmMaintenanceExit = (action: () => void) => {
+    // Fire background GitHub media & settings sync
+    syncAllMediaToGithub(true);
+
     if (systemConfig.isMaintenanceMode) {
       const confirmExit = window.confirm(
         "🛠️ BAKIM MODU HALEN AÇIK!\n\n" +
@@ -585,6 +617,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   // Crop & Upload State
   const [pendingRawImage, setPendingRawImage] = useState<string | null>(null);
   const [isCropModalOpen, setIsCropModalOpen] = useState<boolean>(false);
+  const [isImageSelectModalOpen, setIsImageSelectModalOpen] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadTarget, setUploadTarget] = useState<{
@@ -670,15 +703,50 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     setUploadTarget(null);
   };
 
+  const handleSelectSystemImage = (selectedUrl: string) => {
+    if (!uploadTarget) return;
+
+    if (uploadTarget.type === 'hero') {
+      updateHeroImage(selectedUrl);
+      showToast('Sistem kütüphanesinden Hero kapak görseli güncellendi!');
+    } else if (uploadTarget.type === 'about') {
+      updateAboutImage(selectedUrl);
+      showToast('Sistem kütüphanesinden Hakkımızda görseli güncellendi!');
+    } else if (uploadTarget.type === 'aboutSlide' && uploadTarget.id) {
+      updateAboutSlide(uploadTarget.id, { image: selectedUrl });
+      showToast('Sistem kütüphanesinden Mirasımız slayt görseli güncellendi!');
+    } else if (uploadTarget.type === 'craftsmanship' && uploadTarget.id) {
+      updateCraftsmanshipImage(uploadTarget.id, selectedUrl);
+      showToast(`Sistem kütüphanesinden Zanaat Adım ${uploadTarget.id} görseli güncellendi!`);
+    } else if (uploadTarget.type === 'collection' && uploadTarget.id && uploadTarget.field) {
+      updateCollectionImage(uploadTarget.id, uploadTarget.field, selectedUrl);
+      showToast('Sistem kütüphanesinden Koleksiyon ürün görseli güncellendi!');
+    } else if (uploadTarget.type === 'fairPoster') {
+      updateFairConfig({ posterUrl: selectedUrl });
+      showToast('Sistem kütüphanesinden Fuar afiş görseli güncellendi!');
+    } else if (uploadTarget.type === 'fairQr') {
+      updateFairConfig({ qrCodeUrl: selectedUrl });
+      showToast('Sistem kütüphanesinden Fuar QR kodu görseli güncellendi!');
+    }
+
+    setIsImageSelectModalOpen(false);
+    setUploadTarget(null);
+  };
+
+  const handleOpenDeviceFilePicker = () => {
+    setIsImageSelectModalOpen(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   const triggerFileUpload = (
     type: 'hero' | 'about' | 'craftsmanship' | 'collection' | 'fairPoster' | 'fairQr' | 'aboutSlide',
     id?: string,
     field?: 'image' | 'secondaryImage'
   ) => {
     setUploadTarget({ type, id, field });
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+    setIsImageSelectModalOpen(true);
   };
 
   const currentSpecs = uploadTarget ? TARGET_SPECS_MAP[uploadTarget.type] : TARGET_SPECS_MAP.hero;
@@ -824,10 +892,20 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={() => syncAllMediaToGithub(false)}
+            disabled={isSyncingGithub}
+            className="px-3.5 py-2 rounded-xl bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 hover:bg-amber-300 transition-all cursor-pointer shadow-sm disabled:opacity-50"
+            title="Sistemdeki tüm görselleri ve ayarları GitHub deposuna aktarır"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncingGithub ? 'animate-spin' : ''}`} />
+            <span>{isSyncingGithub ? 'GitHub\'a Aktarılıyor...' : 'GitHub\'a Yükle'}</span>
+          </button>
+
           <button
             onClick={() => confirmMaintenanceExit(onReturnToSite)}
-            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             <span>Siteyi Canlı İncele</span>
@@ -835,7 +913,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
           <button
             onClick={() => confirmMaintenanceExit(handleLogout)}
-            className="px-4 py-2 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Çıkış Yap</span>
@@ -3903,6 +3981,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
         </div>
 
       </main>
+
+      {/* Image Selection Modal (System Media & Computer Files) */}
+      <ImageSelectModal
+        isOpen={isImageSelectModalOpen}
+        onClose={() => setIsImageSelectModalOpen(false)}
+        onSelectSystemImage={handleSelectSystemImage}
+        onUploadFromComputer={handleOpenDeviceFilePicker}
+        targetTitle={uploadTarget ? (TARGET_SPECS_MAP[uploadTarget.type]?.title || 'Görsel') : 'Görsel'}
+        recommendedSpecs={uploadTarget ? `${TARGET_SPECS_MAP[uploadTarget.type]?.recommendedWidth}x${TARGET_SPECS_MAP[uploadTarget.type]?.recommendedHeight}` : ''}
+      />
 
       {/* Image Cropping & Resizing Modal */}
       <ImageCropModal

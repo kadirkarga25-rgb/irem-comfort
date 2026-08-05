@@ -6,7 +6,7 @@ import {
   ANNOUNCEMENT_TICKER,
   DEFAULT_FAQ_ITEMS
 } from '../constants/data';
-import { CollectionItem, CraftsmanshipStep, ContactInfo, FaqItem, AboutSlide } from '../types';
+import { CollectionItem, CraftsmanshipStep, ContactInfo, FaqItem, AboutSlide, SystemConfig, SeoConfig } from '../types';
 
 async function uploadImageToGithub(dataUrl: string, folder: string = "site_images"): Promise<string> {
   if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith("data:image/")) {

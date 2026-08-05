@@ -18,8 +18,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 // Memory store for contact leads & Email configuration
 export interface ContactLead {
@@ -619,7 +619,18 @@ function saveBase64ToFile(base64Str: string, folder: string = "gallery", customF
     const relativePath = `public/uploads/${cleanFolder}/${fileName}`;
     const publicUrl = `/uploads/${cleanFolder}/${fileName}`;
 
-    // Directly push to GitHub repository without touching Vercel read-only filesystem
+    // Write to local disk if writable
+    try {
+      const localDir = path.join(process.cwd(), "public", "uploads", cleanFolder);
+      if (!fs.existsSync(localDir)) {
+        fs.mkdirSync(localDir, { recursive: true });
+      }
+      fs.writeFileSync(path.join(localDir, fileName), Buffer.from(base64Data, "base64"));
+    } catch (fsErr) {
+      // Ignore read-only filesystem error on Cloud / Vercel
+    }
+
+    // Push to GitHub repository
     uploadFileToGithub(relativePath, Buffer.from(base64Data, "base64"), `Upload image: ${relativePath}`).catch(err => {
       console.warn("Async GitHub image upload warning:", err);
     });
@@ -630,6 +641,132 @@ function saveBase64ToFile(base64Str: string, folder: string = "gallery", customF
     return "/uploads/logo/irem-comfort-logo.jpg";
   }
 }
+
+// SERVE UPLOADED IMAGES DIRECTLY OR PROXY FROM GITHUB REPOSITORY
+app.get("/uploads/*", async (req, res) => {
+  try {
+    const rawPath = req.path.replace(/^\/uploads\//, "");
+    const cleanSubPath = rawPath.replace(/\.\./g, "");
+    const localFilePath = path.join(process.cwd(), "public", "uploads", cleanSubPath);
+
+    // 1. Serve local disk file if exists
+    if (fs.existsSync(localFilePath) && fs.statSync(localFilePath).isFile()) {
+      return res.sendFile(localFilePath);
+    }
+
+    // 2. Fetch from GitHub repository raw content
+    const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
+    const repo = process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
+    const branch = process.env.GITHUB_BRANCH || "main";
+
+    const ghRawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/public/uploads/${cleanSubPath}`;
+    const ghRes = await fetch(ghRawUrl, {
+      headers: token ? { "Authorization": `Bearer ${token}`, "User-Agent": "IremComfortApp" } : { "User-Agent": "IremComfortApp" }
+    });
+
+    if (ghRes.ok) {
+      const arrayBuffer = await ghRes.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      // Save locally if disk is writable
+      try {
+        const dir = path.dirname(localFilePath);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(localFilePath, buffer);
+      } catch (e) {
+        // ignore read-only error
+      }
+
+      const contentType = ghRes.headers.get("content-type") || 
+        (cleanSubPath.endsWith(".png") ? "image/png" : 
+         cleanSubPath.endsWith(".webp") ? "image/webp" : 
+         cleanSubPath.endsWith(".svg") ? "image/svg+xml" : "image/jpeg");
+
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      return res.send(buffer);
+    }
+
+    // 3. Fallback to default logo
+    const logoPath = path.join(process.cwd(), "public", "uploads", "logo", "irem-comfort-logo.jpg");
+    if (fs.existsSync(logoPath)) {
+      return res.sendFile(logoPath);
+    }
+
+    return res.status(404).send("Görsel bulunamadı");
+  } catch (err) {
+    console.error("Error serving upload image:", err);
+    return res.status(500).send("Görsel sunucu hatası");
+  }
+});
+
+async function syncAllImagesToGithub(userCommitMsg: string = "Auto-sync uploaded media and site settings") {
+  const token = activeDeploymentSession?.userToken || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
+  const repo = activeDeploymentSession?.repo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
+  const branch = activeDeploymentSession?.branch || process.env.GITHUB_BRANCH || "main";
+
+  if (!token || !repo) {
+    console.warn("GitHub token or repo missing for syncAllImagesToGithub");
+    return { success: false, error: "GitHub erişim yetkisi bulunamadı." };
+  }
+
+  let syncedFilesCount = 0;
+
+  // 1. Scan and upload all images in local disk public/uploads
+  try {
+    const baseDir = path.join(process.cwd(), "public", "uploads");
+    if (fs.existsSync(baseDir)) {
+      const subdirs = fs.readdirSync(baseDir, { withFileTypes: true });
+      for (const dirent of subdirs) {
+        if (dirent.isDirectory()) {
+          const folder = dirent.name;
+          const dirPath = path.join(baseDir, folder);
+          const subFiles = fs.readdirSync(dirPath);
+          for (const fileName of subFiles) {
+            if (fileName.startsWith(".")) continue;
+            const fullPath = path.join(dirPath, fileName);
+            if (fs.statSync(fullPath).isFile()) {
+              const fileBuffer = fs.readFileSync(fullPath);
+              const relGithubPath = `public/uploads/${folder}/${fileName}`;
+              await uploadFileToGithub(relGithubPath, fileBuffer, `Sync media: ${relGithubPath}`, token, repo, branch);
+              syncedFilesCount++;
+            }
+          }
+        }
+      }
+    }
+  } catch (fsErr) {
+    console.warn("Error scanning local uploads folder for sync:", fsErr);
+  }
+
+  // 2. Upload site_settings.json, robots.txt, sitemap.xml
+  const settingsJsonStr = JSON.stringify(inMemorySettingsCache, null, 2);
+  await uploadFileToGithub("public/site_settings.json", settingsJsonStr, userCommitMsg, token, repo, branch);
+
+  if (inMemoryRobots) {
+    await uploadFileToGithub("public/robots.txt", inMemoryRobots, `Sync robots.txt: ${userCommitMsg}`, token, repo, branch);
+  }
+  if (inMemorySitemap) {
+    await uploadFileToGithub("public/sitemap.xml", inMemorySitemap, `Sync sitemap.xml: ${userCommitMsg}`, token, repo, branch);
+  }
+
+  return { success: true, count: syncedFilesCount };
+}
+
+app.post("/api/sync-github", async (req, res) => {
+  try {
+    const { commitMessage } = req.body || {};
+    const result = await syncAllImagesToGithub(commitMessage || "Admin: Görseller ve ayarlar GitHub deposuna aktarıldı");
+    return res.json({
+      success: true,
+      message: "Tüm görseller ve site ayarları GitHub deposuna başarıyla aktarıldı.",
+      syncedCount: result.count
+    });
+  } catch (err) {
+    console.error("Error in /api/sync-github:", err);
+    return res.status(500).json({ success: false, error: "GitHub senkronizasyonunda hata oluştu." });
+  }
+});
 
 function sanitizeNoBase64(obj: any, folder: string = "gallery"): any {
   if (!obj) return obj;
@@ -666,10 +803,31 @@ app.post("/api/upload-image", async (req, res) => {
     return res.json({
       success: true,
       url: publicUrl,
-      message: "Görsel GitHub repository'sine aktarıldı."
+      message: "Görsel başarıyla yüklendi."
     });
   } catch (err) {
     console.error("Image upload endpoint error:", err);
+    return res.status(500).json({ success: false, error: "Görsel yüklenirken hata oluştu." });
+  }
+});
+
+app.post("/api/media/upload", async (req, res) => {
+  try {
+    const { image, folder, filename: customFilename } = req.body || {};
+    if (!image || typeof image !== "string") {
+      return res.status(400).json({ success: false, error: "Görsel verisi bulunamadı." });
+    }
+
+    const cleanFolder = (folder || "gallery").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+    const publicUrl = saveBase64ToFile(image, cleanFolder, customFilename);
+
+    return res.json({
+      success: true,
+      url: publicUrl,
+      message: "Görsel medya kütüphanesine eklendi."
+    });
+  } catch (err) {
+    console.error("Media upload error:", err);
     return res.status(500).json({ success: false, error: "Görsel yüklenirken hata oluştu." });
   }
 });
@@ -681,11 +839,25 @@ app.get("/api/media", async (req, res) => {
     const repo = process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
 
     const folders: string[] = ["hero", "products", "logo", "gallery"];
-    const files: any[] = [];
+    const filesMap = new Map<string, any>();
+
+    const addFile = (item: { name: string; path: string; folder: string; size?: number; updatedAt?: string }) => {
+      if (!item.path || filesMap.has(item.path)) return;
+      const folder = item.folder || (item.path.split('/')[2] || 'gallery');
+      if (!folders.includes(folder)) folders.push(folder);
+      filesMap.set(item.path, {
+        id: `${folder}/${item.name}`,
+        name: item.name,
+        path: item.path,
+        folder: folder,
+        size: item.size || 1024,
+        updatedAt: item.updatedAt || new Date().toISOString()
+      });
+    };
 
     if (token && repo) {
       try {
-        for (const f of folders) {
+        for (const f of ["hero", "products", "logo", "gallery"]) {
           const ghRes = await fetch(`https://api.github.com/repos/${repo}/contents/public/uploads/${f}`, {
             headers: { "Authorization": `Bearer ${token}`, "User-Agent": "IremComfortApp" }
           });
@@ -694,8 +866,7 @@ app.get("/api/media", async (req, res) => {
             if (Array.isArray(items)) {
               for (const item of items) {
                 if (item.type === "file") {
-                  files.push({
-                    id: `${f}/${item.name}`,
+                  addFile({
                     name: item.name,
                     path: `/uploads/${f}/${item.name}`,
                     folder: f,
@@ -712,36 +883,56 @@ app.get("/api/media", async (req, res) => {
       }
     }
 
-    // Safe fallback read if local bundled uploads exist
-    if (files.length === 0) {
-      try {
-        const baseDir = path.join(process.cwd(), "public", "uploads");
-        if (fs.existsSync(baseDir)) {
-          const subdirs = fs.readdirSync(baseDir, { withFileTypes: true });
-          for (const dirent of subdirs) {
-            if (dirent.isDirectory()) {
-              if (!folders.includes(dirent.name)) folders.push(dirent.name);
-              const dirPath = path.join(baseDir, dirent.name);
-              const subFiles = fs.readdirSync(dirPath);
-              for (const fileName of subFiles) {
-                if (fileName.startsWith(".")) continue;
-                files.push({
-                  id: `${dirent.name}/${fileName}`,
-                  name: fileName,
-                  path: `/uploads/${dirent.name}/${fileName}`,
-                  folder: dirent.name,
-                  size: 1024,
-                  updatedAt: new Date().toISOString()
-                });
-              }
+    // Safe read local bundled uploads
+    try {
+      const baseDir = path.join(process.cwd(), "public", "uploads");
+      if (fs.existsSync(baseDir)) {
+        const subdirs = fs.readdirSync(baseDir, { withFileTypes: true });
+        for (const dirent of subdirs) {
+          if (dirent.isDirectory()) {
+            const dirPath = path.join(baseDir, dirent.name);
+            const subFiles = fs.readdirSync(dirPath);
+            for (const fileName of subFiles) {
+              if (fileName.startsWith(".")) continue;
+              addFile({
+                name: fileName,
+                path: `/uploads/${dirent.name}/${fileName}`,
+                folder: dirent.name,
+                size: 1024,
+                updatedAt: new Date().toISOString()
+              });
             }
           }
         }
-      } catch (fsErr) {
-        // Ignored on read-only environments
       }
+    } catch (fsErr) {
+      // Ignored
     }
 
+    // Scan inMemorySettingsCache for active site images (collection items, hero, fair, logo, etc.)
+    try {
+      const scanImages = (data: any) => {
+        if (!data) return;
+        if (typeof data === 'string' && data.startsWith('/uploads/')) {
+          const parts = data.split('/');
+          const folder = parts[2] || 'gallery';
+          const name = parts[parts.length - 1] || 'image.jpg';
+          addFile({ name, path: data, folder });
+        } else if (Array.isArray(data)) {
+          data.forEach(item => scanImages(item));
+        } else if (typeof data === 'object') {
+          Object.values(data).forEach(val => scanImages(val));
+        }
+      };
+      scanImages(inMemorySettingsCache);
+    } catch (scanErr) {
+      // Ignored
+    }
+
+    // Add default brand logo if missing
+    addFile({ name: "irem-comfort-logo.jpg", path: "/uploads/logo/irem-comfort-logo.jpg", folder: "logo" });
+
+    const files = Array.from(filesMap.values());
     return res.json({ success: true, folders, files });
   } catch (err) {
     console.error("Media list error:", err);
@@ -860,20 +1051,36 @@ function loadSettingsFromFile(): any {
 inMemorySettingsCache = loadSettingsFromFile();
 generateSitemapAndRobots(inMemorySettingsCache);
 
-function saveSettingsToFile(updatedSettings: any) {
+function saveSettingsToFile(updatedSettings: any, customToken?: string, customRepo?: string, customBranch?: string) {
   try {
+    if (updatedSettings && typeof updatedSettings === 'object') {
+      delete updatedSettings.system;
+    }
     inMemorySettingsCache = updatedSettings;
     generateSitemapAndRobots(updatedSettings);
 
     const settingsJsonStr = JSON.stringify(updatedSettings, null, 2);
-    uploadFileToGithub("public/site_settings.json", settingsJsonStr, "Update site_settings.json").catch(e => {
+
+    // Write to local disk if possible
+    try {
+      const settingsPath = path.join(process.cwd(), "public", "site_settings.json");
+      fs.writeFileSync(settingsPath, settingsJsonStr, "utf-8");
+    } catch (fsErr) {
+      // Ignore read-only environment error
+    }
+
+    const token = customToken || activeDeploymentSession?.userToken || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
+    const repo = customRepo || activeDeploymentSession?.repo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
+    const branch = customBranch || activeDeploymentSession?.branch || process.env.GITHUB_BRANCH || "main";
+
+    uploadFileToGithub("public/site_settings.json", settingsJsonStr, "Update site_settings.json", token, repo, branch).catch(e => {
       console.warn("GitHub async settings save warning:", e);
     });
     if (inMemoryRobots) {
-      uploadFileToGithub("public/robots.txt", inMemoryRobots, "Update robots.txt").catch(() => {});
+      uploadFileToGithub("public/robots.txt", inMemoryRobots, "Update robots.txt", token, repo, branch).catch(() => {});
     }
     if (inMemorySitemap) {
-      uploadFileToGithub("public/sitemap.xml", inMemorySitemap, "Update sitemap.xml").catch(() => {});
+      uploadFileToGithub("public/sitemap.xml", inMemorySitemap, "Update sitemap.xml", token, repo, branch).catch(() => {});
     }
   } catch (e) {
     console.error("Failed to process saveSettingsToFile:", e);
@@ -1280,7 +1487,7 @@ app.get("/api/deploy-status", async (_req, res) => {
         isMaintenanceMode: false,
         lastDeployedAt: new Date().toISOString()
       };
-      saveSettingsToFile(inMemorySettingsCache);
+      saveSettingsToFile(inMemorySettingsCache, session.userToken, session.repo, session.branch);
 
       return res.json({
         success: true,
@@ -1305,7 +1512,7 @@ app.get("/api/deploy-status", async (_req, res) => {
         isDeploying: false,
         isMaintenanceMode: false
       };
-      saveSettingsToFile(inMemorySettingsCache);
+      saveSettingsToFile(inMemorySettingsCache, session.userToken, session.repo, session.branch);
 
       return res.json({
         success: false,
@@ -1334,7 +1541,7 @@ app.get("/api/deploy-status", async (_req, res) => {
         isMaintenanceMode: false,
         lastDeployedAt: new Date().toISOString()
       };
-      saveSettingsToFile(inMemorySettingsCache);
+      saveSettingsToFile(inMemorySettingsCache, session.userToken, session.repo, session.branch);
 
       return res.json({
         success: true,
@@ -1388,7 +1595,7 @@ app.get("/api/deploy-status", async (_req, res) => {
           isMaintenanceMode: false,
           lastDeployedAt: new Date().toISOString()
         };
-        saveSettingsToFile(inMemorySettingsCache);
+        saveSettingsToFile(inMemorySettingsCache, session.userToken, session.repo, session.branch);
       }
     }
 

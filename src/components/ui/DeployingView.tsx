@@ -36,6 +36,7 @@ export const DeployingView: React.FC = () => {
 
           if (dep.status === 'READY') {
             setSequenceStep('stage2');
+            updateSystemConfig({ isDeploying: false, isMaintenanceMode: false });
           } else if (dep.status === 'ERROR') {
             setDeployError(dep.error || 'Deployment failed');
           }

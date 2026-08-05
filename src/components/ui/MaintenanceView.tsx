@@ -7,6 +7,24 @@ import { useAppImages } from '../../context/ImageContext';
 export const MaintenanceView: React.FC = () => {
   const { systemConfig, contactData } = useAppImages();
 
+  // Poll server settings and deployment status to auto-refresh when maintenance is disabled
+  React.useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/deploy-status');
+        const data = await res.json();
+        if (data && data.systemConfig) {
+          if (data.systemConfig.isMaintenanceMode === false && data.systemConfig.isDeploying === false) {
+            window.location.reload();
+          }
+        }
+      } catch (e) {
+        // ignore fetch error
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleAdminClick = () => {
     window.location.href = '/admin';
   };
