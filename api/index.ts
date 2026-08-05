@@ -530,11 +530,18 @@ let inMemoryRobots = "";
 let inMemorySitemap = "";
 
 // Helper to push files directly to GitHub repository using GitHub Contents API
-async function uploadFileToGithub(relativePath: string, contentBuffer: Buffer | string, customMessage?: string): Promise<{ success: boolean; commitSha?: string; error?: string }> {
+async function uploadFileToGithub(
+  relativePath: string,
+  contentBuffer: Buffer | string,
+  customMessage?: string,
+  customToken?: string,
+  customRepo?: string,
+  customBranch?: string
+): Promise<{ success: boolean; commitSha?: string; error?: string }> {
   try {
-    const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
-    const repo = process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
-    const branch = process.env.GITHUB_BRANCH || "main";
+    const token = customToken || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
+    const repo = customRepo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
+    const branch = customBranch || process.env.GITHUB_BRANCH || "main";
 
     if (!token || !repo) {
       console.warn("GitHub credentials missing, skipping GitHub API commit for", relativePath);
@@ -579,7 +586,11 @@ async function uploadFileToGithub(relativePath: string, contentBuffer: Buffer | 
     if (!putRes.ok) {
       const errText = await putRes.text();
       console.warn(`GitHub Contents API failed for ${relativePath}:`, putRes.status, errText);
-      return { success: false, error: `GitHub API HTTP ${putRes.status}` };
+      let errMsg = `GitHub API HTTP ${putRes.status}`;
+      if (putRes.status === 401) errMsg = "Invalid GitHub token";
+      else if (putRes.status === 404) errMsg = "Repository not found";
+      else if (putRes.status === 403) errMsg = "No permission to push";
+      return { success: false, error: errMsg };
     }
 
     const putData = await putRes.json();
@@ -588,7 +599,7 @@ async function uploadFileToGithub(relativePath: string, contentBuffer: Buffer | 
     return { success: true, commitSha };
   } catch (err: any) {
     console.warn(`Error uploading ${relativePath} to GitHub:`, err);
-    return { success: false, error: err?.message || "Upload exception" };
+    return { success: false, error: err?.message || "GitHub API unavailable" };
   }
 }
 
@@ -962,6 +973,106 @@ async function checkVercelDeploymentStatus(repo: string, commitSha?: string, tok
   return 'UNKNOWN';
 }
 
+app.post("/api/github-test", async (req, res) => {
+  try {
+    const { githubToken, githubRepo, githubBranch } = req.body || {};
+    const token = githubToken || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
+    const repo = githubRepo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
+    const branch = githubBranch || process.env.GITHUB_BRANCH || "main";
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid GitHub token (Token girilmemiş)."
+      });
+    }
+
+    if (!repo || !repo.includes('/')) {
+      return res.status(400).json({
+        success: false,
+        error: "Repository formatı geçersiz (kullanıcı/repo formatında olmalı)."
+      });
+    }
+
+    // 1. Validate Token
+    const userRes = await fetch("https://api.github.com/user", {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "User-Agent": "IremComfortApp"
+      }
+    });
+
+    if (userRes.status === 401) {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid GitHub token"
+      });
+    }
+
+    // 2. Validate Repository
+    const repoRes = await fetch(`https://api.github.com/repos/${repo}`, {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "User-Agent": "IremComfortApp"
+      }
+    });
+
+    if (repoRes.status === 404) {
+      return res.status(404).json({
+        success: false,
+        error: "Repository not found"
+      });
+    }
+
+    if (!repoRes.ok) {
+      return res.status(repoRes.status).json({
+        success: false,
+        error: `GitHub Repository kontrol hatası (${repoRes.status})`
+      });
+    }
+
+    const repoData = await repoRes.json();
+    const canPush = repoData.permissions?.push || repoData.permissions?.admin || false;
+
+    if (!canPush) {
+      return res.status(403).json({
+        success: false,
+        error: "No permission to push"
+      });
+    }
+
+    // 3. Validate Branch
+    const branchRes = await fetch(`https://api.github.com/repos/${repo}/branches/${branch}`, {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "User-Agent": "IremComfortApp"
+      }
+    });
+
+    if (branchRes.status === 404) {
+      return res.status(404).json({
+        success: false,
+        error: "Invalid branch"
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "🟢 GitHub bağlantısı başarılı.",
+      details: [
+        "✓ Repository bulundu.",
+        "✓ Yazma izni var.",
+        "✓ Branch bulundu."
+      ]
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      error: "GitHub API unavailable"
+    });
+  }
+});
+
 app.post("/api/deploy-github", async (req, res) => {
   try {
     const { githubToken: bodyToken, githubRepo: bodyRepo, githubBranch: bodyBranch, commitMessage } = req.body || {};
@@ -969,6 +1080,57 @@ app.post("/api/deploy-github", async (req, res) => {
     const repo = bodyRepo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
     const branch = bodyBranch || process.env.GITHUB_BRANCH || "main";
     const userCommitMsg = commitMessage || "Site güncellendi ve yayınlandı";
+
+    // 1. Load & Validate Token
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid GitHub token"
+      });
+    }
+
+    const userCheck = await fetch("https://api.github.com/user", {
+      headers: { "Authorization": `Bearer ${token}`, "User-Agent": "IremComfortApp" }
+    });
+    if (userCheck.status === 401) {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid GitHub token"
+      });
+    }
+
+    // 2. Validate Repository
+    const repoCheck = await fetch(`https://api.github.com/repos/${repo}`, {
+      headers: { "Authorization": `Bearer ${token}`, "User-Agent": "IremComfortApp" }
+    });
+    if (repoCheck.status === 404) {
+      return res.status(404).json({
+        success: false,
+        error: "Repository not found"
+      });
+    }
+
+    if (repoCheck.ok) {
+      const repoData = await repoCheck.json();
+      const canPush = repoData.permissions?.push || repoData.permissions?.admin || false;
+      if (!canPush) {
+        return res.status(403).json({
+          success: false,
+          error: "No permission to push"
+        });
+      }
+    }
+
+    // 3. Validate Branch
+    const branchCheck = await fetch(`https://api.github.com/repos/${repo}/branches/${branch}`, {
+      headers: { "Authorization": `Bearer ${token}`, "User-Agent": "IremComfortApp" }
+    });
+    if (branchCheck.status === 404) {
+      return res.status(404).json({
+        success: false,
+        error: "Invalid branch"
+      });
+    }
 
     const deployTime = new Date().toISOString();
     const autoMaint = inMemorySettingsCache.systemConfig?.autoMaintenanceOnDeploy !== false;
@@ -1002,26 +1164,22 @@ app.post("/api/deploy-github", async (req, res) => {
       userToken: token
     };
 
-    if (!token || !repo) {
-      activeDeploymentSession.status = 'ERROR';
-      activeDeploymentSession.error = "GitHub Personal Access Token (PAT) veya Repository ismi eksik.";
-      activeDeploymentSession.logs.push("❌ GitHub Token veya Repo ismi eksik.");
-      return res.status(400).json({
-        success: false,
-        error: activeDeploymentSession.error,
-        deployment: activeDeploymentSession
-      });
-    }
-
     // Upload site_settings.json
     const settingsJsonStr = JSON.stringify(inMemorySettingsCache, null, 2);
-    const setRes = await uploadFileToGithub("public/site_settings.json", settingsJsonStr, `Deploy: ${userCommitMsg}`);
+    const setRes = await uploadFileToGithub(
+      "public/site_settings.json",
+      settingsJsonStr,
+      `Deploy: ${userCommitMsg}`,
+      token,
+      repo,
+      branch
+    );
 
     if (!setRes.success) {
       activeDeploymentSession.status = 'ERROR';
       activeDeploymentSession.error = setRes.error || "GitHub commit ve push işlemi başarısız oldu.";
       activeDeploymentSession.logs.push(`❌ ${activeDeploymentSession.error}`);
-      return res.status(500).json({
+      return res.status(400).json({
         success: false,
         error: activeDeploymentSession.error,
         deployment: activeDeploymentSession
@@ -1030,10 +1188,10 @@ app.post("/api/deploy-github", async (req, res) => {
 
     // Upload robots.txt & sitemap.xml
     if (inMemoryRobots) {
-      await uploadFileToGithub("public/robots.txt", inMemoryRobots, `Deploy Robots: ${userCommitMsg}`);
+      await uploadFileToGithub("public/robots.txt", inMemoryRobots, `Deploy Robots: ${userCommitMsg}`, token, repo, branch);
     }
     if (inMemorySitemap) {
-      await uploadFileToGithub("public/sitemap.xml", inMemorySitemap, `Deploy Sitemap: ${userCommitMsg}`);
+      await uploadFileToGithub("public/sitemap.xml", inMemorySitemap, `Deploy Sitemap: ${userCommitMsg}`, token, repo, branch);
     }
 
     // Commit created & pushed! Now wait for Vercel.

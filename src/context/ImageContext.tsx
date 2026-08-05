@@ -636,14 +636,18 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const deployTime = new Date().toISOString();
     updateSystemConfig({ isDeploying: true, lastDeployedAt: deployTime });
 
+    const tokenToSend = customToken || localStorage.getItem('irem_github_token') || undefined;
+    const repoToSend = systemConfig.githubRepo || localStorage.getItem('irem_github_repo') || undefined;
+    const branchToSend = systemConfig.githubBranch || localStorage.getItem('irem_github_branch') || undefined;
+
     try {
       const response = await fetch('/api/deploy-github', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          githubToken: customToken,
-          githubRepo: systemConfig.githubRepo,
-          githubBranch: systemConfig.githubBranch,
+          githubToken: tokenToSend,
+          githubRepo: repoToSend,
+          githubBranch: branchToSend,
           commitMessage: commitMessage || "Site güncellendi ve yayınlandı"
         })
       });

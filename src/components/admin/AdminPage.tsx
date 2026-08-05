@@ -131,11 +131,69 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   // Admin Panel Tabs
   const [activeTab, setActiveTab] = useState<'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'presets' | 'leads' | 'newsletter' | 'email' | 'system' | 'media' | 'seo'>('fair');
 
+  const [githubRepoInput, setGithubRepoInput] = useState<string>(() => systemConfig.githubRepo || localStorage.getItem('irem_github_repo') || 'kadirkrga25/irem-comfort');
+  const [githubBranchInput, setGithubBranchInput] = useState<string>(() => systemConfig.githubBranch || localStorage.getItem('irem_github_branch') || 'main');
   const [githubTokenInput, setGithubTokenInput] = useState<string>(() => localStorage.getItem('irem_github_token') || '');
+  const [isTestingGithub, setIsTestingGithub] = useState(false);
+  const [githubTestResult, setGithubTestResult] = useState<{ success: boolean; message: string; details?: string[] } | null>(null);
+
   const [commitMessageInput, setCommitMessageInput] = useState<string>('Site ayarları ve görseller güncellendi');
   const [isDeployingInAdmin, setIsDeployingInAdmin] = useState(false);
   const [deployResult, setDeployResult] = useState<{ success?: boolean; message?: string; logs?: string[]; durationString?: string } | null>(null);
   const [deployProgress, setDeployProgress] = useState<any>(null);
+
+  const handleSaveGithubSettings = () => {
+    localStorage.setItem('irem_github_repo', githubRepoInput);
+    localStorage.setItem('irem_github_branch', githubBranchInput);
+    localStorage.setItem('irem_github_token', githubTokenInput);
+    updateSystemConfig({
+      githubRepo: githubRepoInput,
+      githubBranch: githubBranchInput
+    });
+    showToast('GitHub ayarları başarıyla kaydedildi.');
+  };
+
+  const handleTestGithubConnection = async () => {
+    setIsTestingGithub(true);
+    setGithubTestResult(null);
+    try {
+      const res = await fetch('/api/github-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          githubToken: githubTokenInput,
+          githubRepo: githubRepoInput,
+          githubBranch: githubBranchInput
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setGithubTestResult({
+          success: true,
+          message: data.message || '🟢 GitHub bağlantısı başarılı.',
+          details: data.details || [
+            '✓ Repository bulundu.',
+            '✓ Yazma izni var.',
+            '✓ Branch bulundu.'
+          ]
+        });
+      } else {
+        setGithubTestResult({
+          success: false,
+          message: '🔴 GitHub bağlantısı başarısız.',
+          details: [data.error || 'GitHub bağlantı testi başarısız oldu.']
+        });
+      }
+    } catch (err) {
+      setGithubTestResult({
+        success: false,
+        message: '🔴 GitHub bağlantısı başarısız.',
+        details: ['GitHub API servisine erişilemedi.']
+      });
+    } finally {
+      setIsTestingGithub(false);
+    }
+  };
 
   const confirmMaintenanceExit = (action: () => void) => {
     if (systemConfig.isMaintenanceMode) {
@@ -3455,61 +3513,124 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
               </div>
             </div>
 
-            {/* Section 2: GitHub Repository & Vercel Deploy */}
-            <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-6">
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-                <span className="text-xl">🚀</span>
-                <h4 className="font-bold text-[#111111] text-base">GitHub & Vercel Otomatik Yayınlama (Deploy)</h4>
+            {/* Section 2: GitHub Settings & Vercel Deploy */}
+            <div className="space-y-6">
+              
+              {/* GitHub Settings Card */}
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-6">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">⚙️</span>
+                    <div>
+                      <h4 className="font-bold text-[#111111] text-base">GitHub Ayarları</h4>
+                      <p className="text-xs text-slate-500">Repository, branch ve Personal Access Token yapılandırması</p>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-bold">
+                    Yerel Saklama (Local Storage)
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Repository */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 block">Repository (kullanıcı/repo)</label>
+                    <input
+                      type="text"
+                      value={githubRepoInput}
+                      onChange={(e) => setGithubRepoInput(e.target.value)}
+                      placeholder="kadirkrga25/irem-comfort"
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-mono font-bold"
+                    />
+                  </div>
+
+                  {/* Branch */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 block">Branch</label>
+                    <input
+                      type="text"
+                      value={githubBranchInput}
+                      onChange={(e) => setGithubBranchInput(e.target.value)}
+                      placeholder="main"
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-mono"
+                    />
+                  </div>
+
+                  {/* Personal Access Token */}
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-xs font-bold text-slate-700 block">GitHub Personal Access Token (PAT)</label>
+                    <input
+                      type="password"
+                      value={githubTokenInput}
+                      onChange={(e) => setGithubTokenInput(e.target.value)}
+                      placeholder="ghp_xxxxxxxxxxxxxxxxxxxx..."
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-mono"
+                    />
+                    <p className="text-[11px] text-slate-500">
+                      * Token bir kez kaydedildikten sonra tarayıcınızda saklanır ve yayınlama işlemlerinde otomatik kullanılır. Tekrar girmeniz gerekmez.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={handleSaveGithubSettings}
+                    className="px-5 py-2.5 rounded-xl bg-[#082C6C] hover:bg-[#062050] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer active:scale-98"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>Ayarları Kaydet</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isTestingGithub}
+                    onClick={handleTestGithubConnection}
+                    className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer active:scale-98 disabled:opacity-50"
+                  >
+                    <Shield className={`w-4 h-4 text-emerald-600 ${isTestingGithub ? 'animate-spin' : ''}`} />
+                    <span>{isTestingGithub ? 'Test Ediliyor...' : 'Bağlantıyı Test Et'}</span>
+                  </button>
+                </div>
+
+                {/* Connection Test Output Card */}
+                {githubTestResult && (
+                  <div className={`p-4 rounded-xl text-xs font-mono border space-y-2.5 ${
+                    githubTestResult.success 
+                      ? 'bg-emerald-950/90 border-emerald-500/40 text-emerald-200 shadow-md' 
+                      : 'bg-rose-950/90 border-rose-500/40 text-rose-200 shadow-md'
+                  }`}>
+                    <div className="font-bold text-sm border-b border-white/10 pb-2 flex items-center gap-2">
+                      <span>Sonuç:</span>
+                      <span className={githubTestResult.success ? 'text-emerald-300' : 'text-rose-300'}>
+                        {githubTestResult.message}
+                      </span>
+                    </div>
+
+                    {githubTestResult.details && githubTestResult.details.length > 0 && (
+                      <div className="space-y-1 pt-1 font-sans text-xs">
+                        {githubTestResult.details.map((item, idx) => (
+                          <div key={idx} className="flex items-center gap-2 font-medium">
+                            <span className={githubTestResult.success ? 'text-emerald-300 font-bold' : 'text-rose-300 font-bold'}>
+                              {item}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                {/* GitHub Repo */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 block">GitHub Repository Adı (kullanıcı/repo)</label>
-                  <input
-                    type="text"
-                    value={systemConfig.githubRepo}
-                    onChange={(e) => updateSystemConfig({ githubRepo: e.target.value })}
-                    placeholder="kargakadir4525/irem-comfort"
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-mono font-bold"
-                  />
-                </div>
+              {/* Deploy Status & Action Card */}
+              <div className="p-6 rounded-2xl bg-slate-900 text-white space-y-5 border border-slate-800 shadow-xl">
+                <div className="flex flex-wrap items-center justify-between gap-3 text-xs border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🚀</span>
+                    <span className="font-bold text-sm text-slate-200">GitHub & Vercel Otomatik Yayınlama</span>
+                  </div>
 
-                {/* GitHub Branch */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 block">Hedef Branch</label>
-                  <input
-                    type="text"
-                    value={systemConfig.githubBranch}
-                    onChange={(e) => updateSystemConfig({ githubBranch: e.target.value })}
-                    placeholder="main"
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-mono"
-                  />
-                </div>
-
-                {/* Personal Access Token */}
-                <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-xs font-bold text-slate-700 block">GitHub Personal Access Token (PAT)</label>
-                  <input
-                    type="password"
-                    value={githubTokenInput}
-                    onChange={(e) => {
-                      setGithubTokenInput(e.target.value);
-                      localStorage.setItem('irem_github_token', e.target.value);
-                    }}
-                    placeholder="ghp_xxxxxxxxxxxxxxxxxxxx..."
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-mono"
-                  />
-                  <p className="text-[11px] text-slate-500">
-                    * Token'ınız sadece bu cihazda saklanır ve GitHub API üzerinden görseller ve ayarlar repoya gönderilir. Vercel otomatik olarak yeni versiyonu yayınlar.
-                  </p>
-                </div>
-              </div>
-
-              {/* Deploy Status & Action */}
-              <div className="p-5 rounded-xl bg-slate-900 text-white space-y-4 border border-slate-800">
-                <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
                   <span className="text-slate-300 font-mono">
                     Son Yayınlanma: <strong className="text-amber-400 font-sans">{systemConfig.lastDeployedAt ? new Date(systemConfig.lastDeployedAt).toLocaleString('tr-TR') : 'Henüz yapılmadı'}</strong>
                   </span>
@@ -3536,7 +3657,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs focus:ring-2 focus:ring-amber-500 focus:outline-hidden"
                   />
                   <p className="text-[11px] text-slate-400">
-                    * Değişiklikler GitHub deposuna commit edilir ve Vercel otomatik olarak yeni versiyonu derleyip yayınlar.
+                    * Kaydedilen GitHub ayarları (Token, Repo, Branch) otomatik olarak yüklenip kullanılacaktır.
                   </p>
                 </div>
 
@@ -3594,7 +3715,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                   </div>
                 )}
 
-                {/* Final Deploy Result - ONLY SUCCESS IF READY */}
+                {/* Final Deploy Result */}
                 {deployResult && !isDeployingInAdmin && (
                   <div className={`p-4 rounded-xl text-xs font-medium border space-y-2 ${
                     deployResult.success 
@@ -3607,7 +3728,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                       ) : (
                         <AlertCircle className="w-5 h-5 shrink-0 text-rose-400" />
                       )}
-                      <span>{deployResult.message}</span>
+                      <span>{deployResult.success ? 'Deployment completed successfully.' : deployResult.message}</span>
                     </div>
 
                     {deployResult.durationString && (
@@ -3636,7 +3757,18 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                     setDeployProgress(null);
                     showToast('Görsel ve veriler GitHub\'a gönderiliyor...');
 
-                    const res = await triggerDeploy(commitMessageInput, githubTokenInput, (progress) => {
+                    // Auto load saved settings
+                    const activeToken = githubTokenInput || localStorage.getItem('irem_github_token') || '';
+                    const activeRepo = githubRepoInput || localStorage.getItem('irem_github_repo') || systemConfig.githubRepo;
+                    const activeBranch = githubBranchInput || localStorage.getItem('irem_github_branch') || systemConfig.githubBranch;
+
+                    // Ensure systemConfig is updated
+                    updateSystemConfig({
+                      githubRepo: activeRepo,
+                      githubBranch: activeBranch
+                    });
+
+                    const res = await triggerDeploy(commitMessageInput, activeToken, (progress) => {
                       setDeployProgress(progress);
                     });
 
