@@ -136,6 +136,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 src={images.heroImage}
                 alt="İrem Comfort Çift Tokalı Hakiki Deri Bayan Terlik"
                 className="w-full h-[480px] sm:h-[580px] object-cover object-center transform group-hover:scale-105 transition-transform duration-1000 ease-out"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  if (!target.src.includes('irem-comfort-logo')) {
+                    target.src = '/uploads/logo/irem-comfort-logo.jpg';
+                  }
+                }}
               />
 
               {/* Glassmorphic Overlay Floating Badge */}

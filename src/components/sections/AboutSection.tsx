@@ -182,6 +182,12 @@ export const AboutSection: React.FC = () => {
                     animate={{ scale: 1.08 }}
                     transition={{ duration: 5, ease: "linear" }}
                     className="w-full h-full object-cover pointer-events-none"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      if (!target.src.includes('irem-comfort-logo')) {
+                        target.src = '/uploads/logo/irem-comfort-logo.jpg';
+                      }
+                    }}
                   />
                   
                   {/* Bottom Dark Gradient Overlay */}

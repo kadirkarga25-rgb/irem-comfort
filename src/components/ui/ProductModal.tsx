@@ -105,6 +105,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                   src={modalImages[activeImageIndex]}
                   alt={item.name}
                   className="w-full h-full object-cover object-center transition-all duration-300"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    if (!target.src.includes('irem-comfort-logo')) {
+                      target.src = '/uploads/logo/irem-comfort-logo.jpg';
+                    }
+                  }}
                 />
                 
                 <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#0A2D6F] text-white text-[9px] sm:text-[10px] font-bold tracking-widest uppercase shadow-sm">
@@ -122,7 +128,17 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                       activeImageIndex === idx ? 'border-[#0A2D6F] scale-102 shadow-md ring-2 ring-[#0A2D6F]/20' : 'border-slate-200 opacity-60 hover:opacity-100'
                     }`}
                   >
-                    <img src={img} alt="Küçük Görsel" className="w-full h-full object-cover" />
+                    <img 
+                      src={img} 
+                      alt="Küçük Görsel" 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        if (!target.src.includes('irem-comfort-logo')) {
+                          target.src = '/uploads/logo/irem-comfort-logo.jpg';
+                        }
+                      }}
+                    />
                   </button>
                 ))}
               </div>

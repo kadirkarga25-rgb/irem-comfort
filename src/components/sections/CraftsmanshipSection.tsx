@@ -115,6 +115,12 @@ export const CraftsmanshipSection: React.FC = () => {
                     src={images.craftsmanshipImages[activeStep.number] || activeStep.image}
                     alt={activeStep.title}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      if (!target.src.includes('irem-comfort-logo')) {
+                        target.src = '/uploads/logo/irem-comfort-logo.jpg';
+                      }
+                    }}
                   />
                   <div className="absolute top-4 right-4 px-4 py-1.5 rounded-full bg-[#0A2D6F] text-white text-xs font-bold tracking-widest uppercase">
                     Aşama {activeStep.number} / 04

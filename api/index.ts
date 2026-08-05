@@ -530,7 +530,24 @@ let inMemoryRobots = "";
 let inMemorySitemap = "";
 
 // Helper to push files directly to GitHub repository using GitHub Contents API
-async function uploadFileToGithub(
+const inMemoryUploadsCache = new Map<string, { buffer: Buffer; contentType: string; updatedAt: number }>();
+
+let githubTaskQueue: Promise<any> = Promise.resolve();
+
+function enqueueGithubTask<T>(taskFn: () => Promise<T>): Promise<T> {
+  const nextPromise = githubTaskQueue.then(async () => {
+    try {
+      return await taskFn();
+    } catch (err) {
+      console.warn("Queued GitHub task execution warning:", err);
+      throw err;
+    }
+  });
+  githubTaskQueue = nextPromise.catch(() => {});
+  return nextPromise;
+}
+
+async function uploadFileToGithubDirect(
   relativePath: string,
   contentBuffer: Buffer | string,
   customMessage?: string,
@@ -539,68 +556,97 @@ async function uploadFileToGithub(
   customBranch?: string
 ): Promise<{ success: boolean; commitSha?: string; error?: string }> {
   try {
-    const token = customToken || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
-    const repo = customRepo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
-    const branch = customBranch || process.env.GITHUB_BRANCH || "main";
+    const token = customToken || activeDeploymentSession?.userToken || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
+    const repo = customRepo || activeDeploymentSession?.repo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
+    const branch = customBranch || activeDeploymentSession?.branch || process.env.GITHUB_BRANCH || "main";
 
     if (!token || !repo) {
       console.warn("GitHub credentials missing, skipping GitHub API commit for", relativePath);
       return { success: false, error: "GitHub credentials missing." };
     }
 
-    let sha: string | undefined = undefined;
-    try {
-      const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}?ref=${branch}`, {
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "User-Agent": "IremComfortApp"
-        }
-      });
-      if (getRes.ok) {
-        const fileData = await getRes.json();
-        sha = fileData.sha;
-      }
-    } catch (e) {
-      // ignore check error
-    }
-
     const base64Content = typeof contentBuffer === "string" 
       ? Buffer.from(contentBuffer, "utf-8").toString("base64")
       : contentBuffer.toString("base64");
 
-    const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}`, {
-      method: "PUT",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json",
-        "User-Agent": "IremComfortApp"
-      },
-      body: JSON.stringify({
-        message: customMessage || `Update ${relativePath}`,
-        content: base64Content,
-        branch,
-        ...(sha ? { sha } : {})
-      })
-    });
+    let attempts = 0;
+    while (attempts < 3) {
+      attempts++;
+      try {
+        let sha: string | undefined = undefined;
+        try {
+          const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}?ref=${branch}`, {
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "User-Agent": "IremComfortApp"
+            }
+          });
+          if (getRes.ok) {
+            const fileData = await getRes.json();
+            sha = fileData.sha;
+          }
+        } catch (e) {
+          // ignore check error
+        }
 
-    if (!putRes.ok) {
-      const errText = await putRes.text();
-      console.warn(`GitHub Contents API failed for ${relativePath}:`, putRes.status, errText);
-      let errMsg = `GitHub API HTTP ${putRes.status}`;
-      if (putRes.status === 401) errMsg = "Invalid GitHub token";
-      else if (putRes.status === 404) errMsg = "Repository not found";
-      else if (putRes.status === 403) errMsg = "No permission to push";
-      return { success: false, error: errMsg };
+        const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}`, {
+          method: "PUT",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+            "User-Agent": "IremComfortApp"
+          },
+          body: JSON.stringify({
+            message: customMessage || `Update ${relativePath}`,
+            content: base64Content,
+            branch,
+            ...(sha ? { sha } : {})
+          })
+        });
+
+        if (putRes.ok) {
+          const putData = await putRes.json();
+          return { success: true, commitSha: putData?.commit?.sha };
+        }
+
+        const errText = await putRes.text();
+        console.warn(`GitHub API attempt ${attempts} failed for ${relativePath}: ${putRes.status}`, errText);
+
+        if (putRes.status === 409 && attempts < 3) {
+          // Concurrent commit conflict - wait 600ms and retry with fresh tree SHA
+          await new Promise(r => setTimeout(r, 600));
+          continue;
+        }
+
+        let errMsg = `GitHub API HTTP ${putRes.status}`;
+        if (putRes.status === 401) errMsg = "Invalid GitHub token";
+        else if (putRes.status === 404) errMsg = "Repository not found";
+        else if (putRes.status === 403) errMsg = "No permission to push";
+        return { success: false, error: errMsg };
+      } catch (err: any) {
+        if (attempts < 3) {
+          await new Promise(r => setTimeout(r, 600));
+          continue;
+        }
+        return { success: false, error: err?.message || "GitHub API network error" };
+      }
     }
-
-    const putData = await putRes.json();
-    const commitSha = putData?.commit?.sha;
-
-    return { success: true, commitSha };
+    return { success: false, error: "Max GitHub retry attempts exceeded" };
   } catch (err: any) {
     console.warn(`Error uploading ${relativePath} to GitHub:`, err);
     return { success: false, error: err?.message || "GitHub API unavailable" };
   }
+}
+
+function uploadFileToGithub(
+  relativePath: string,
+  contentBuffer: Buffer | string,
+  customMessage?: string,
+  customToken?: string,
+  customRepo?: string,
+  customBranch?: string
+) {
+  return enqueueGithubTask(() => uploadFileToGithubDirect(relativePath, contentBuffer, customMessage, customToken, customRepo, customBranch));
 }
 
 function saveBase64ToFile(base64Str: string, folder: string = "gallery", customFilename?: string): string {
@@ -608,8 +654,11 @@ function saveBase64ToFile(base64Str: string, folder: string = "gallery", customF
     const cleanFolder = (folder || "gallery").toLowerCase().replace(/[^a-z0-9_-]/g, "");
 
     const matches = base64Str.match(/^data:image\/([a-zA-Z0-9\+\-\.]+);base64,(.+)$/);
-    const ext = matches && matches[1] ? (matches[1] === "jpeg" ? "jpg" : matches[1]) : "jpg";
+    const mimeExt = matches && matches[1] ? matches[1].toLowerCase() : "jpg";
+    const ext = mimeExt === "jpeg" ? "jpg" : mimeExt;
     const base64Data = matches && matches[2] ? matches[2] : (base64Str.includes(",") ? base64Str.split(",")[1] : base64Str);
+    const buffer = Buffer.from(base64Data, "base64");
+    const contentType = `image/${mimeExt === "jpg" ? "jpeg" : mimeExt}`;
     
     let fileName = customFilename ? customFilename.replace(/[^a-zA-Z0-9._-]/g, "_") : "";
     if (!fileName || !fileName.includes(".")) {
@@ -619,19 +668,23 @@ function saveBase64ToFile(base64Str: string, folder: string = "gallery", customF
     const relativePath = `public/uploads/${cleanFolder}/${fileName}`;
     const publicUrl = `/uploads/${cleanFolder}/${fileName}`;
 
-    // Write to local disk if writable
+    // 1. SAVE IN SERVER IN-MEMORY CACHE (CRITICAL FOR INSTANT DISPLAY ON DEPLOYED SITES)
+    inMemoryUploadsCache.set(publicUrl, { buffer, contentType, updatedAt: Date.now() });
+    inMemoryUploadsCache.set(`/uploads/${cleanFolder}/${fileName}`, { buffer, contentType, updatedAt: Date.now() });
+
+    // 2. WRITE TO LOCAL DISK IF WRITABLE
     try {
       const localDir = path.join(process.cwd(), "public", "uploads", cleanFolder);
       if (!fs.existsSync(localDir)) {
         fs.mkdirSync(localDir, { recursive: true });
       }
-      fs.writeFileSync(path.join(localDir, fileName), Buffer.from(base64Data, "base64"));
+      fs.writeFileSync(path.join(localDir, fileName), buffer);
     } catch (fsErr) {
       // Ignore read-only filesystem error on Cloud / Vercel
     }
 
-    // Push to GitHub repository
-    uploadFileToGithub(relativePath, Buffer.from(base64Data, "base64"), `Upload image: ${relativePath}`).catch(err => {
+    // 3. QUEUE ASYNC UPLOAD TO GITHUB REPOSITORY
+    uploadFileToGithub(relativePath, buffer, `Upload image: ${relativePath}`).catch(err => {
       console.warn("Async GitHub image upload warning:", err);
     });
 
@@ -647,17 +700,32 @@ app.get("/uploads/*", async (req, res) => {
   try {
     const rawPath = req.path.replace(/^\/uploads\//, "");
     const cleanSubPath = rawPath.replace(/\.\./g, "");
+    const publicUrl = `/uploads/${cleanSubPath}`;
     const localFilePath = path.join(process.cwd(), "public", "uploads", cleanSubPath);
 
-    // 1. Serve local disk file if exists
-    if (fs.existsSync(localFilePath) && fs.statSync(localFilePath).isFile()) {
-      return res.sendFile(localFilePath);
+    // 1. Check in-memory uploaded images cache
+    const memItem = inMemoryUploadsCache.get(publicUrl) || inMemoryUploadsCache.get(req.path);
+    if (memItem) {
+      res.setHeader("Content-Type", memItem.contentType || "image/jpeg");
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      return res.send(memItem.buffer);
     }
 
-    // 2. Fetch from GitHub repository raw content
-    const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
-    const repo = process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
-    const branch = process.env.GITHUB_BRANCH || "main";
+    // 2. Serve local disk file if exists
+    if (fs.existsSync(localFilePath) && fs.statSync(localFilePath).isFile()) {
+      const ext = path.extname(localFilePath).toLowerCase();
+      const contentType = ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : ext === ".svg" ? "image/svg+xml" : "image/jpeg";
+      const buffer = fs.readFileSync(localFilePath);
+      inMemoryUploadsCache.set(publicUrl, { buffer, contentType, updatedAt: Date.now() });
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      return res.send(buffer);
+    }
+
+    // 3. Fetch from GitHub repository raw content
+    const token = activeDeploymentSession?.userToken || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
+    const repo = activeDeploymentSession?.repo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
+    const branch = activeDeploymentSession?.branch || process.env.GITHUB_BRANCH || "main";
 
     const ghRawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/public/uploads/${cleanSubPath}`;
     const ghRes = await fetch(ghRawUrl, {
@@ -667,6 +735,13 @@ app.get("/uploads/*", async (req, res) => {
     if (ghRes.ok) {
       const arrayBuffer = await ghRes.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
+      const contentType = ghRes.headers.get("content-type") || 
+        (cleanSubPath.endsWith(".png") ? "image/png" : 
+         cleanSubPath.endsWith(".webp") ? "image/webp" : 
+         cleanSubPath.endsWith(".svg") ? "image/svg+xml" : "image/jpeg");
+
+      // Cache in memory for instant subsequent loads
+      inMemoryUploadsCache.set(publicUrl, { buffer, contentType, updatedAt: Date.now() });
 
       // Save locally if disk is writable
       try {
@@ -677,17 +752,12 @@ app.get("/uploads/*", async (req, res) => {
         // ignore read-only error
       }
 
-      const contentType = ghRes.headers.get("content-type") || 
-        (cleanSubPath.endsWith(".png") ? "image/png" : 
-         cleanSubPath.endsWith(".webp") ? "image/webp" : 
-         cleanSubPath.endsWith(".svg") ? "image/svg+xml" : "image/jpeg");
-
       res.setHeader("Content-Type", contentType);
       res.setHeader("Cache-Control", "public, max-age=86400");
       return res.send(buffer);
     }
 
-    // 3. Fallback to default logo
+    // 4. Fallback to default logo
     const logoPath = path.join(process.cwd(), "public", "uploads", "logo", "irem-comfort-logo.jpg");
     if (fs.existsSync(logoPath)) {
       return res.sendFile(logoPath);
@@ -712,7 +782,16 @@ async function syncAllImagesToGithub(userCommitMsg: string = "Auto-sync uploaded
 
   let syncedFilesCount = 0;
 
-  // 1. Scan and upload all images in local disk public/uploads
+  // 1. Sync all in-memory cached image buffers
+  for (const [key, item] of inMemoryUploadsCache.entries()) {
+    if (key.startsWith('/uploads/')) {
+      const relPath = `public${key}`;
+      await uploadFileToGithub(relPath, item.buffer, `Sync media from memory: ${relPath}`, token, repo, branch);
+      syncedFilesCount++;
+    }
+  }
+
+  // 2. Scan and upload all images in local disk public/uploads
   try {
     const baseDir = path.join(process.cwd(), "public", "uploads");
     if (fs.existsSync(baseDir)) {
@@ -739,7 +818,7 @@ async function syncAllImagesToGithub(userCommitMsg: string = "Auto-sync uploaded
     console.warn("Error scanning local uploads folder for sync:", fsErr);
   }
 
-  // 2. Upload site_settings.json, robots.txt, sitemap.xml
+  // 3. Upload site_settings.json, robots.txt, sitemap.xml
   const settingsJsonStr = JSON.stringify(inMemorySettingsCache, null, 2);
   await uploadFileToGithub("public/site_settings.json", settingsJsonStr, userCommitMsg, token, repo, branch);
 
@@ -911,6 +990,21 @@ app.get("/api/media", async (req, res) => {
 
     // Scan inMemorySettingsCache for active site images (collection items, hero, fair, logo, etc.)
     try {
+      for (const [key, item] of inMemoryUploadsCache.entries()) {
+        if (key.startsWith('/uploads/')) {
+          const parts = key.split('/');
+          const folder = parts[2] || 'gallery';
+          const name = parts[parts.length - 1] || 'image.jpg';
+          addFile({
+            name,
+            path: key,
+            folder,
+            size: item.buffer?.length || 1024,
+            updatedAt: new Date(item.updatedAt).toISOString()
+          });
+        }
+      }
+
       const scanImages = (data: any) => {
         if (!data) return;
         if (typeof data === 'string' && data.startsWith('/uploads/')) {
