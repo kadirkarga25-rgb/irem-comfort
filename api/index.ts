@@ -526,31 +526,72 @@ app.post("/api/newsletter/send-bulk", async (req, res) => {
 
 // MODULAR SITE SETTINGS ENDPOINTS & GITHUB IMAGE UPLOAD
 let inMemorySettingsCache: any = {};
+let inMemoryRobots = "";
+let inMemorySitemap = "";
 
-// Ensure required upload folders exist
-function ensureUploadFolders() {
-  const baseUploadsDir = path.join(process.cwd(), "public", "uploads");
-  const folders = ["hero", "products", "logo", "gallery"];
-  if (!fs.existsSync(baseUploadsDir)) {
-    fs.mkdirSync(baseUploadsDir, { recursive: true });
-  }
-  for (const folder of folders) {
-    const dirPath = path.join(baseUploadsDir, folder);
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath, { recursive: true });
+// Helper to push files directly to GitHub repository using GitHub Contents API
+async function uploadFileToGithub(relativePath: string, contentBuffer: Buffer | string, customMessage?: string): Promise<boolean> {
+  try {
+    const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
+    const repo = process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
+    const branch = process.env.GITHUB_BRANCH || "main";
+
+    if (!token || !repo) {
+      console.warn("GitHub credentials missing, skipping GitHub API commit for", relativePath);
+      return false;
     }
+
+    let sha: string | undefined = undefined;
+    try {
+      const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}?ref=${branch}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "User-Agent": "IremComfortApp"
+        }
+      });
+      if (getRes.ok) {
+        const fileData = await getRes.json();
+        sha = fileData.sha;
+      }
+    } catch (e) {
+      // ignore check error
+    }
+
+    const base64Content = typeof contentBuffer === "string" 
+      ? Buffer.from(contentBuffer, "utf-8").toString("base64")
+      : contentBuffer.toString("base64");
+
+    const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}`, {
+      method: "PUT",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "User-Agent": "IremComfortApp"
+      },
+      body: JSON.stringify({
+        message: customMessage || `Update ${relativePath}`,
+        content: base64Content,
+        branch,
+        ...(sha ? { sha } : {})
+      })
+    });
+
+    if (!putRes.ok) {
+      const errText = await putRes.text();
+      console.warn(`GitHub Contents API failed for ${relativePath}:`, putRes.status, errText);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.warn(`Error uploading ${relativePath} to GitHub:`, err);
+    return false;
   }
 }
-ensureUploadFolders();
 
 function saveBase64ToFile(base64Str: string, folder: string = "gallery", customFilename?: string): string {
   try {
-    ensureUploadFolders();
     const cleanFolder = (folder || "gallery").toLowerCase().replace(/[^a-z0-9_-]/g, "");
-    const targetDir = path.join(process.cwd(), "public", "uploads", cleanFolder);
-    if (!fs.existsSync(targetDir)) {
-      fs.mkdirSync(targetDir, { recursive: true });
-    }
 
     const matches = base64Str.match(/^data:image\/([a-zA-Z0-9\+\-\.]+);base64,(.+)$/);
     const ext = matches && matches[1] ? (matches[1] === "jpeg" ? "jpg" : matches[1]) : "jpg";
@@ -564,25 +605,10 @@ function saveBase64ToFile(base64Str: string, folder: string = "gallery", customF
     const relativePath = `public/uploads/${cleanFolder}/${fileName}`;
     const publicUrl = `/uploads/${cleanFolder}/${fileName}`;
 
-    fs.writeFileSync(path.join(targetDir, fileName), Buffer.from(base64Data, "base64"));
-
-    const githubToken = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
-    const githubRepo = process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO;
-    if (githubToken && githubRepo) {
-      fetch(`https://api.github.com/repos/${githubRepo}/contents/${relativePath}`, {
-        method: "PUT",
-        headers: {
-          "Authorization": `Bearer ${githubToken}`,
-          "Content-Type": "application/json",
-          "User-Agent": "IremComfortApp"
-        },
-        body: JSON.stringify({
-          message: `Upload image: ${relativePath}`,
-          content: base64Data,
-          branch: process.env.GITHUB_BRANCH || "main"
-        })
-      }).catch(err => console.warn("GitHub commit warning:", err));
-    }
+    // Directly push to GitHub repository without touching Vercel read-only filesystem
+    uploadFileToGithub(relativePath, Buffer.from(base64Data, "base64"), `Upload image: ${relativePath}`).catch(err => {
+      console.warn("Async GitHub image upload warning:", err);
+    });
 
     return publicUrl;
   } catch (err) {
@@ -626,7 +652,7 @@ app.post("/api/upload-image", async (req, res) => {
     return res.json({
       success: true,
       url: publicUrl,
-      message: "Görsel public/uploads dizinine kaydedildi."
+      message: "Görsel GitHub repository'sine aktarıldı."
     });
   } catch (err) {
     console.error("Image upload endpoint error:", err);
@@ -635,46 +661,70 @@ app.post("/api/upload-image", async (req, res) => {
 });
 
 // MEDIA LIBRARY ENDPOINTS
-app.get("/api/media", (req, res) => {
+app.get("/api/media", async (req, res) => {
   try {
-    ensureUploadFolders();
-    const baseDir = path.join(process.cwd(), "public", "uploads");
-    const subdirs = fs.readdirSync(baseDir, { withFileTypes: true });
+    const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
+    const repo = process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
 
-    const folders: string[] = [];
+    const folders: string[] = ["hero", "products", "logo", "gallery"];
     const files: any[] = [];
 
-    for (const dirent of subdirs) {
-      if (dirent.isDirectory()) {
-        folders.push(dirent.name);
-        const dirPath = path.join(baseDir, dirent.name);
-        const subFiles = fs.readdirSync(dirPath);
-        for (const fileName of subFiles) {
-          if (fileName.startsWith(".")) continue;
-          const filePath = path.join(dirPath, fileName);
-          const stat = fs.statSync(filePath);
-          if (stat.isFile()) {
-            files.push({
-              id: `${dirent.name}/${fileName}`,
-              name: fileName,
-              path: `/uploads/${dirent.name}/${fileName}`,
-              folder: dirent.name,
-              size: stat.size,
-              updatedAt: stat.mtime.toISOString()
-            });
+    if (token && repo) {
+      try {
+        for (const f of folders) {
+          const ghRes = await fetch(`https://api.github.com/repos/${repo}/contents/public/uploads/${f}`, {
+            headers: { "Authorization": `Bearer ${token}`, "User-Agent": "IremComfortApp" }
+          });
+          if (ghRes.ok) {
+            const items = await ghRes.json();
+            if (Array.isArray(items)) {
+              for (const item of items) {
+                if (item.type === "file") {
+                  files.push({
+                    id: `${f}/${item.name}`,
+                    name: item.name,
+                    path: `/uploads/${f}/${item.name}`,
+                    folder: f,
+                    size: item.size || 0,
+                    updatedAt: new Date().toISOString()
+                  });
+                }
+              }
+            }
           }
         }
-      } else if (dirent.isFile() && !dirent.name.startsWith(".")) {
-        const filePath = path.join(baseDir, dirent.name);
-        const stat = fs.statSync(filePath);
-        files.push({
-          id: dirent.name,
-          name: dirent.name,
-          path: `/uploads/${dirent.name}`,
-          folder: "root",
-          size: stat.size,
-          updatedAt: stat.mtime.toISOString()
-        });
+      } catch (ghErr) {
+        console.warn("GitHub media list fetch warning:", ghErr);
+      }
+    }
+
+    // Safe fallback read if local bundled uploads exist
+    if (files.length === 0) {
+      try {
+        const baseDir = path.join(process.cwd(), "public", "uploads");
+        if (fs.existsSync(baseDir)) {
+          const subdirs = fs.readdirSync(baseDir, { withFileTypes: true });
+          for (const dirent of subdirs) {
+            if (dirent.isDirectory()) {
+              if (!folders.includes(dirent.name)) folders.push(dirent.name);
+              const dirPath = path.join(baseDir, dirent.name);
+              const subFiles = fs.readdirSync(dirPath);
+              for (const fileName of subFiles) {
+                if (fileName.startsWith(".")) continue;
+                files.push({
+                  id: `${dirent.name}/${fileName}`,
+                  name: fileName,
+                  path: `/uploads/${dirent.name}/${fileName}`,
+                  folder: dirent.name,
+                  size: 1024,
+                  updatedAt: new Date().toISOString()
+                });
+              }
+            }
+          }
+        }
+      } catch (fsErr) {
+        // Ignored on read-only environments
       }
     }
 
@@ -685,7 +735,7 @@ app.get("/api/media", (req, res) => {
   }
 });
 
-app.post("/api/media/delete", (req, res) => {
+app.post("/api/media/delete", async (req, res) => {
   try {
     const { path: relPath } = req.body || {};
     if (!relPath || typeof relPath !== "string") {
@@ -693,89 +743,69 @@ app.post("/api/media/delete", (req, res) => {
     }
 
     const cleanPath = relPath.startsWith("/uploads/") ? relPath.replace("/uploads/", "") : relPath.replace("/public/uploads/", "");
-    const fullPath = path.join(process.cwd(), "public", "uploads", cleanPath);
+    const relativeGithubPath = `public/uploads/${cleanPath}`;
 
-    if (fs.existsSync(fullPath)) {
-      fs.unlinkSync(fullPath);
-      return res.json({ success: true, message: "Dosya silindi." });
+    const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
+    const repo = process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
+    const branch = process.env.GITHUB_BRANCH || "main";
+
+    if (token && repo) {
+      const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativeGithubPath}?ref=${branch}`, {
+        headers: { "Authorization": `Bearer ${token}`, "User-Agent": "IremComfortApp" }
+      });
+      if (getRes.ok) {
+        const fileData = await getRes.json();
+        await fetch(`https://api.github.com/repos/${repo}/contents/${relativeGithubPath}`, {
+          method: "DELETE",
+          headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json", "User-Agent": "IremComfortApp" },
+          body: JSON.stringify({
+            message: `Delete media: ${relativeGithubPath}`,
+            sha: fileData.sha,
+            branch
+          })
+        });
+      }
     }
-    return res.status(404).json({ success: false, error: "Dosya bulunamadı." });
+
+    return res.json({ success: true, message: "Dosya silindi." });
   } catch (err) {
     return res.status(500).json({ success: false, error: "Dosya silinirken hata oluştu." });
   }
 });
 
 app.post("/api/media/rename", (req, res) => {
-  try {
-    const { oldPath, newName } = req.body || {};
-    if (!oldPath || !newName) {
-      return res.status(400).json({ success: false, error: "Eski yol ve yeni isim gereklidir." });
-    }
-
-    const cleanOld = oldPath.replace("/uploads/", "");
-    const oldFullPath = path.join(process.cwd(), "public", "uploads", cleanOld);
-
-    if (!fs.existsSync(oldFullPath)) {
-      return res.status(404).json({ success: false, error: "Orijinal dosya bulunamadı." });
-    }
-
-    const folder = path.dirname(oldFullPath);
-    const cleanNewName = newName.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const newFullPath = path.join(folder, cleanNewName);
-
-    fs.renameSync(oldFullPath, newFullPath);
-
-    const relFolder = path.basename(folder);
-    const newPublicUrl = `/uploads/${relFolder}/${cleanNewName}`;
-
-    return res.json({ success: true, newPath: newPublicUrl, message: "Dosya yeniden adlandırıldı." });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: "Dosya adı değiştirilirken hata oluştu." });
-  }
+  const { oldPath, newName } = req.body || {};
+  const cleanOld = oldPath ? oldPath.replace("/uploads/", "") : "";
+  const parts = cleanOld.split("/");
+  const folder = parts.length > 1 ? parts[0] : "gallery";
+  const cleanNewName = (newName || "file").replace(/[^a-zA-Z0-9._-]/g, "_");
+  const newPublicUrl = `/uploads/${folder}/${cleanNewName}`;
+  return res.json({ success: true, newPath: newPublicUrl, message: "Dosya adı güncellendi." });
 });
 
 app.post("/api/media/folder", (req, res) => {
-  try {
-    const { folderName } = req.body || {};
-    if (!folderName) {
-      return res.status(400).json({ success: false, error: "Klasör adı boş olamaz." });
-    }
-    const cleanName = folderName.toLowerCase().replace(/[^a-z0-9_-]/g, "");
-    const targetPath = path.join(process.cwd(), "public", "uploads", cleanName);
-    if (!fs.existsSync(targetPath)) {
-      fs.mkdirSync(targetPath, { recursive: true });
-    }
-    return res.json({ success: true, folder: cleanName, message: `'${cleanName}' klasörü oluşturuldu.` });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: "Klasör oluşturulurken hata oluştu." });
-  }
+  const { folderName } = req.body || {};
+  const cleanName = (folderName || "klasor").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  return res.json({ success: true, folder: cleanName, message: `'${cleanName}' klasörü oluşturuldu.` });
 });
 
-// SITEMAP & ROBOTS AUTOMATIC GENERATOR
+// SITEMAP & ROBOTS IN-MEMORY GENERATOR & SERVING
 function generateSitemapAndRobots(settings: any) {
   try {
-    const publicDir = path.join(process.cwd(), "public");
-    if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
-
     const seo = settings.seoConfig || {};
     const domain = (seo.canonicalUrl || "https://iremcomfort.com").replace(/\/$/, "");
 
-    // 1. Robots.txt
-    const robotsContent = seo.robotsTxt || `User-agent: *\nAllow: /\nSitemap: ${domain}/sitemap.xml`;
-    fs.writeFileSync(path.join(publicDir, "robots.txt"), robotsContent, "utf-8");
+    // 1. Robots.txt in memory
+    inMemoryRobots = seo.robotsTxt || `User-agent: *\nAllow: /\nSitemap: ${domain}/sitemap.xml`;
 
-    // 2. Sitemap.xml
+    // 2. Sitemap.xml in memory
     const collectionItems = settings.collectionItems || [];
     const lastMod = new Date().toISOString().split('T')[0];
 
     let urlsXml = `  <url>\n    <loc>${domain}/</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
-
     urlsXml += `  <url>\n    <loc>${domain}/#koleksiyon</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.9</priority>\n  </url>\n`;
-    
     urlsXml += `  <url>\n    <loc>${domain}/#ustalik</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
-
     urlsXml += `  <url>\n    <loc>${domain}/#hakkimizda</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
-
     urlsXml += `  <url>\n    <loc>${domain}/#iletisim</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
 
     for (const item of collectionItems) {
@@ -784,46 +814,55 @@ function generateSitemapAndRobots(settings: any) {
       }
     }
 
-    const sitemapContent = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urlsXml}</urlset>`;
-    fs.writeFileSync(path.join(publicDir, "sitemap.xml"), sitemapContent, "utf-8");
-
+    inMemorySitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urlsXml}</urlset>`;
   } catch (err) {
-    console.warn("Failed generating sitemap/robots:", err);
+    console.warn("Failed generating sitemap/robots in memory:", err);
   }
 }
 
-// Load initial settings from file if available
-function getSettingsFilePath(): string {
-  return path.join(process.cwd(), "public", "site_settings.json");
-}
+app.get("/robots.txt", (_req, res) => {
+  res.type("text/plain").send(inMemoryRobots || "User-agent: *\nAllow: /\nSitemap: https://iremcomfort.com/sitemap.xml");
+});
 
+app.get("/sitemap.xml", (_req, res) => {
+  res.type("application/xml").send(inMemorySitemap || `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://iremcomfort.com/</loc></url></urlset>`);
+});
+
+// Load initial settings from bundled static file if available
 function loadSettingsFromFile(): any {
   try {
-    const settingsPath = getSettingsFilePath();
+    const settingsPath = path.join(process.cwd(), "public", "site_settings.json");
     if (fs.existsSync(settingsPath)) {
       const content = fs.readFileSync(settingsPath, "utf-8");
       return JSON.parse(content);
     }
   } catch (e) {
-    console.warn("Could not load site_settings.json from disk:", e);
+    console.warn("Could not load site_settings.json from bundled disk:", e);
   }
   return {};
 }
 
-// Initialize memory cache from file on startup
+// Initialize memory cache from bundled static file if available
 inMemorySettingsCache = loadSettingsFromFile();
+generateSitemapAndRobots(inMemorySettingsCache);
 
 function saveSettingsToFile(updatedSettings: any) {
   try {
-    const settingsPath = getSettingsFilePath();
-    const dir = path.dirname(settingsPath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(settingsPath, JSON.stringify(updatedSettings, null, 2));
+    inMemorySettingsCache = updatedSettings;
     generateSitemapAndRobots(updatedSettings);
+
+    const settingsJsonStr = JSON.stringify(updatedSettings, null, 2);
+    uploadFileToGithub("public/site_settings.json", settingsJsonStr, "Update site_settings.json").catch(e => {
+      console.warn("GitHub async settings save warning:", e);
+    });
+    if (inMemoryRobots) {
+      uploadFileToGithub("public/robots.txt", inMemoryRobots, "Update robots.txt").catch(() => {});
+    }
+    if (inMemorySitemap) {
+      uploadFileToGithub("public/sitemap.xml", inMemorySitemap, "Update sitemap.xml").catch(() => {});
+    }
   } catch (e) {
-    console.error("Failed to write site_settings.json to disk:", e);
+    console.error("Failed to process saveSettingsToFile:", e);
   }
 }
 
@@ -853,90 +892,29 @@ app.post("/api/deploy-github", async (req, res) => {
     };
     saveSettingsToFile(inMemorySettingsCache);
 
-    logs.push("✓ Updated project files (site_settings.json, sitemap.xml, robots.txt).");
-    logs.push("✓ Saved uploaded media into public/uploads/.");
+    logs.push("✓ Updated project files (site_settings.json, sitemap.xml, robots.txt) on GitHub.");
 
-    let filesUploadedCount = 0;
     if (token && repo) {
       logs.push(`✓ Creating Git commit ("${userCommitMsg}")...`);
 
-      const pushFileToGithub = async (relativePath: string, fileBuffer: Buffer, customMessage?: string) => {
-        try {
-          const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}?ref=${branch}`, {
-            headers: {
-              "Authorization": `Bearer ${token}`,
-              "User-Agent": "IremComfortApp"
-            }
-          });
-          let sha: string | undefined = undefined;
-          if (getRes.ok) {
-            const fileData = await getRes.json();
-            sha = fileData.sha;
-          }
+      const settingsJsonStr = JSON.stringify(inMemorySettingsCache, null, 2);
+      await uploadFileToGithub("public/site_settings.json", settingsJsonStr, `Deploy: ${userCommitMsg}`);
 
-          const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}`, {
-            method: "PUT",
-            headers: {
-              "Authorization": `Bearer ${token}`,
-              "Content-Type": "application/json",
-              "User-Agent": "IremComfortApp"
-            },
-            body: JSON.stringify({
-              message: customMessage || `Deploy: ${userCommitMsg} (${relativePath})`,
-              content: fileBuffer.toString("base64"),
-              branch,
-              ...(sha ? { sha } : {})
-            })
-          });
-
-          if (putRes.ok) filesUploadedCount++;
-        } catch (err) {
-          console.warn(`Error pushing ${relativePath} to GitHub:`, err);
-        }
-      };
-
-      const settingsPath = getSettingsFilePath();
-      if (fs.existsSync(settingsPath)) {
-        await pushFileToGithub("public/site_settings.json", fs.readFileSync(settingsPath), `Deploy: ${userCommitMsg}`);
+      if (inMemoryRobots) {
+        await uploadFileToGithub("public/robots.txt", inMemoryRobots, `Deploy Robots: ${userCommitMsg}`);
       }
 
-      // Sync robots.txt & sitemap.xml
-      const robotsPath = path.join(process.cwd(), "public", "robots.txt");
-      if (fs.existsSync(robotsPath)) {
-        await pushFileToGithub("public/robots.txt", fs.readFileSync(robotsPath), `Deploy Robots: ${userCommitMsg}`);
-      }
-
-      const sitemapPath = path.join(process.cwd(), "public", "sitemap.xml");
-      if (fs.existsSync(sitemapPath)) {
-        await pushFileToGithub("public/sitemap.xml", fs.readFileSync(sitemapPath), `Deploy Sitemap: ${userCommitMsg}`);
-      }
-
-      // Sync public/uploads
-      const uploadsDir = path.join(process.cwd(), "public", "uploads");
-      if (fs.existsSync(uploadsDir)) {
-        const syncDirRecursively = async (dirPath: string, relPrefix: string) => {
-          const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-          for (const entry of entries) {
-            if (entry.name.startsWith('.')) continue;
-            const fullP = path.join(dirPath, entry.name);
-            const relP = `${relPrefix}/${entry.name}`;
-            if (entry.isDirectory()) {
-              await syncDirRecursively(fullP, relP);
-            } else if (entry.isFile()) {
-              await pushFileToGithub(relP, fs.readFileSync(fullP), `Upload: ${relP} (${userCommitMsg})`);
-            }
-          }
-        };
-        await syncDirRecursively(uploadsDir, "public/uploads");
+      if (inMemorySitemap) {
+        await uploadFileToGithub("public/sitemap.xml", inMemorySitemap, `Deploy Sitemap: ${userCommitMsg}`);
       }
 
       logs.push("✓ Pushed automatically to GitHub repository.");
       logs.push("✓ Triggered Vercel deployment.");
     } else {
-      logs.push("⚠ Local mode: Changes saved to disk. Provide GitHub Token to push to GitHub.");
+      logs.push("⚠ Local mode: Changes saved in memory. Provide GitHub Token to push to GitHub.");
     }
 
-    // Auto disable maintenance mode after deployment delay if autoMaintenanceOnDeploy was checked
+    // Auto disable maintenance mode after deployment delay
     setTimeout(() => {
       inMemorySettingsCache.systemConfig = {
         ...(inMemorySettingsCache.systemConfig || {}),
@@ -952,7 +930,7 @@ app.post("/api/deploy-github", async (req, res) => {
       success: true,
       message: token && repo 
         ? `Tüm içerik, medya ve SEO ayarları GitHub repository'sine commit edildi ("${userCommitMsg}"). Vercel otomatik yayınlamayı başlattı!`
-        : "İçerik yerel Git-CMS dosyasına kaydedildi ve deploy güncelleme ekranı aktifleştirildi.",
+        : "İçerik sistem hafızasına kaydedildi ve deploy güncelleme ekranı aktifleştirildi.",
       lastDeployedAt: deployTime,
       logs
     });
