@@ -570,7 +570,7 @@ async function uploadFileToGithubDirect(
       : contentBuffer.toString("base64");
 
     let attempts = 0;
-    while (attempts < 3) {
+    while (attempts < 5) {
       attempts++;
       try {
         let sha: string | undefined = undefined;
@@ -612,9 +612,9 @@ async function uploadFileToGithubDirect(
         const errText = await putRes.text();
         console.warn(`GitHub API attempt ${attempts} failed for ${relativePath}: ${putRes.status}`, errText);
 
-        if (putRes.status === 409 && attempts < 3) {
-          // Concurrent commit conflict - wait 600ms and retry with fresh tree SHA
-          await new Promise(r => setTimeout(r, 600));
+        if (putRes.status === 409 && attempts < 5) {
+          // Concurrent commit conflict - wait 500ms and retry with fresh tree SHA
+          await new Promise(r => setTimeout(r, 500));
           continue;
         }
 
@@ -624,8 +624,8 @@ async function uploadFileToGithubDirect(
         else if (putRes.status === 403) errMsg = "No permission to push";
         return { success: false, error: errMsg };
       } catch (err: any) {
-        if (attempts < 3) {
-          await new Promise(r => setTimeout(r, 600));
+        if (attempts < 5) {
+          await new Promise(r => setTimeout(r, 500));
           continue;
         }
         return { success: false, error: err?.message || "GitHub API network error" };
@@ -667,10 +667,11 @@ function saveBase64ToFile(base64Str: string, folder: string = "gallery", customF
 
     const relativePath = `public/uploads/${cleanFolder}/${fileName}`;
     const publicUrl = `/uploads/${cleanFolder}/${fileName}`;
+    const publicUrlLower = publicUrl.toLowerCase();
 
     // 1. SAVE IN SERVER IN-MEMORY CACHE (CRITICAL FOR INSTANT DISPLAY ON DEPLOYED SITES)
     inMemoryUploadsCache.set(publicUrl, { buffer, contentType, updatedAt: Date.now() });
-    inMemoryUploadsCache.set(`/uploads/${cleanFolder}/${fileName}`, { buffer, contentType, updatedAt: Date.now() });
+    inMemoryUploadsCache.set(publicUrlLower, { buffer, contentType, updatedAt: Date.now() });
 
     // 2. WRITE TO LOCAL DISK IF WRITABLE
     try {
@@ -701,14 +702,33 @@ app.get("/uploads/*", async (req, res) => {
     const rawPath = req.path.replace(/^\/uploads\//, "");
     const cleanSubPath = rawPath.replace(/\.\./g, "");
     const publicUrl = `/uploads/${cleanSubPath}`;
-    const localFilePath = path.join(process.cwd(), "public", "uploads", cleanSubPath);
+    const publicUrlLower = publicUrl.toLowerCase();
+    let localFilePath = path.join(process.cwd(), "public", "uploads", cleanSubPath);
 
     // 1. Check in-memory uploaded images cache
-    const memItem = inMemoryUploadsCache.get(publicUrl) || inMemoryUploadsCache.get(req.path);
+    const memItem = inMemoryUploadsCache.get(publicUrl) || 
+                    inMemoryUploadsCache.get(publicUrlLower) || 
+                    inMemoryUploadsCache.get(req.path) || 
+                    inMemoryUploadsCache.get(req.path.toLowerCase());
     if (memItem) {
       res.setHeader("Content-Type", memItem.contentType || "image/jpeg");
       res.setHeader("Cache-Control", "public, max-age=86400");
       return res.send(memItem.buffer);
+    }
+
+    // Case-insensitive check on local disk
+    if (!fs.existsSync(localFilePath)) {
+      try {
+        const dir = path.dirname(localFilePath);
+        const targetNameLower = path.basename(localFilePath).toLowerCase();
+        if (fs.existsSync(dir)) {
+          const files = fs.readdirSync(dir);
+          const found = files.find(f => f.toLowerCase() === targetNameLower);
+          if (found) {
+            localFilePath = path.join(dir, found);
+          }
+        }
+      } catch (e) {}
     }
 
     // 2. Serve local disk file if exists
@@ -717,6 +737,7 @@ app.get("/uploads/*", async (req, res) => {
       const contentType = ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : ext === ".svg" ? "image/svg+xml" : "image/jpeg";
       const buffer = fs.readFileSync(localFilePath);
       inMemoryUploadsCache.set(publicUrl, { buffer, contentType, updatedAt: Date.now() });
+      inMemoryUploadsCache.set(publicUrlLower, { buffer, contentType, updatedAt: Date.now() });
       res.setHeader("Content-Type", contentType);
       res.setHeader("Cache-Control", "public, max-age=86400");
       return res.send(buffer);
@@ -742,6 +763,7 @@ app.get("/uploads/*", async (req, res) => {
 
       // Cache in memory for instant subsequent loads
       inMemoryUploadsCache.set(publicUrl, { buffer, contentType, updatedAt: Date.now() });
+      inMemoryUploadsCache.set(publicUrlLower, { buffer, contentType, updatedAt: Date.now() });
 
       // Save locally if disk is writable
       try {
@@ -757,9 +779,10 @@ app.get("/uploads/*", async (req, res) => {
       return res.send(buffer);
     }
 
-    // 4. Fallback to default logo
+    // 4. Fallback to default logo as JPEG image so browser image renders gracefully
     const logoPath = path.join(process.cwd(), "public", "uploads", "logo", "irem-comfort-logo.jpg");
     if (fs.existsSync(logoPath)) {
+      res.setHeader("Content-Type", "image/jpeg");
       return res.sendFile(logoPath);
     }
 
@@ -908,6 +931,59 @@ app.post("/api/media/upload", async (req, res) => {
   } catch (err) {
     console.error("Media upload error:", err);
     return res.status(500).json({ success: false, error: "Görsel yüklenirken hata oluştu." });
+  }
+});
+
+// ENDPOINT TO SAFELY IMPORT EXTERNAL GOOGLE / WEB IMAGE URLS INTO MEDIA LIBRARY
+app.post("/api/fetch-external-image", async (req, res) => {
+  try {
+    const { url, folder } = req.body || {};
+    if (!url || typeof url !== "string") {
+      return res.status(400).json({ success: false, error: "URL bulunamadı." });
+    }
+
+    if (url.startsWith("/uploads/")) {
+      return res.json({ success: true, url });
+    }
+
+    if (url.startsWith("data:image/")) {
+      const savedUrl = saveBase64ToFile(url, folder || "gallery");
+      return res.json({ success: true, url: savedUrl });
+    }
+
+    const fetchRes = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" }
+    });
+
+    if (!fetchRes.ok) {
+      return res.status(400).json({ success: false, error: "Görsel indirilemedi. Bağlantı erişilebilir değil." });
+    }
+
+    const arrayBuf = await fetchRes.arrayBuffer();
+    const buffer = Buffer.from(arrayBuf);
+    const contentType = fetchRes.headers.get("content-type") || "image/jpeg";
+    const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
+
+    const cleanFolder = (folder || "gallery").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+    const fileName = `google_img_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
+    const relativePath = `public/uploads/${cleanFolder}/${fileName}`;
+    const publicUrl = `/uploads/${cleanFolder}/${fileName}`;
+    const publicUrlLower = publicUrl.toLowerCase();
+
+    inMemoryUploadsCache.set(publicUrl, { buffer, contentType, updatedAt: Date.now() });
+    inMemoryUploadsCache.set(publicUrlLower, { buffer, contentType, updatedAt: Date.now() });
+
+    try {
+      const localDir = path.join(process.cwd(), "public", "uploads", cleanFolder);
+      if (!fs.existsSync(localDir)) fs.mkdirSync(localDir, { recursive: true });
+      fs.writeFileSync(path.join(localDir, fileName), buffer);
+    } catch (e) {}
+
+    uploadFileToGithub(relativePath, buffer, `Import external image: ${relativePath}`).catch(() => {});
+
+    return res.json({ success: true, url: publicUrl });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: "Dış görsel indirilemedi." });
   }
 });
 

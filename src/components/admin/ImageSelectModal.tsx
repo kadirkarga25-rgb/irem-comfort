@@ -326,6 +326,52 @@ export const ImageSelectModal: React.FC<ImageSelectModalProps> = ({
                     <span>Görsel yükleniyor...</span>
                   </div>
                 )}
+
+                {/* Google / External Image Link Import */}
+                <div className="border border-slate-200 bg-white rounded-2xl p-4 space-y-3 text-left shadow-xs">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    <span>Veya Google / Web Görsel Bağlantısı Yapıştırın:</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="url"
+                      placeholder="https://... Google veya internetten kopyaladığınız resim adresini yapıştırın"
+                      id="modalExternalUrlInput"
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-[#082C6C]"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const inputEl = document.getElementById('modalExternalUrlInput') as HTMLInputElement;
+                        const urlVal = inputEl?.value?.trim();
+                        if (!urlVal) return;
+                        setUploading(true);
+                        try {
+                          const res = await fetch('/api/fetch-external-image', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url: urlVal, folder: selectedFolder === 'all' ? 'gallery' : selectedFolder })
+                          });
+                          const data = await res.json();
+                          if (data.success && data.url) {
+                            onSelectSystemImage(data.url);
+                            onClose();
+                          } else {
+                            alert(data.error || "Dış görsel yüklenemedi.");
+                          }
+                        } catch (e) {
+                          alert("Bağlantı hatası.");
+                        } finally {
+                          setUploading(false);
+                        }
+                      }}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5 shrink-0 cursor-pointer"
+                    >
+                      <span>Aktar & Seç</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>

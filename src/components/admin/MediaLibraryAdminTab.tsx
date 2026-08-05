@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Upload, Trash2, Edit3, FolderPlus, Folder, FileImage, 
-  Copy, Check, Eye, RefreshCw, Search, FolderOpen, ArrowUpRight
+  Copy, Check, Eye, RefreshCw, Search, FolderOpen, ArrowUpRight, Sparkles
 } from 'lucide-react';
 import { MediaFile } from '../../types';
 
@@ -24,6 +24,9 @@ export const MediaLibraryAdminTab: React.FC = () => {
 
   const [uploadFolder, setUploadFolder] = useState('gallery');
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
+  const [externalUrlInput, setExternalUrlInput] = useState('');
+  const [importingUrl, setImportingUrl] = useState(false);
 
   const fetchMedia = async () => {
     setLoading(true);
@@ -56,8 +59,10 @@ export const MediaLibraryAdminTab: React.FC = () => {
 
     setUploading(true);
     let successCount = 0;
+    const total = fileList.length;
 
-    for (let i = 0; i < fileList.length; i++) {
+    for (let i = 0; i < total; i++) {
+      setUploadProgress({ current: i + 1, total });
       const file = fileList[i];
       const reader = new FileReader();
 
@@ -77,7 +82,7 @@ export const MediaLibraryAdminTab: React.FC = () => {
             const data = await res.json();
             if (data.success) successCount++;
           } catch (err) {
-            console.error("Upload error:", err);
+            console.error("Upload error for file:", file.name, err);
           }
           resolve(null);
         };
@@ -86,8 +91,37 @@ export const MediaLibraryAdminTab: React.FC = () => {
     }
 
     setUploading(false);
-    showToast('success', `${successCount} dosya '${uploadFolder}' klasörüne başarıyla yüklendi.`);
+    setUploadProgress(null);
+    showToast('success', `${successCount} / ${total} dosya '${uploadFolder}' klasörüne başarıyla yüklendi.`);
     fetchMedia();
+  };
+
+  const handleImportExternalUrl = async () => {
+    if (!externalUrlInput.trim()) return;
+
+    setImportingUrl(true);
+    try {
+      const res = await fetch('/api/fetch-external-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: externalUrlInput.trim(),
+          folder: uploadFolder
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        showToast('success', 'Görsel dış kaynaktan başarıyla indirildi ve kütüphaneye eklendi.');
+        setExternalUrlInput('');
+        fetchMedia();
+      } else {
+        showToast('error', data.error || 'Dış görsel indirilemedi.');
+      }
+    } catch (err) {
+      showToast('error', 'Sunucuya bağlanırken hata oluştu.');
+    } finally {
+      setImportingUrl(false);
+    }
   };
 
   const handleDelete = async (filePath: string) => {
@@ -205,7 +239,11 @@ export const MediaLibraryAdminTab: React.FC = () => {
 
           <label className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl shadow-lg transition flex items-center gap-2 cursor-pointer active:scale-95">
             <Upload className="w-4 h-4" />
-            <span>{uploading ? 'Yükleniyor...' : 'Yeni Görsel Yükle'}</span>
+            <span>
+              {uploading && uploadProgress 
+                ? `Yükleniyor (${uploadProgress.current}/${uploadProgress.total})...` 
+                : uploading ? 'Yükleniyor...' : 'Yeni Görsel Yükle'}
+            </span>
             <input 
               type="file" 
               multiple 
@@ -225,6 +263,29 @@ export const MediaLibraryAdminTab: React.FC = () => {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
+      </div>
+
+      {/* Google Image / External URL Quick Import Bar */}
+      <div className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex items-center gap-2 text-xs font-semibold text-amber-400 shrink-0">
+          <Sparkles className="w-4 h-4" />
+          <span>Google / Web Görsel Bağlantısı İçe Aktar:</span>
+        </div>
+        <input 
+          type="url"
+          placeholder="https://... Google veya Web görsel adresini buraya yapıştırın"
+          value={externalUrlInput}
+          onChange={(e) => setExternalUrlInput(e.target.value)}
+          className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+        />
+        <button
+          onClick={handleImportExternalUrl}
+          disabled={importingUrl || !externalUrlInput.trim()}
+          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition flex items-center gap-2 shrink-0 cursor-pointer"
+        >
+          {importingUrl ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+          <span>{importingUrl ? 'İndiriliyor...' : 'İçe Aktar & Kaydet'}</span>
+        </button>
       </div>
 
       {/* Search & Folder Filters */}
@@ -298,7 +359,10 @@ export const MediaLibraryAdminTab: React.FC = () => {
                     alt={file.name} 
                     className="max-h-full max-w-full object-contain rounded-lg group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
+                      const target = e.target as HTMLImageElement;
+                      if (!target.src.includes('irem-comfort-logo')) {
+                        target.src = '/uploads/logo/irem-comfort-logo.jpg';
+                      }
                     }}
                   />
                   <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-slate-950/80 text-[10px] font-mono text-amber-400 border border-white/10 uppercase">
@@ -443,7 +507,17 @@ export const MediaLibraryAdminTab: React.FC = () => {
             </div>
 
             <div className="bg-slate-950 p-4 rounded-2xl flex items-center justify-center min-h-[250px] max-h-[400px]">
-              <img src={previewFile.path} alt={previewFile.name} className="max-h-[350px] object-contain rounded-lg" />
+              <img 
+                src={previewFile.path} 
+                alt={previewFile.name} 
+                className="max-h-[350px] object-contain rounded-lg"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  if (!target.src.includes('irem-comfort-logo')) {
+                    target.src = '/uploads/logo/irem-comfort-logo.jpg';
+                  }
+                }}
+              />
             </div>
 
             <div className="space-y-2 text-xs font-mono bg-slate-950 p-4 rounded-xl border border-slate-800 text-slate-300">
