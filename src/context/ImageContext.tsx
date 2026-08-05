@@ -234,7 +234,7 @@ export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
   maintenanceTitle: "Website Maintenance",
   maintenanceMessage: "Our website is currently being updated with new content.\nPlease try again in approximately 2–5 minutes.",
   deployingMessage: "Website update is in progress.\nThe new version will be available in about 1 minute.",
-  githubRepo: "kargakadir4525/irem-comfort",
+  githubRepo: "kadirkarga25-rgb/irem-comfort",
   githubBranch: "main",
   stage1Text: "Sitemizin tamamlanmasına çok az kaldı, beklediğiniz için teşekkürler.",
   stage2Text: "Sitemiz tamamlandı, beklediğiniz için teşekkürler.",

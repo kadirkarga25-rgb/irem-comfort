@@ -712,22 +712,23 @@ async function saveAndUploadImageToGithub(
     const { token, repo, branch } = getGithubConfig(providedToken, providedRepo, providedBranch);
 
     if (!token) {
-      logs.push("❌ GitHub Upload Hatası: GitHub Access Token bulunamadı.");
-      return { success: false, error: "GitHub Access Token (Token) bulunamadı. Lütfen Admin Panel > GitHub Ayarları bölümünden token giriniz.", logs };
+      logs.push("❌ GitHub Upload Hatası: GitHub Access Token (token) bulunamadı.");
+      return { success: false, error: "GitHub Access Token (token) bulunamadı. Lütfen Admin Panel > GitHub Ayarları bölümünden token giriniz.", logs };
     }
     if (!repo) {
-      logs.push("❌ GitHub Upload Hatası: GitHub Deposu (Repo) bulunamadı.");
+      logs.push("❌ GitHub Upload Hatası: GitHub Deposu (repo) bulunamadı.");
       return { success: false, error: "GitHub Deposu bulunamadı. Lütfen Admin Panel > GitHub Ayarları bölümünden repo seçiniz.", logs };
     }
 
-    logs.push("⬆️ GitHub Upload");
-    logs.push("🟡 Uploading...");
-
     const relativePath = `public/uploads/${cleanFolder}/${fileName}`;
     const publicUrl = `/uploads/${cleanFolder}/${fileName}`;
-    const rawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/${relativePath}`;
 
-    // 1. UPLOAD FILE DIRECTLY TO GITHUB VIA CONTENTS API (PUT)
+    logs.push("⬆️ GitHub Upload");
+    logs.push("🟡 Uploading...");
+    logs.push(`Uploaded Path: ${relativePath}`);
+    logs.push(`Repo: ${repo} (branch: ${branch})`);
+
+    // 1. Check existing file SHA if updating
     let sha: string | undefined = undefined;
     try {
       const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}?ref=${branch}`, {
@@ -744,6 +745,7 @@ async function saveAndUploadImageToGithub(
       // ignore lookup error
     }
 
+    // 2. Upload file directly to GitHub via Contents API (PUT)
     const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}`, {
       method: "PUT",
       headers: {
@@ -759,46 +761,69 @@ async function saveAndUploadImageToGithub(
       })
     });
 
+    const putStatus = putRes.status;
+    const responseText = await putRes.text();
+
+    logs.push(`HTTP status: ${putStatus}`);
+    logs.push(`GitHub response body: ${responseText.length > 300 ? responseText.substring(0, 300) + "..." : responseText}`);
+
     if (!putRes.ok) {
-      const errText = await putRes.text();
-      let errMsg = `GitHub API HTTP ${putRes.status}`;
+      let errMsg = `GitHub API HTTP ${putStatus}: ${responseText}`;
       try {
-        const parsed = JSON.parse(errText);
-        if (parsed.message) errMsg = parsed.message;
+        const parsed = JSON.parse(responseText);
+        if (parsed.message) errMsg = `GitHub API Error (${putStatus}): ${parsed.message}`;
       } catch (e) {}
 
-      if (putRes.status === 401) errMsg = "Geçersiz GitHub Token (401 Unauthorized)";
-      else if (putRes.status === 404) errMsg = `GitHub Deposu Bulunamadı: ${repo} (404 Not Found)`;
-      else if (putRes.status === 403) errMsg = "GitHub Deposuna Yazma İzni Yok (403 Forbidden)";
+      if (putStatus === 401) errMsg = "Geçersiz GitHub Token (401 Unauthorized)";
+      else if (putStatus === 404) errMsg = `GitHub Deposu Bulunamadı: ${repo} (404 Not Found)`;
+      else if (putStatus === 403) errMsg = "GitHub Deposuna Yazma İzni Yok (403 Forbidden)";
 
       logs.push(`❌ GitHub Upload Failed: ${errMsg}`);
       return { success: false, error: errMsg, logs };
     }
 
-    const putData = await putRes.json();
-    logs.push("✓ Uploaded");
-
-    // 2. VERIFY THAT FILE EXISTS IN REPOSITORY
-    logs.push("🔗 Raw URL");
-    logs.push(rawUrl);
-
+    let putData: any = {};
     try {
-      const verifyRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}?ref=${branch}`, {
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "User-Agent": "IremComfortApp"
-        }
-      });
-      if (verifyRes.ok) {
-        logs.push("✓ URL Verified");
-      } else {
-        logs.push("✓ URL Verified");
+      putData = JSON.parse(responseText);
+    } catch (e) {}
+
+    const commitSha = putData?.commit?.sha || putData?.content?.sha || "sha_unknown";
+    logs.push(`✓ Uploaded (Commit SHA: ${commitSha})`);
+    logs.push(`Commit SHA: ${commitSha}`);
+
+    // 3. STRICT FILE EXISTENCE VERIFICATION VIA GITHUB CONTENTS API (GET)
+    logs.push("🔍 Verifying file existence in GitHub repository...");
+    const verifyRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}?ref=${branch}`, {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "User-Agent": "IremComfortApp"
       }
-    } catch (vErr) {
-      logs.push("✓ URL Verified");
+    });
+
+    const verifyStatus = verifyRes.status;
+    const verifyBody = await verifyRes.text();
+
+    logs.push(`Verification HTTP status: ${verifyStatus}`);
+
+    if (verifyStatus !== 200) {
+      // STOP IMMEDIATELY! Do NOT generate Raw URL, do NOT save URL, do NOT show URL Verified, return exact error.
+      const vErrMsg = `GitHub file verification failed (HTTP ${verifyStatus}): ${verifyBody}`;
+      logs.push(`❌ Verification Failed: HTTP ${verifyStatus}`);
+      logs.push(`GitHub response: ${verifyBody.substring(0, 300)}`);
+      return {
+        success: false,
+        error: vErrMsg,
+        logs
+      };
     }
 
-    // 3. STORE IN SERVER MEMORY CACHE & LOCAL DISK (FOR INSTANT PREVIEW IN IFRAME)
+    // 4. GENERATE RAW URL ONLY AFTER SUCCESSFUL VERIFICATION (HTTP 200)
+    const rawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/${relativePath}`;
+    logs.push("🔗 Raw URL");
+    logs.push(rawUrl);
+    logs.push("✓ URL Verified");
+
+    // 5. STORE IN SERVER MEMORY CACHE & LOCAL DISK (FOR INSTANT PREVIEW IN IFRAME)
     inMemoryUploadsCache.set(rawUrl, { buffer, contentType, updatedAt: Date.now() });
     inMemoryUploadsCache.set(rawUrl.toLowerCase(), { buffer, contentType, updatedAt: Date.now() });
     inMemoryUploadsCache.set(publicUrl, { buffer, contentType, updatedAt: Date.now() });
@@ -814,7 +839,7 @@ async function saveAndUploadImageToGithub(
       // Ignore read-only fs error on cloud
     }
 
-    // 4. SAVE URL INTO site_settings.json
+    // 6. SAVE URL INTO site_settings.json
     try {
       if (inMemorySettingsCache) {
         if (!inMemorySettingsCache.systemConfig) inMemorySettingsCache.systemConfig = {};
@@ -826,12 +851,10 @@ async function saveAndUploadImageToGithub(
       console.warn("Could not auto-save site_settings.json after upload:", sErr);
     }
 
-    // 5. TRIGGER DEPLOYMENT IF REQUESTED
-    let deployStarted = false;
+    // 7. TRIGGER DEPLOYMENT IF REQUESTED
     if (triggerDeployOption) {
       logs.push("🚀 Deploy Started");
       logs.push("✓ Website Updated");
-      deployStarted = true;
     }
 
     return {
@@ -841,7 +864,7 @@ async function saveAndUploadImageToGithub(
       filename: fileName,
       folder: cleanFolder,
       verified: true,
-      commitSha: putData?.commit?.sha,
+      commitSha,
       logs
     };
   } catch (err: any) {

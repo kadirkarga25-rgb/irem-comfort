@@ -284,6 +284,41 @@ export const MediaLibraryAdminTab: React.FC = () => {
         </div>
       </div>
 
+      {/* Live Upload Logs Console */}
+      {uploadLogs.length > 0 && (
+        <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 font-mono text-xs space-y-1.5 shadow-2xl">
+          <div className="text-amber-400 font-bold mb-2 flex items-center justify-between text-xs tracking-wide">
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+              ⬆️ GitHub Yükleme Adımları (Canlı İşlem Logu)
+            </span>
+            <button 
+              onClick={() => setUploadLogs([])} 
+              className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[10px] cursor-pointer"
+            >
+              Temizle
+            </button>
+          </div>
+          <div className="max-h-60 overflow-y-auto space-y-1 pr-2">
+            {uploadLogs.map((log, idx) => (
+              <div 
+                key={idx} 
+                className={
+                  log.startsWith('✓') ? 'text-emerald-400 font-bold' : 
+                  log.startsWith('❌') ? 'text-red-400 font-bold' : 
+                  log.startsWith('🔗') ? 'text-cyan-400 font-bold' : 
+                  log.startsWith('📁') ? 'text-amber-300 font-bold' :
+                  log.startsWith('🚀') ? 'text-indigo-400 font-bold' :
+                  'text-slate-300'
+                }
+              >
+                {log}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Automatic Image Link Converter Banner */}
       <div className="bg-slate-900/90 p-4 rounded-2xl border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
         <div className="flex items-center gap-3 text-xs text-slate-300">

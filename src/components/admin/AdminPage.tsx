@@ -132,7 +132,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   // Admin Panel Tabs
   const [activeTab, setActiveTab] = useState<'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'presets' | 'leads' | 'newsletter' | 'email' | 'system' | 'media' | 'seo'>('fair');
 
-  const [githubRepoInput, setGithubRepoInput] = useState<string>(() => systemConfig.githubRepo || localStorage.getItem('irem_github_repo') || 'kadirkrga25/irem-comfort');
+  const [githubRepoInput, setGithubRepoInput] = useState<string>(() => systemConfig.githubRepo || localStorage.getItem('irem_github_repo') || 'kadirkarga25-rgb/irem-comfort');
   const [githubBranchInput, setGithubBranchInput] = useState<string>(() => systemConfig.githubBranch || localStorage.getItem('irem_github_branch') || 'main');
   const [githubTokenInput, setGithubTokenInput] = useState<string>(() => localStorage.getItem('irem_github_token') || '');
   const [isTestingGithub, setIsTestingGithub] = useState(false);
@@ -3710,7 +3710,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                       type="text"
                       value={githubRepoInput}
                       onChange={(e) => setGithubRepoInput(e.target.value)}
-                      placeholder="kadirkrga25/irem-comfort"
+                      placeholder="kadirkarga25-rgb/irem-comfort"
                       className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-mono font-bold"
                     />
                   </div>
