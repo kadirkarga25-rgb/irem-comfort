@@ -143,6 +143,15 @@ const getDefaultImages = (): AppImages => {
   };
 };
 
+export interface DeploymentProgress {
+  status: 'VALIDATING' | 'UPLOADING' | 'COMMITTED' | 'WAITING_VERCEL' | 'BUILDING' | 'DEPLOYING' | 'READY' | 'ERROR';
+  stepIndex: number;
+  logs: string[];
+  durationSeconds?: number;
+  durationString?: string;
+  error?: string;
+}
+
 interface ImageContextType {
   images: AppImages;
   updateHeroImage: (url: string) => void;
@@ -201,7 +210,11 @@ interface ImageContextType {
   // System, Maintenance Mode & Deploy Store
   systemConfig: SystemConfig;
   updateSystemConfig: (newConfig: Partial<SystemConfig>) => void;
-  triggerDeploy: (commitMessage?: string, customToken?: string) => Promise<{ success: boolean; message: string; logs?: string[] }>;
+  triggerDeploy: (
+    commitMessage?: string,
+    customToken?: string,
+    onProgress?: (progress: DeploymentProgress) => void
+  ) => Promise<{ success: boolean; message: string; logs?: string[]; durationString?: string; error?: string }>;
 
   // SEO, Robots & Sitemap Store
   seoConfig: SeoConfig;
@@ -615,7 +628,11 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     saveSection('seoConfig', { seoConfig: DEFAULT_SEO_CONFIG });
   };
 
-  const triggerDeploy = async (commitMessage?: string, customToken?: string): Promise<{ success: boolean; message: string; logs?: string[] }> => {
+  const triggerDeploy = async (
+    commitMessage?: string,
+    customToken?: string,
+    onProgress?: (progress: DeploymentProgress) => void
+  ): Promise<{ success: boolean; message: string; logs?: string[]; durationString?: string; error?: string }> => {
     const deployTime = new Date().toISOString();
     updateSystemConfig({ isDeploying: true, lastDeployedAt: deployTime });
 
@@ -633,21 +650,64 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       const data = await response.json();
 
-      setTimeout(() => {
+      if (!data.success) {
         updateSystemConfig({ isDeploying: false });
-      }, 45000);
-
-      if (data.success) {
-        return { success: true, message: data.message || 'GitHub & Vercel deployment tetiklendi!', logs: data.logs };
-      } else {
-        return { success: false, message: data.error || 'GitHub deploy hatası.', logs: data.logs };
+        return {
+          success: false,
+          message: data.error || 'GitHub commit hatası.',
+          logs: data.deployment?.logs || ['❌ Deployment failed during upload.'],
+          error: data.error
+        };
       }
+
+      if (onProgress && data.deployment) {
+        onProgress(data.deployment);
+      }
+
+      // Poll /api/deploy-status every 2 seconds until status becomes READY or ERROR
+      return new Promise((resolve) => {
+        const pollInterval = setInterval(async () => {
+          try {
+            const statusRes = await fetch('/api/deploy-status');
+            const statusData = await statusRes.json();
+            const dep = statusData.deployment as DeploymentProgress | undefined;
+
+            if (dep) {
+              if (onProgress) {
+                onProgress(dep);
+              }
+
+              if (dep.status === 'READY') {
+                clearInterval(pollInterval);
+                updateSystemConfig({ isDeploying: false, isMaintenanceMode: false, lastDeployedAt: new Date().toISOString() });
+                resolve({
+                  success: true,
+                  message: 'Deployment completed successfully.',
+                  logs: dep.logs,
+                  durationString: dep.durationString
+                });
+              } else if (dep.status === 'ERROR') {
+                clearInterval(pollInterval);
+                // Keep maintenance mode enabled!
+                updateSystemConfig({ isDeploying: false, isMaintenanceMode: true });
+                resolve({
+                  success: false,
+                  message: dep.error || 'Deployment failed.',
+                  logs: dep.logs,
+                  error: dep.error,
+                  durationString: dep.durationString
+                });
+              }
+            }
+          } catch (pollErr) {
+            console.warn('Poll error:', pollErr);
+          }
+        }, 2000);
+      });
     } catch (err) {
       console.error('Deploy error:', err);
-      setTimeout(() => {
-        updateSystemConfig({ isDeploying: false });
-      }, 45000);
-      return { success: false, message: 'Sunucuyla bağlantı hatası.' };
+      updateSystemConfig({ isDeploying: false });
+      return { success: false, message: 'Sunucuyla bağlantı kurulurken hata oluştu.' };
     }
   };
 

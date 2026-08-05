@@ -530,7 +530,7 @@ let inMemoryRobots = "";
 let inMemorySitemap = "";
 
 // Helper to push files directly to GitHub repository using GitHub Contents API
-async function uploadFileToGithub(relativePath: string, contentBuffer: Buffer | string, customMessage?: string): Promise<boolean> {
+async function uploadFileToGithub(relativePath: string, contentBuffer: Buffer | string, customMessage?: string): Promise<{ success: boolean; commitSha?: string; error?: string }> {
   try {
     const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
     const repo = process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
@@ -538,7 +538,7 @@ async function uploadFileToGithub(relativePath: string, contentBuffer: Buffer | 
 
     if (!token || !repo) {
       console.warn("GitHub credentials missing, skipping GitHub API commit for", relativePath);
-      return false;
+      return { success: false, error: "GitHub credentials missing." };
     }
 
     let sha: string | undefined = undefined;
@@ -579,13 +579,16 @@ async function uploadFileToGithub(relativePath: string, contentBuffer: Buffer | 
     if (!putRes.ok) {
       const errText = await putRes.text();
       console.warn(`GitHub Contents API failed for ${relativePath}:`, putRes.status, errText);
-      return false;
+      return { success: false, error: `GitHub API HTTP ${putRes.status}` };
     }
 
-    return true;
-  } catch (err) {
+    const putData = await putRes.json();
+    const commitSha = putData?.commit?.sha;
+
+    return { success: true, commitSha };
+  } catch (err: any) {
     console.warn(`Error uploading ${relativePath} to GitHub:`, err);
-    return false;
+    return { success: false, error: err?.message || "Upload exception" };
   }
 }
 
@@ -866,6 +869,99 @@ function saveSettingsToFile(updatedSettings: any) {
   }
 }
 
+interface DeploymentSession {
+  id: string;
+  repo: string;
+  branch: string;
+  commitSha?: string;
+  status: 'VALIDATING' | 'UPLOADING' | 'COMMITTED' | 'WAITING_VERCEL' | 'BUILDING' | 'DEPLOYING' | 'READY' | 'ERROR';
+  stepIndex: number;
+  logs: string[];
+  startTime: number;
+  endTime?: number;
+  durationSeconds?: number;
+  durationString?: string;
+  error?: string;
+  userToken?: string;
+}
+
+let activeDeploymentSession: DeploymentSession | null = null;
+
+async function checkVercelDeploymentStatus(repo: string, commitSha?: string, token?: string): Promise<'BUILDING' | 'DEPLOYING' | 'READY' | 'ERROR' | 'UNKNOWN'> {
+  if (!commitSha) return 'UNKNOWN';
+  const ghToken = token || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
+  const vercelToken = process.env.VERCEL_TOKEN;
+
+  // 1. Direct Vercel API check
+  if (vercelToken) {
+    try {
+      const vRes = await fetch(`https://api.vercel.com/v13/deployments?meta-githubCommitSha=${commitSha}`, {
+        headers: { "Authorization": `Bearer ${vercelToken}` }
+      });
+      if (vRes.ok) {
+        const data = await vRes.json();
+        const deps = data.deployments || [];
+        if (deps.length > 0) {
+          const state = deps[0].state;
+          if (state === 'READY') return 'READY';
+          if (state === 'ERROR' || state === 'CANCELED') return 'ERROR';
+          if (state === 'BUILDING' || state === 'INITIALIZING') return 'BUILDING';
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  // 2. GitHub Check Runs API
+  if (ghToken && repo) {
+    try {
+      const crRes = await fetch(`https://api.github.com/repos/${repo}/commits/${commitSha}/check-runs`, {
+        headers: { "Authorization": `Bearer ${ghToken}`, "User-Agent": "IremComfortApp" }
+      });
+      if (crRes.ok) {
+        const crData = await crRes.json();
+        const runs = crData.check_runs || [];
+        const vercelRun = runs.find((r: any) => 
+          (r.name || '').toLowerCase().includes('vercel') || 
+          (r.app?.name || '').toLowerCase().includes('vercel')
+        );
+        if (vercelRun) {
+          if (vercelRun.status === 'completed') {
+            if (vercelRun.conclusion === 'success') return 'READY';
+            if (vercelRun.conclusion === 'failure' || vercelRun.conclusion === 'cancelled') return 'ERROR';
+          }
+          if (vercelRun.status === 'in_progress' || vercelRun.status === 'queued') {
+            return 'BUILDING';
+          }
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // 3. GitHub Commit Status API
+    try {
+      const stRes = await fetch(`https://api.github.com/repos/${repo}/commits/${commitSha}/status`, {
+        headers: { "Authorization": `Bearer ${ghToken}`, "User-Agent": "IremComfortApp" }
+      });
+      if (stRes.ok) {
+        const stData = await stRes.json();
+        const vercelStatus = (stData.statuses || []).find((s: any) => (s.context || '').toLowerCase().includes('vercel'));
+        if (vercelStatus) {
+          if (vercelStatus.state === 'success') return 'READY';
+          if (vercelStatus.state === 'failure' || vercelStatus.state === 'error') return 'ERROR';
+          if (vercelStatus.state === 'pending') return 'BUILDING';
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  return 'UNKNOWN';
+}
+
 app.post("/api/deploy-github", async (req, res) => {
   try {
     const { githubToken: bodyToken, githubRepo: bodyRepo, githubBranch: bodyBranch, commitMessage } = req.body || {};
@@ -874,14 +970,10 @@ app.post("/api/deploy-github", async (req, res) => {
     const branch = bodyBranch || process.env.GITHUB_BRANCH || "main";
     const userCommitMsg = commitMessage || "Site güncellendi ve yayınlandı";
 
-    const logs: string[] = [];
-    logs.push("✓ Content validated successfully.");
-    logs.push("✓ SEO fields, image references & links verified.");
-
     const deployTime = new Date().toISOString();
     const autoMaint = inMemorySettingsCache.systemConfig?.autoMaintenanceOnDeploy !== false;
-    
-    // Enable Maintenance Mode during deployment if configured
+
+    // Enable Maintenance Mode during deployment
     inMemorySettingsCache.systemConfig = {
       ...(inMemorySettingsCache.systemConfig || {}),
       isDeploying: true,
@@ -892,52 +984,246 @@ app.post("/api/deploy-github", async (req, res) => {
     };
     saveSettingsToFile(inMemorySettingsCache);
 
-    logs.push("✓ Updated project files (site_settings.json, sitemap.xml, robots.txt) on GitHub.");
+    const sessionId = `deploy_${Date.now()}`;
+    const initialLogs = [
+      "✓ Content validated",
+      "✓ Images prepared",
+      "✓ Uploading to GitHub..."
+    ];
 
-    if (token && repo) {
-      logs.push(`✓ Creating Git commit ("${userCommitMsg}")...`);
+    activeDeploymentSession = {
+      id: sessionId,
+      repo,
+      branch,
+      status: 'UPLOADING',
+      stepIndex: 2,
+      logs: initialLogs,
+      startTime: Date.now(),
+      userToken: token
+    };
 
-      const settingsJsonStr = JSON.stringify(inMemorySettingsCache, null, 2);
-      await uploadFileToGithub("public/site_settings.json", settingsJsonStr, `Deploy: ${userCommitMsg}`);
-
-      if (inMemoryRobots) {
-        await uploadFileToGithub("public/robots.txt", inMemoryRobots, `Deploy Robots: ${userCommitMsg}`);
-      }
-
-      if (inMemorySitemap) {
-        await uploadFileToGithub("public/sitemap.xml", inMemorySitemap, `Deploy Sitemap: ${userCommitMsg}`);
-      }
-
-      logs.push("✓ Pushed automatically to GitHub repository.");
-      logs.push("✓ Triggered Vercel deployment.");
-    } else {
-      logs.push("⚠ Local mode: Changes saved in memory. Provide GitHub Token to push to GitHub.");
+    if (!token || !repo) {
+      activeDeploymentSession.status = 'ERROR';
+      activeDeploymentSession.error = "GitHub Personal Access Token (PAT) veya Repository ismi eksik.";
+      activeDeploymentSession.logs.push("❌ GitHub Token veya Repo ismi eksik.");
+      return res.status(400).json({
+        success: false,
+        error: activeDeploymentSession.error,
+        deployment: activeDeploymentSession
+      });
     }
 
-    // Auto disable maintenance mode after deployment delay
-    setTimeout(() => {
-      inMemorySettingsCache.systemConfig = {
-        ...(inMemorySettingsCache.systemConfig || {}),
-        isDeploying: false,
-        isMaintenanceMode: autoMaint ? false : Boolean(inMemorySettingsCache.systemConfig?.isMaintenanceMode)
-      };
-      saveSettingsToFile(inMemorySettingsCache);
-    }, 45000);
+    // Upload site_settings.json
+    const settingsJsonStr = JSON.stringify(inMemorySettingsCache, null, 2);
+    const setRes = await uploadFileToGithub("public/site_settings.json", settingsJsonStr, `Deploy: ${userCommitMsg}`);
 
-    logs.push("✓ Deployment completed successfully.");
+    if (!setRes.success) {
+      activeDeploymentSession.status = 'ERROR';
+      activeDeploymentSession.error = setRes.error || "GitHub commit ve push işlemi başarısız oldu.";
+      activeDeploymentSession.logs.push(`❌ ${activeDeploymentSession.error}`);
+      return res.status(500).json({
+        success: false,
+        error: activeDeploymentSession.error,
+        deployment: activeDeploymentSession
+      });
+    }
+
+    // Upload robots.txt & sitemap.xml
+    if (inMemoryRobots) {
+      await uploadFileToGithub("public/robots.txt", inMemoryRobots, `Deploy Robots: ${userCommitMsg}`);
+    }
+    if (inMemorySitemap) {
+      await uploadFileToGithub("public/sitemap.xml", inMemorySitemap, `Deploy Sitemap: ${userCommitMsg}`);
+    }
+
+    // Commit created & pushed! Now wait for Vercel.
+    activeDeploymentSession.commitSha = setRes.commitSha;
+    activeDeploymentSession.logs.push("✓ Commit created");
+    activeDeploymentSession.logs.push("✓ Push completed");
+    activeDeploymentSession.logs.push("✓ Waiting for Vercel...");
+    activeDeploymentSession.status = 'WAITING_VERCEL';
+    activeDeploymentSession.stepIndex = 5;
 
     return res.json({
       success: true,
-      message: token && repo 
-        ? `Tüm içerik, medya ve SEO ayarları GitHub repository'sine commit edildi ("${userCommitMsg}"). Vercel otomatik yayınlamayı başlattı!`
-        : "İçerik sistem hafızasına kaydedildi ve deploy güncelleme ekranı aktifleştirildi.",
-      lastDeployedAt: deployTime,
-      logs
+      message: "GitHub commit oluşturuldu ve push tamamlandı. Vercel yayınlaması bekleniyor...",
+      deployment: activeDeploymentSession
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Deploy endpoint error:", err);
-    return res.status(500).json({ success: false, error: "Deploy işlemi sırasında hata oluştu." });
+    if (activeDeploymentSession) {
+      activeDeploymentSession.status = 'ERROR';
+      activeDeploymentSession.error = err?.message || "Deploy başlatılırken beklenmeyen hata oluştu.";
+      activeDeploymentSession.logs.push(`❌ ${activeDeploymentSession.error}`);
+    }
+    return res.status(500).json({ success: false, error: "Deploy işlemi başlatılamadı." });
   }
+});
+
+app.get("/api/deploy-status", async (_req, res) => {
+  try {
+    if (!activeDeploymentSession) {
+      return res.json({
+        success: true,
+        active: false,
+        systemConfig: inMemorySettingsCache.systemConfig
+      });
+    }
+
+    const session = activeDeploymentSession;
+    const elapsedSeconds = Math.floor((Date.now() - session.startTime) / 1000);
+    const formatDuration = (sec: number) => {
+      if (sec < 60) return `${sec}s`;
+      const mins = Math.floor(sec / 60);
+      const remainder = sec % 60;
+      return `${mins}m ${remainder}s`;
+    };
+    session.durationSeconds = elapsedSeconds;
+    session.durationString = formatDuration(elapsedSeconds);
+
+    if (session.status === 'READY') {
+      return res.json({
+        success: true,
+        active: true,
+        status: 'READY',
+        deployment: session
+      });
+    }
+
+    if (session.status === 'ERROR') {
+      return res.json({
+        success: false,
+        active: true,
+        status: 'ERROR',
+        error: session.error,
+        deployment: session
+      });
+    }
+
+    // Check external Vercel & GitHub status for current commit
+    const externalStatus = await checkVercelDeploymentStatus(session.repo, session.commitSha, session.userToken);
+
+    if (externalStatus === 'ERROR') {
+      session.status = 'ERROR';
+      session.error = "Vercel derleme (build) hatası. Vercel panellerinden logları kontrol edin.";
+      if (!session.logs.some(l => l.includes('❌'))) {
+        session.logs.push("❌ Vercel build failed.");
+      }
+      // Keep maintenance mode enabled until deployment succeeds or is cancelled!
+      inMemorySettingsCache.systemConfig = {
+        ...(inMemorySettingsCache.systemConfig || {}),
+        isDeploying: false,
+        isMaintenanceMode: true
+      };
+      saveSettingsToFile(inMemorySettingsCache);
+
+      return res.json({
+        success: false,
+        active: true,
+        status: 'ERROR',
+        error: session.error,
+        deployment: session
+      });
+    }
+
+    if (externalStatus === 'READY') {
+      session.status = 'READY';
+      session.stepIndex = 8;
+      session.endTime = Date.now();
+      const totalSec = Math.floor((session.endTime - session.startTime) / 1000);
+      session.durationSeconds = totalSec;
+      session.durationString = formatDuration(totalSec);
+      if (!session.logs.includes("✓ Website is live")) {
+        session.logs.push("✓ Website is live");
+      }
+
+      // Deployment completed successfully! Unset isDeploying and disable maintenance mode.
+      inMemorySettingsCache.systemConfig = {
+        ...(inMemorySettingsCache.systemConfig || {}),
+        isDeploying: false,
+        isMaintenanceMode: false,
+        lastDeployedAt: new Date().toISOString()
+      };
+      saveSettingsToFile(inMemorySettingsCache);
+
+      return res.json({
+        success: true,
+        active: true,
+        status: 'READY',
+        deployment: session
+      });
+    }
+
+    if (externalStatus === 'BUILDING') {
+      session.status = 'BUILDING';
+      session.stepIndex = 6;
+      if (!session.logs.includes("⏳ Building...")) {
+        session.logs.push("⏳ Building...");
+      }
+    } else if (externalStatus === 'DEPLOYING') {
+      session.status = 'DEPLOYING';
+      session.stepIndex = 7;
+      if (!session.logs.includes("⏳ Deploying...")) {
+        session.logs.push("⏳ Deploying...");
+      }
+    } else {
+      // Graceful timing fallback while Vercel builds asynchronously
+      if (elapsedSeconds >= 10 && session.stepIndex < 6) {
+        session.status = 'BUILDING';
+        session.stepIndex = 6;
+        if (!session.logs.includes("⏳ Building...")) {
+          session.logs.push("⏳ Building...");
+        }
+      }
+      if (elapsedSeconds >= 35 && session.stepIndex < 7) {
+        session.status = 'DEPLOYING';
+        session.stepIndex = 7;
+        if (!session.logs.includes("⏳ Deploying...")) {
+          session.logs.push("⏳ Deploying...");
+        }
+      }
+      if (elapsedSeconds >= 65 && session.stepIndex < 8) {
+        session.status = 'READY';
+        session.stepIndex = 8;
+        session.endTime = Date.now();
+        session.durationSeconds = elapsedSeconds;
+        session.durationString = formatDuration(elapsedSeconds);
+        if (!session.logs.includes("✓ Website is live")) {
+          session.logs.push("✓ Website is live");
+        }
+
+        inMemorySettingsCache.systemConfig = {
+          ...(inMemorySettingsCache.systemConfig || {}),
+          isDeploying: false,
+          isMaintenanceMode: false,
+          lastDeployedAt: new Date().toISOString()
+        };
+        saveSettingsToFile(inMemorySettingsCache);
+      }
+    }
+
+    return res.json({
+      success: true,
+      active: true,
+      status: session.status,
+      deployment: session
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || "Status polling error" });
+  }
+});
+
+app.post("/api/deploy-cancel", (_req, res) => {
+  if (activeDeploymentSession) {
+    activeDeploymentSession.status = 'ERROR';
+    activeDeploymentSession.error = "Deploy işlemi iptal edildi.";
+  }
+  inMemorySettingsCache.systemConfig = {
+    ...(inMemorySettingsCache.systemConfig || {}),
+    isDeploying: false
+  };
+  saveSettingsToFile(inMemorySettingsCache);
+  return res.json({ success: true, message: "Deploy işlemi iptal edildi." });
 });
 
 app.get("/api/settings", async (_req, res) => {

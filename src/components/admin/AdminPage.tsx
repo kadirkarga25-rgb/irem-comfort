@@ -16,7 +16,7 @@ import {
   QrCode, ToggleLeft, ToggleRight, Send, MessageSquare, Crop, Info,
   Mail, Server, AtSign, Save, MailCheck, CheckCircle2, Shield,
   Users, Download, Copy, Trash2, Plus, Search, Phone, HelpCircle,
-  GitBranch, Globe, FileImage, Video
+  GitBranch, Globe, FileImage, Video, RefreshCw
 } from 'lucide-react';
 
 
@@ -134,7 +134,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   const [githubTokenInput, setGithubTokenInput] = useState<string>(() => localStorage.getItem('irem_github_token') || '');
   const [commitMessageInput, setCommitMessageInput] = useState<string>('Site ayarları ve görseller güncellendi');
   const [isDeployingInAdmin, setIsDeployingInAdmin] = useState(false);
-  const [deployResult, setDeployResult] = useState<{ success?: boolean; message?: string } | null>(null);
+  const [deployResult, setDeployResult] = useState<{ success?: boolean; message?: string; logs?: string[]; durationString?: string } | null>(null);
+  const [deployProgress, setDeployProgress] = useState<any>(null);
 
   const confirmMaintenanceExit = (action: () => void) => {
     if (systemConfig.isMaintenanceMode) {
@@ -3507,16 +3508,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
               </div>
 
               {/* Deploy Status & Action */}
-              <div className="p-5 rounded-xl bg-slate-900 text-white space-y-4">
+              <div className="p-5 rounded-xl bg-slate-900 text-white space-y-4 border border-slate-800">
                 <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
                   <span className="text-slate-300 font-mono">
                     Son Yayınlanma: <strong className="text-amber-400 font-sans">{systemConfig.lastDeployedAt ? new Date(systemConfig.lastDeployedAt).toLocaleString('tr-TR') : 'Henüz yapılmadı'}</strong>
                   </span>
                   
-                  {systemConfig.isDeploying && (
+                  {isDeployingInAdmin && (
                     <span className="px-3 py-1 rounded-full bg-blue-500/30 text-blue-300 border border-blue-400/40 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 animate-pulse">
-                      <span className="w-2 h-2 rounded-full bg-blue-400" />
-                      Yayınlama Devam Ediyor (1 Dk)
+                      <RefreshCw className="w-3 h-3 text-blue-400 animate-spin" />
+                      Yayınlama Devam Ediyor
                     </span>
                   )}
                 </div>
@@ -3535,24 +3536,89 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs focus:ring-2 focus:ring-amber-500 focus:outline-hidden"
                   />
                   <p className="text-[11px] text-slate-400">
-                    * 1 harf bile değişse bu açıklama ile GitHub üzerinde commit oluşturulur ve Vercel otomatik yayınlar. GitHub üzerinden önceki versiyonlara dönebilirsiniz.
+                    * Değişiklikler GitHub deposuna commit edilir ve Vercel otomatik olarak yeni versiyonu derleyip yayınlar.
                   </p>
                 </div>
 
-                {deployResult && (
+                {/* Live Deployment Progress Details */}
+                {(isDeployingInAdmin || deployProgress) && (
+                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3 font-mono text-xs">
+                    <div className="flex items-center justify-between text-slate-300 font-bold">
+                      <span className="flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+                        Aşama Durumu: {deployProgress?.status || 'UPLOADING'}
+                      </span>
+                      {deployProgress?.durationString && (
+                        <span className="text-amber-400 font-bold bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/30">
+                          Duration: {deployProgress.durationString}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Dynamic Progress Bar */}
+                    <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden p-0.5 border border-slate-700">
+                      <div
+                        className="h-full bg-gradient-to-r from-amber-500 via-emerald-400 to-emerald-500 rounded-full transition-all duration-500"
+                        style={{
+                          width: `${Math.min(100, Math.round((((deployProgress?.stepIndex ?? 0) + 1) / 9) * 100))}%`
+                        }}
+                      />
+                    </div>
+
+                    {/* Step Logs List */}
+                    <div className="space-y-1.5 pt-1 max-h-48 overflow-y-auto">
+                      {deployProgress?.logs?.map((logItem: string, idx: number) => {
+                        const isSuccess = logItem.startsWith('✓');
+                        const isPending = logItem.startsWith('⏳');
+                        const isFailed = logItem.startsWith('❌');
+
+                        return (
+                          <div
+                            key={idx}
+                            className={`flex items-center gap-2 font-medium text-[11px] ${
+                              isFailed
+                                ? 'text-rose-400 font-bold'
+                                : isPending
+                                ? 'text-amber-300 animate-pulse font-bold'
+                                : 'text-emerald-300'
+                            }`}
+                          >
+                            {isSuccess && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                            {isPending && <RefreshCw className="w-3.5 h-3.5 text-amber-400 animate-spin shrink-0" />}
+                            {isFailed && <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />}
+                            <span>{logItem}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Final Deploy Result - ONLY SUCCESS IF READY */}
+                {deployResult && !isDeployingInAdmin && (
                   <div className={`p-4 rounded-xl text-xs font-medium border space-y-2 ${
                     deployResult.success 
                       ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-200' 
                       : 'bg-rose-950/80 border-rose-500/40 text-rose-200'
                   }`}>
-                    <div className="flex items-center gap-2 font-bold">
-                      <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                    <div className="flex items-center gap-2 font-bold text-sm">
+                      {deployResult.success ? (
+                        <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
+                      ) : (
+                        <AlertCircle className="w-5 h-5 shrink-0 text-rose-400" />
+                      )}
                       <span>{deployResult.message}</span>
                     </div>
 
-                    {(deployResult as any).logs && Array.isArray((deployResult as any).logs) && (
+                    {deployResult.durationString && (
+                      <p className="font-mono text-xs text-amber-300 font-bold">
+                        Duration: {deployResult.durationString}
+                      </p>
+                    )}
+
+                    {deployResult.logs && Array.isArray(deployResult.logs) && (
                       <div className="pt-2 border-t border-emerald-800/60 font-mono text-[11px] space-y-1 text-emerald-300">
-                        {(deployResult as any).logs.map((logStr: string, idx: number) => (
+                        {deployResult.logs.map((logStr: string, idx: number) => (
                           <div key={idx} className="flex items-center gap-1.5">
                             <span>{logStr}</span>
                           </div>
@@ -3567,18 +3633,26 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                   onClick={async () => {
                     setIsDeployingInAdmin(true);
                     setDeployResult(null);
+                    setDeployProgress(null);
                     showToast('Görsel ve veriler GitHub\'a gönderiliyor...');
-                    const res = await triggerDeploy(commitMessageInput, githubTokenInput);
+
+                    const res = await triggerDeploy(commitMessageInput, githubTokenInput, (progress) => {
+                      setDeployProgress(progress);
+                    });
+
                     setIsDeployingInAdmin(false);
                     setDeployResult(res);
+
                     if (res.success) {
-                      showToast('🚀 Deploy başlatıldı! Vercel 1 dakika içinde yeni versiyonu yayınlayacak.');
+                      showToast('🚀 Deployment completed successfully! Website is live.');
+                    } else {
+                      showToast('❌ Deployment failed. Check details below.');
                     }
                   }}
                   className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 font-extrabold text-xs uppercase tracking-wider shadow-lg hover:brightness-110 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 disabled:opacity-50"
                 >
                   <Send className={`w-4 h-4 ${isDeployingInAdmin ? 'animate-spin' : ''}`} />
-                  <span>{isDeployingInAdmin ? 'GitHub\'a Aktarılıyor...' : '🚀 DEĞİŞİKLİKLERİ GİTHUB\'A GÖNDER VE YAYINLA (DEPLOY ET)'}</span>
+                  <span>{isDeployingInAdmin ? 'Yayınlanıyor (Vercel Bekleniyor)...' : '🚀 DEĞİŞİKLİKLERİ GİTHUB\'A GÖNDER VE YAYINLA (DEPLOY ET)'}</span>
                 </button>
               </div>
             </div>

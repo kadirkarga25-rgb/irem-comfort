@@ -1,18 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogoFull } from '../brand/LogoFull';
-import { RefreshCw, CheckCircle2, Sparkles, Lock, Play, Pause, Volume2, VolumeX, ArrowRight, Video, Upload } from 'lucide-react';
-import { useAppImages } from '../../context/ImageContext';
+import { RefreshCw, CheckCircle2, Sparkles, Lock, Play, Pause, Volume2, VolumeX, ArrowRight, Video, Upload, AlertCircle } from 'lucide-react';
+import { useAppImages, DeploymentProgress } from '../../context/ImageContext';
 
 export const DeployingView: React.FC = () => {
   const { systemConfig, updateSystemConfig } = useAppImages();
 
   // Sequence Steps: 
-  // 'stage1' -> "Sitemizin tamamlanmasına çok az kaldı, beklediğiniz için teşekkürler." (10s)
+  // 'stage1' -> "Sitemizin tamamlanmasına çok az kaldı, beklediğiniz için teşekkürler." (Live Deploy Polling)
   // 'stage2' -> "Sitemiz tamamlandı, beklediğiniz için teşekkürler." (Shows video launch option)
   // 'video'  -> Playing video / Start Website
   const [sequenceStep, setSequenceStep] = useState<'stage1' | 'stage2' | 'video'>('stage1');
-  const [countdown, setCountdown] = useState(10);
+  const [deployProgress, setDeployProgress] = useState<DeploymentProgress | null>(null);
+  const [deployError, setDeployError] = useState<string | null>(null);
   
   // Video playback controls
   const [isPlaying, setIsPlaying] = useState(false);
@@ -22,23 +23,33 @@ export const DeployingView: React.FC = () => {
   // Custom uploaded video state
   const [customVideoUrl, setCustomVideoUrl] = useState<string>(systemConfig.introVideoUrl || '');
 
-  // 10 second countdown timer for stage 1
+  // Poll real deployment status from backend
   useEffect(() => {
-    if (sequenceStep !== 'stage1') return;
+    let timer: any;
+    const checkStatus = async () => {
+      try {
+        const res = await fetch('/api/deploy-status');
+        const data = await res.json();
+        if (data.deployment) {
+          const dep = data.deployment as DeploymentProgress;
+          setDeployProgress(dep);
 
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setSequenceStep('stage2');
-          return 0;
+          if (dep.status === 'READY') {
+            setSequenceStep('stage2');
+          } else if (dep.status === 'ERROR') {
+            setDeployError(dep.error || 'Deployment failed');
+          }
         }
-        return prev - 1;
-      });
-    }, 1000);
+      } catch (e) {
+        console.warn('Status poll error:', e);
+      }
+    };
+
+    checkStatus();
+    timer = setInterval(checkStatus, 2500);
 
     return () => clearInterval(timer);
-  }, [sequenceStep]);
+  }, []);
 
   const handleStartWebsite = () => {
     updateSystemConfig({ isDeploying: false });
@@ -79,6 +90,9 @@ export const DeployingView: React.FC = () => {
     setIsPlaying(false);
   };
 
+  const currentStepNum = (deployProgress?.stepIndex ?? 0) + 1;
+  const progressPercent = Math.min(100, Math.round((currentStepNum / 9) * 100));
+
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-between items-center p-6 relative overflow-hidden font-sans selection:bg-[#082C6C] selection:text-white">
       {/* Background Glows */}
@@ -103,7 +117,7 @@ export const DeployingView: React.FC = () => {
       {/* Main Container */}
       <main className="max-w-2xl w-full text-center my-auto py-12 space-y-8 z-10">
         <AnimatePresence mode="wait">
-          {/* STAGE 1: 10 SECOND COUNTDOWN & INITIAL MESSAGE */}
+          {/* STAGE 1: REAL DEPLOYMENT PROGRESS & STEP LOGS */}
           {sequenceStep === 'stage1' && (
             <motion.div
               key="stage1"
@@ -115,11 +129,19 @@ export const DeployingView: React.FC = () => {
             >
               {/* Spinner Icon */}
               <div className="relative inline-block">
-                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-gradient-to-tr from-[#082C6C] via-indigo-900 to-slate-900 border border-blue-400/30 flex items-center justify-center shadow-2xl shadow-blue-900/60 mx-auto">
-                  <RefreshCw className="w-12 h-12 text-blue-400 animate-spin" />
+                <div className={`w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-gradient-to-tr ${
+                  deployError ? 'from-rose-950 via-rose-900 to-slate-900 border-rose-500/40' : 'from-[#082C6C] via-indigo-900 to-slate-900 border-blue-400/30'
+                } border flex items-center justify-center shadow-2xl mx-auto`}>
+                  {deployError ? (
+                    <AlertCircle className="w-12 h-12 text-rose-400" />
+                  ) : (
+                    <RefreshCw className="w-12 h-12 text-blue-400 animate-spin" />
+                  )}
                 </div>
-                <span className="absolute -bottom-2 -right-2 px-3 py-1 rounded-full bg-blue-500 text-white text-[10px] font-extrabold uppercase tracking-widest shadow">
-                  HAZIRLANIYOR
+                <span className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-white text-[10px] font-extrabold uppercase tracking-widest shadow ${
+                  deployError ? 'bg-rose-600' : 'bg-blue-500'
+                }`}>
+                  {deployError ? 'HATA' : 'YAYINLANIYOR'}
                 </span>
               </div>
 
@@ -129,28 +151,82 @@ export const DeployingView: React.FC = () => {
                   {systemConfig.stage1Text || "Sitemizin tamamlanmasına çok az kaldı, beklediğiniz için teşekkürler."}
                 </h1>
                 <p className="text-sm text-slate-400 max-w-md mx-auto font-light">
-                  Güncellenen dosyalar ve görseller yayına alınıyor...
+                  Güncellenen dosyalar ve görseller Vercel üzerinde yayına alınıyor...
                 </p>
               </div>
 
-              {/* 10 Second Progress Card */}
-              <div className="bg-slate-900/90 p-6 rounded-2xl border border-white/10 backdrop-blur-md space-y-3 max-w-lg mx-auto">
+              {/* Live Progress Card */}
+              <div className="bg-slate-900/90 p-6 rounded-2xl border border-white/10 backdrop-blur-md space-y-4 max-w-lg mx-auto text-left shadow-2xl">
                 <div className="flex items-center justify-between text-xs font-mono font-bold">
                   <span className="text-slate-300 flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
-                    Son Kontroller Yapılıyor...
+                    {deployError ? 'Yayınlama Durduruldu' : 'Vercel Deployment Adımları'}
                   </span>
-                  <span className="text-amber-400">{countdown}s</span>
+                  {deployProgress?.durationString && (
+                    <span className="text-amber-400 font-bold">
+                      Duration: {deployProgress.durationString}
+                    </span>
+                  )}
                 </div>
 
+                {/* Progress Bar */}
                 <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden p-0.5 border border-white/10">
                   <motion.div
-                    className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-400 rounded-full"
+                    className={`h-full rounded-full ${deployError ? 'bg-rose-500' : 'bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-400'}`}
                     initial={{ width: '0%' }}
-                    animate={{ width: `${((10 - countdown) / 10) * 100}%` }}
-                    transition={{ duration: 1, ease: 'linear' }}
+                    animate={{ width: `${deployError ? 100 : progressPercent}%` }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
                   />
                 </div>
+
+                {/* Step Logs Box */}
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs space-y-2 max-h-48 overflow-y-auto">
+                  {deployProgress?.logs && deployProgress.logs.length > 0 ? (
+                    deployProgress.logs.map((logStr, idx) => {
+                      const isSuccess = logStr.startsWith('✓');
+                      const isPending = logStr.startsWith('⏳');
+                      const isFailed = logStr.startsWith('❌');
+
+                      return (
+                        <div
+                          key={idx}
+                          className={`flex items-center gap-2 font-medium ${
+                            isFailed
+                              ? 'text-rose-400 font-bold'
+                              : isPending
+                              ? 'text-amber-300 animate-pulse font-bold'
+                              : 'text-emerald-300'
+                          }`}
+                        >
+                          {isSuccess && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
+                          {isPending && <RefreshCw className="w-4 h-4 text-amber-400 animate-spin shrink-0" />}
+                          {isFailed && <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />}
+                          <span>{logStr}</span>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-slate-500 text-center py-2 italic">
+                      ✓ Content validated<br />
+                      ✓ Images prepared<br />
+                      ⏳ Uploading to GitHub...
+                    </div>
+                  )}
+                </div>
+
+                {/* Real Error Box if deployment fails */}
+                {deployError && (
+                  <div className="p-3 bg-rose-950/80 border border-rose-500/50 rounded-xl text-rose-200 text-xs space-y-1">
+                    <p className="font-bold flex items-center gap-1.5 text-rose-300">
+                      <AlertCircle className="w-4 h-4 text-rose-400" />
+                      Hata Detayı:
+                    </p>
+                    <p className="font-mono text-[11px] text-rose-200">{deployError}</p>
+                    <p className="text-[10px] text-amber-300 font-sans pt-1">
+                      Bakım modu aktif tutulmuştur. Yönetici panelinden hatayı inceleyebilirsiniz.
+                    </p>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
