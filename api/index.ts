@@ -788,12 +788,15 @@ async function saveAndUploadImageToGithub(
     } catch (e) {}
 
     const commitSha = putData?.commit?.sha || putData?.content?.sha || "sha_unknown";
+    const returnedPath = putData?.content?.path || relativePath;
+
     logs.push(`✓ Uploaded (Commit SHA: ${commitSha})`);
     logs.push(`Commit SHA: ${commitSha}`);
+    logs.push(`Returned Path: ${returnedPath}`);
 
-    // 3. STRICT FILE EXISTENCE VERIFICATION VIA GITHUB CONTENTS API (GET)
-    logs.push("🔍 Verifying file existence in GitHub repository...");
-    const verifyRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}?ref=${branch}`, {
+    // 3. STRICT FILE EXISTENCE VERIFICATION VIA GITHUB CONTENTS API (GET) USING response.content.path
+    logs.push("🔍 Verifying file existence in GitHub repository via Contents API...");
+    const verifyRes = await fetch(`https://api.github.com/repos/${repo}/contents/${returnedPath}?ref=${branch}`, {
       headers: {
         "Authorization": `Bearer ${token}`,
         "User-Agent": "IremComfortApp"
@@ -818,7 +821,7 @@ async function saveAndUploadImageToGithub(
     }
 
     // 4. GENERATE RAW URL ONLY AFTER SUCCESSFUL VERIFICATION (HTTP 200)
-    const rawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/${relativePath}`;
+    const rawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/${returnedPath}`;
     logs.push("🔗 Raw URL");
     logs.push(rawUrl);
     logs.push("✓ URL Verified");
