@@ -768,48 +768,62 @@ app.get("/uploads/*", async (req, res) => {
          cleanSubPath.endsWith(".webp") ? "image/webp" : 
          cleanSubPath.endsWith(".svg") ? "image/svg+xml" : "image/jpeg");
 
-      // Cache in memory for instant subsequent loads
       inMemoryUploadsCache.set(publicUrl, { buffer, contentType, updatedAt: Date.now() });
       inMemoryUploadsCache.set(publicUrlLower, { buffer, contentType, updatedAt: Date.now() });
 
-      // Save locally if disk is writable
       try {
         const dir = path.dirname(localFilePath);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(localFilePath, buffer);
-      } catch (e) {
-        // ignore read-only error
-      }
+      } catch (e) {}
 
       res.setHeader("Content-Type", contentType);
       res.setHeader("Cache-Control", "public, max-age=86400");
       return res.send(buffer);
     } else if (token && repo) {
-      // Direct GitHub API contents fallback (instant commit read bypassing CDN delay)
+      // Direct GitHub API folder/file fallback with case-insensitive search
       try {
-        const apiRes = await fetch(`https://api.github.com/repos/${repo}/contents/public/uploads/${cleanSubPath}?ref=${branch}`, {
+        const parts = cleanSubPath.split('/');
+        const folder = parts.length > 1 ? parts[0] : '';
+        const targetFilenameLower = (parts.length > 1 ? parts[1] : parts[0]).toLowerCase();
+
+        // Query folder contents to bypass case-sensitivity or exact path mismatch
+        const folderApiUrl = folder 
+          ? `https://api.github.com/repos/${repo}/contents/public/uploads/${folder}?ref=${branch}`
+          : `https://api.github.com/repos/${repo}/contents/public/uploads?ref=${branch}`;
+
+        const apiRes = await fetch(folderApiUrl, {
           headers: { "Authorization": `Bearer ${token}`, "User-Agent": "IremComfortApp" }
         });
+
         if (apiRes.ok) {
-          const apiData = await apiRes.json();
-          if (apiData && apiData.content) {
-            const buffer = Buffer.from(apiData.content, apiData.encoding === "base64" ? "base64" : "utf-8");
-            const contentType = cleanSubPath.endsWith(".png") ? "image/png" : 
-              cleanSubPath.endsWith(".webp") ? "image/webp" : 
-              cleanSubPath.endsWith(".svg") ? "image/svg+xml" : "image/jpeg";
+          const items = await apiRes.json();
+          if (Array.isArray(items)) {
+            const matchedFile = items.find((item: any) => item.type === "file" && item.name.toLowerCase() === targetFilenameLower);
+            if (matchedFile && matchedFile.download_url) {
+              const fileRes = await fetch(matchedFile.download_url, {
+                headers: { "Authorization": `Bearer ${token}`, "User-Agent": "IremComfortApp" }
+              });
+              if (fileRes.ok) {
+                const arrayBuffer = await fileRes.arrayBuffer();
+                const buffer = Buffer.from(arrayBuffer);
+                const ext = path.extname(matchedFile.name).toLowerCase();
+                const contentType = ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : ext === ".svg" ? "image/svg+xml" : "image/jpeg";
 
-            inMemoryUploadsCache.set(publicUrl, { buffer, contentType, updatedAt: Date.now() });
-            inMemoryUploadsCache.set(publicUrlLower, { buffer, contentType, updatedAt: Date.now() });
+                inMemoryUploadsCache.set(publicUrl, { buffer, contentType, updatedAt: Date.now() });
+                inMemoryUploadsCache.set(publicUrlLower, { buffer, contentType, updatedAt: Date.now() });
 
-            try {
-              const dir = path.dirname(localFilePath);
-              if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-              fs.writeFileSync(localFilePath, buffer);
-            } catch (e) {}
+                try {
+                  const dir = path.dirname(localFilePath);
+                  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+                  fs.writeFileSync(localFilePath, buffer);
+                } catch (e) {}
 
-            res.setHeader("Content-Type", contentType);
-            res.setHeader("Cache-Control", "public, max-age=86400");
-            return res.send(buffer);
+                res.setHeader("Content-Type", contentType);
+                res.setHeader("Cache-Control", "public, max-age=86400");
+                return res.send(buffer);
+              }
+            }
           }
         }
       } catch (apiErr) {
@@ -817,14 +831,20 @@ app.get("/uploads/*", async (req, res) => {
       }
     }
 
-    // 4. Fallback to default logo as JPEG image so browser image renders gracefully
+    // 4. Fallback to default logo or elegant SVG placeholder so browser NEVER breaks <img />
     const logoPath = path.join(process.cwd(), "public", "uploads", "logo", "irem-comfort-logo.jpg");
-    if (fs.existsSync(logoPath)) {
-      res.setHeader("Content-Type", "image/jpeg");
-      return res.sendFile(logoPath);
+    if (fs.existsSync(logoPath) && fs.statSync(logoPath).isFile()) {
+      const logoContent = fs.readFileSync(logoPath);
+      const isSvg = logoContent.toString('utf-8', 0, 50).includes('<svg');
+      res.setHeader("Content-Type", isSvg ? "image/svg+xml" : "image/jpeg");
+      res.setHeader("Cache-Control", "no-cache");
+      return res.send(logoContent);
     }
 
-    return res.status(404).send("Görsel bulunamadı");
+    // Dynamic inline SVG placeholder fallback if logo file is unreadable
+    const svgFallback = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="#0f172a"/><rect x="20" y="20" width="560" height="360" rx="16" fill="#1e293b" stroke="#334155" stroke-width="2"/><text x="300" y="200" font-family="'Playfair Display', Georgia, serif" font-size="28" font-weight="bold" fill="#f59e0b" text-anchor="middle">İREM COMFORT</text><text x="300" y="240" font-family="sans-serif" font-size="13" fill="#94a3b8" letter-spacing="2" text-anchor="middle">LUXURY MOBİLYA</text></svg>`;
+    res.setHeader("Content-Type", "image/svg+xml");
+    return res.status(200).send(svgFallback);
   } catch (err) {
     console.error("Error serving upload image:", err);
     return res.status(500).send("Görsel sunucu hatası");

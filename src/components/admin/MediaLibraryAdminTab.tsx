@@ -363,7 +363,7 @@ export const MediaLibraryAdminTab: React.FC = () => {
                 {/* Image Thumbnail */}
                 <div className="relative aspect-square bg-slate-950 overflow-hidden flex items-center justify-center p-2">
                   <img 
-                    src={file.path} 
+                    src={file.path.startsWith('http') ? file.path : `/uploads/${file.folder}/${file.name}`} 
                     alt={file.name} 
                     className="max-h-full max-w-full object-contain rounded-lg group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
@@ -516,7 +516,7 @@ export const MediaLibraryAdminTab: React.FC = () => {
 
             <div className="bg-slate-950 p-4 rounded-2xl flex items-center justify-center min-h-[250px] max-h-[400px]">
               <img 
-                src={previewFile.path} 
+                src={previewFile.path.startsWith('http') ? previewFile.path : `/uploads/${previewFile.folder}/${previewFile.name}`} 
                 alt={previewFile.name} 
                 className="max-h-[350px] object-contain rounded-lg"
                 onError={(e) => {

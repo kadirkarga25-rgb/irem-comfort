@@ -241,14 +241,15 @@ export const ImageSelectModal: React.FC<ImageSelectModalProps> = ({
                       <div
                         key={file.path}
                         onClick={() => {
-                          onSelectSystemImage(file.path);
+                          const cleanUrl = file.path.startsWith('http') ? file.path : `/uploads/${file.folder}/${file.name}`;
+                          onSelectSystemImage(cleanUrl);
                           onClose();
                         }}
                         className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md hover:border-[#082C6C] transition cursor-pointer flex flex-col"
                       >
                         <div className="aspect-square bg-slate-100 relative overflow-hidden flex items-center justify-center">
                           <img
-                            src={file.path}
+                            src={file.path.startsWith('http') ? file.path : `/uploads/${file.folder}/${file.name}`}
                             alt={file.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             onError={(e) => {
