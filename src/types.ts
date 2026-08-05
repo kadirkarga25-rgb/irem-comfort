@@ -70,4 +70,39 @@ export interface AboutSlide {
   alt: string;
 }
 
+export interface SystemConfig {
+  isMaintenanceMode: boolean;
+  autoMaintenanceOnDeploy: boolean;
+  isDeploying: boolean;
+  lastDeployedAt: string | null;
+  maintenanceTitle: string;
+  maintenanceMessage: string;
+  deployingMessage: string;
+  githubRepo: string;
+  githubBranch: string;
+  introVideoUrl?: string;
+  enableLaunchIntro?: boolean;
+  stage1Text?: string;
+  stage2Text?: string;
+}
+
+export interface SeoConfig {
+  metaTitle: string;
+  metaDescription: string;
+  metaKeywords: string;
+  ogImage: string;
+  canonicalUrl: string;
+  robotsTxt: string;
+  sitemapXml: string;
+}
+
+export interface MediaFile {
+  id: string;
+  name: string;
+  path: string;
+  folder: string;
+  size: number;
+  updatedAt: string;
+}
+
 

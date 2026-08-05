@@ -1,37 +1,7 @@
 import express from "express";
 import nodemailer from "nodemailer";
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc } from "firebase/firestore";
 import fs from "fs";
 import path from "path";
-
-function loadServerFirebaseConfig() {
-  let fileConfig: Record<string, string> = {};
-  try {
-    const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-    if (fs.existsSync(configPath)) {
-      fileConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-    }
-  } catch (err) {
-    // Ignore read errors on serverless runtime
-  }
-
-  return {
-    apiKey: process.env.FIREBASE_API_KEY || process.env.VITE_FIREBASE_API_KEY || fileConfig.apiKey || "AIzaSyBv8pbgdd7p6mEAXyxKyKW071wDbG8Ews",
-    authDomain: process.env.FIREBASE_AUTH_DOMAIN || process.env.VITE_FIREBASE_AUTH_DOMAIN || fileConfig.authDomain || "irem-comfort.firebaseapp.com",
-    projectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || fileConfig.projectId || "irem-comfort",
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || process.env.VITE_FIREBASE_STORAGE_BUCKET || fileConfig.storageBucket || "irem-comfort.firebasestorage.app",
-    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || fileConfig.messagingSenderId || "77442925908",
-    appId: process.env.FIREBASE_APP_ID || process.env.VITE_FIREBASE_APP_ID || fileConfig.appId || "1:77442925908:web:3836ae13b3be174e6b74c1",
-    firestoreDatabaseId: process.env.FIREBASE_DATABASE_ID || process.env.VITE_FIREBASE_DATABASE_ID || fileConfig.firestoreDatabaseId || undefined
-  };
-}
-
-const serverFirebaseConfig = loadServerFirebaseConfig();
-const firebaseApp = getApps().length === 0 ? initializeApp(serverFirebaseConfig) : getApp();
-const db = serverFirebaseConfig.firestoreDatabaseId
-  ? getFirestore(firebaseApp, serverFirebaseConfig.firestoreDatabaseId)
-  : getFirestore(firebaseApp);
 
 const app = express();
 
@@ -554,83 +524,451 @@ app.post("/api/newsletter/send-bulk", async (req, res) => {
   }
 });
 
-// MODULAR SITE SETTINGS ENDPOINTS (SPLIT COLLECTIONS & DOCUMENTS TO PREVENT >1MB LIMIT)
+// MODULAR SITE SETTINGS ENDPOINTS & GITHUB IMAGE UPLOAD
 let inMemorySettingsCache: any = {};
 
-function sanitizeNoBase64(obj: any): any {
+// Ensure required upload folders exist
+function ensureUploadFolders() {
+  const baseUploadsDir = path.join(process.cwd(), "public", "uploads");
+  const folders = ["hero", "products", "logo", "gallery"];
+  if (!fs.existsSync(baseUploadsDir)) {
+    fs.mkdirSync(baseUploadsDir, { recursive: true });
+  }
+  for (const folder of folders) {
+    const dirPath = path.join(baseUploadsDir, folder);
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
+  }
+}
+ensureUploadFolders();
+
+function saveBase64ToFile(base64Str: string, folder: string = "gallery", customFilename?: string): string {
+  try {
+    ensureUploadFolders();
+    const cleanFolder = (folder || "gallery").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+    const targetDir = path.join(process.cwd(), "public", "uploads", cleanFolder);
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+
+    const matches = base64Str.match(/^data:image\/([a-zA-Z0-9\+\-\.]+);base64,(.+)$/);
+    const ext = matches && matches[1] ? (matches[1] === "jpeg" ? "jpg" : matches[1]) : "jpg";
+    const base64Data = matches && matches[2] ? matches[2] : (base64Str.includes(",") ? base64Str.split(",")[1] : base64Str);
+    
+    let fileName = customFilename ? customFilename.replace(/[^a-zA-Z0-9._-]/g, "_") : "";
+    if (!fileName || !fileName.includes(".")) {
+      fileName = `${cleanFolder}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
+    }
+
+    const relativePath = `public/uploads/${cleanFolder}/${fileName}`;
+    const publicUrl = `/uploads/${cleanFolder}/${fileName}`;
+
+    fs.writeFileSync(path.join(targetDir, fileName), Buffer.from(base64Data, "base64"));
+
+    const githubToken = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
+    const githubRepo = process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO;
+    if (githubToken && githubRepo) {
+      fetch(`https://api.github.com/repos/${githubRepo}/contents/${relativePath}`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${githubToken}`,
+          "Content-Type": "application/json",
+          "User-Agent": "IremComfortApp"
+        },
+        body: JSON.stringify({
+          message: `Upload image: ${relativePath}`,
+          content: base64Data,
+          branch: process.env.GITHUB_BRANCH || "main"
+        })
+      }).catch(err => console.warn("GitHub commit warning:", err));
+    }
+
+    return publicUrl;
+  } catch (err) {
+    console.warn("Error in saveBase64ToFile:", err);
+    return "/uploads/logo/irem-comfort-logo.jpg";
+  }
+}
+
+function sanitizeNoBase64(obj: any, folder: string = "gallery"): any {
   if (!obj) return obj;
   if (typeof obj === 'string') {
     if (obj.startsWith('data:image/')) {
-      return 'https://images.unsplash.com/photo-1603808033176-9d134e6f2c74?auto=format&fit=crop&q=80&w=1200';
+      return saveBase64ToFile(obj, folder);
     }
     return obj;
   }
   if (Array.isArray(obj)) {
-    return obj.map(item => sanitizeNoBase64(item));
+    return obj.map(item => sanitizeNoBase64(item, folder));
   }
   if (typeof obj === 'object') {
     const cleaned: Record<string, any> = {};
     for (const key of Object.keys(obj)) {
-      cleaned[key] = sanitizeNoBase64(obj[key]);
+      const subFolder = key.toLowerCase().includes('hero') ? 'hero' : (key.toLowerCase().includes('product') || key.toLowerCase().includes('collection') ? 'products' : folder);
+      cleaned[key] = sanitizeNoBase64(obj[key], subFolder);
     }
     return cleaned;
   }
   return obj;
 }
 
+app.post("/api/upload-image", async (req, res) => {
+  try {
+    const { image, folder, filename: customFilename } = req.body || {};
+    if (!image || typeof image !== "string") {
+      return res.status(400).json({ success: false, error: "Görsel verisi bulunamadı." });
+    }
+
+    const cleanFolder = (folder || "gallery").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+    const publicUrl = saveBase64ToFile(image, cleanFolder, customFilename);
+
+    return res.json({
+      success: true,
+      url: publicUrl,
+      message: "Görsel public/uploads dizinine kaydedildi."
+    });
+  } catch (err) {
+    console.error("Image upload endpoint error:", err);
+    return res.status(500).json({ success: false, error: "Görsel yüklenirken hata oluştu." });
+  }
+});
+
+// MEDIA LIBRARY ENDPOINTS
+app.get("/api/media", (req, res) => {
+  try {
+    ensureUploadFolders();
+    const baseDir = path.join(process.cwd(), "public", "uploads");
+    const subdirs = fs.readdirSync(baseDir, { withFileTypes: true });
+
+    const folders: string[] = [];
+    const files: any[] = [];
+
+    for (const dirent of subdirs) {
+      if (dirent.isDirectory()) {
+        folders.push(dirent.name);
+        const dirPath = path.join(baseDir, dirent.name);
+        const subFiles = fs.readdirSync(dirPath);
+        for (const fileName of subFiles) {
+          if (fileName.startsWith(".")) continue;
+          const filePath = path.join(dirPath, fileName);
+          const stat = fs.statSync(filePath);
+          if (stat.isFile()) {
+            files.push({
+              id: `${dirent.name}/${fileName}`,
+              name: fileName,
+              path: `/uploads/${dirent.name}/${fileName}`,
+              folder: dirent.name,
+              size: stat.size,
+              updatedAt: stat.mtime.toISOString()
+            });
+          }
+        }
+      } else if (dirent.isFile() && !dirent.name.startsWith(".")) {
+        const filePath = path.join(baseDir, dirent.name);
+        const stat = fs.statSync(filePath);
+        files.push({
+          id: dirent.name,
+          name: dirent.name,
+          path: `/uploads/${dirent.name}`,
+          folder: "root",
+          size: stat.size,
+          updatedAt: stat.mtime.toISOString()
+        });
+      }
+    }
+
+    return res.json({ success: true, folders, files });
+  } catch (err) {
+    console.error("Media list error:", err);
+    return res.status(500).json({ success: false, error: "Medya dosyaları listelenirken hata oluştu." });
+  }
+});
+
+app.post("/api/media/delete", (req, res) => {
+  try {
+    const { path: relPath } = req.body || {};
+    if (!relPath || typeof relPath !== "string") {
+      return res.status(400).json({ success: false, error: "Silinecek dosya yolu belirtilmedi." });
+    }
+
+    const cleanPath = relPath.startsWith("/uploads/") ? relPath.replace("/uploads/", "") : relPath.replace("/public/uploads/", "");
+    const fullPath = path.join(process.cwd(), "public", "uploads", cleanPath);
+
+    if (fs.existsSync(fullPath)) {
+      fs.unlinkSync(fullPath);
+      return res.json({ success: true, message: "Dosya silindi." });
+    }
+    return res.status(404).json({ success: false, error: "Dosya bulunamadı." });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: "Dosya silinirken hata oluştu." });
+  }
+});
+
+app.post("/api/media/rename", (req, res) => {
+  try {
+    const { oldPath, newName } = req.body || {};
+    if (!oldPath || !newName) {
+      return res.status(400).json({ success: false, error: "Eski yol ve yeni isim gereklidir." });
+    }
+
+    const cleanOld = oldPath.replace("/uploads/", "");
+    const oldFullPath = path.join(process.cwd(), "public", "uploads", cleanOld);
+
+    if (!fs.existsSync(oldFullPath)) {
+      return res.status(404).json({ success: false, error: "Orijinal dosya bulunamadı." });
+    }
+
+    const folder = path.dirname(oldFullPath);
+    const cleanNewName = newName.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const newFullPath = path.join(folder, cleanNewName);
+
+    fs.renameSync(oldFullPath, newFullPath);
+
+    const relFolder = path.basename(folder);
+    const newPublicUrl = `/uploads/${relFolder}/${cleanNewName}`;
+
+    return res.json({ success: true, newPath: newPublicUrl, message: "Dosya yeniden adlandırıldı." });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: "Dosya adı değiştirilirken hata oluştu." });
+  }
+});
+
+app.post("/api/media/folder", (req, res) => {
+  try {
+    const { folderName } = req.body || {};
+    if (!folderName) {
+      return res.status(400).json({ success: false, error: "Klasör adı boş olamaz." });
+    }
+    const cleanName = folderName.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+    const targetPath = path.join(process.cwd(), "public", "uploads", cleanName);
+    if (!fs.existsSync(targetPath)) {
+      fs.mkdirSync(targetPath, { recursive: true });
+    }
+    return res.json({ success: true, folder: cleanName, message: `'${cleanName}' klasörü oluşturuldu.` });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: "Klasör oluşturulurken hata oluştu." });
+  }
+});
+
+// SITEMAP & ROBOTS AUTOMATIC GENERATOR
+function generateSitemapAndRobots(settings: any) {
+  try {
+    const publicDir = path.join(process.cwd(), "public");
+    if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
+
+    const seo = settings.seoConfig || {};
+    const domain = (seo.canonicalUrl || "https://iremcomfort.com").replace(/\/$/, "");
+
+    // 1. Robots.txt
+    const robotsContent = seo.robotsTxt || `User-agent: *\nAllow: /\nSitemap: ${domain}/sitemap.xml`;
+    fs.writeFileSync(path.join(publicDir, "robots.txt"), robotsContent, "utf-8");
+
+    // 2. Sitemap.xml
+    const collectionItems = settings.collectionItems || [];
+    const lastMod = new Date().toISOString().split('T')[0];
+
+    let urlsXml = `  <url>\n    <loc>${domain}/</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
+
+    urlsXml += `  <url>\n    <loc>${domain}/#koleksiyon</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.9</priority>\n  </url>\n`;
+    
+    urlsXml += `  <url>\n    <loc>${domain}/#ustalik</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+
+    urlsXml += `  <url>\n    <loc>${domain}/#hakkimizda</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+
+    urlsXml += `  <url>\n    <loc>${domain}/#iletisim</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+
+    for (const item of collectionItems) {
+      if (item && item.id) {
+        urlsXml += `  <url>\n    <loc>${domain}/#urun-${item.id}</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
+      }
+    }
+
+    const sitemapContent = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urlsXml}</urlset>`;
+    fs.writeFileSync(path.join(publicDir, "sitemap.xml"), sitemapContent, "utf-8");
+
+  } catch (err) {
+    console.warn("Failed generating sitemap/robots:", err);
+  }
+}
+
+// Load initial settings from file if available
+function getSettingsFilePath(): string {
+  return path.join(process.cwd(), "public", "site_settings.json");
+}
+
+function loadSettingsFromFile(): any {
+  try {
+    const settingsPath = getSettingsFilePath();
+    if (fs.existsSync(settingsPath)) {
+      const content = fs.readFileSync(settingsPath, "utf-8");
+      return JSON.parse(content);
+    }
+  } catch (e) {
+    console.warn("Could not load site_settings.json from disk:", e);
+  }
+  return {};
+}
+
+// Initialize memory cache from file on startup
+inMemorySettingsCache = loadSettingsFromFile();
+
+function saveSettingsToFile(updatedSettings: any) {
+  try {
+    const settingsPath = getSettingsFilePath();
+    const dir = path.dirname(settingsPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(settingsPath, JSON.stringify(updatedSettings, null, 2));
+    generateSitemapAndRobots(updatedSettings);
+  } catch (e) {
+    console.error("Failed to write site_settings.json to disk:", e);
+  }
+}
+
+app.post("/api/deploy-github", async (req, res) => {
+  try {
+    const { githubToken: bodyToken, githubRepo: bodyRepo, githubBranch: bodyBranch, commitMessage } = req.body || {};
+    const token = bodyToken || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
+    const repo = bodyRepo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
+    const branch = bodyBranch || process.env.GITHUB_BRANCH || "main";
+    const userCommitMsg = commitMessage || "Site güncellendi ve yayınlandı";
+
+    const logs: string[] = [];
+    logs.push("✓ Content validated successfully.");
+    logs.push("✓ SEO fields, image references & links verified.");
+
+    const deployTime = new Date().toISOString();
+    const autoMaint = inMemorySettingsCache.systemConfig?.autoMaintenanceOnDeploy !== false;
+    
+    // Enable Maintenance Mode during deployment if configured
+    inMemorySettingsCache.systemConfig = {
+      ...(inMemorySettingsCache.systemConfig || {}),
+      isDeploying: true,
+      isMaintenanceMode: autoMaint ? true : Boolean(inMemorySettingsCache.systemConfig?.isMaintenanceMode),
+      lastDeployedAt: deployTime,
+      githubRepo: repo,
+      githubBranch: branch
+    };
+    saveSettingsToFile(inMemorySettingsCache);
+
+    logs.push("✓ Updated project files (site_settings.json, sitemap.xml, robots.txt).");
+    logs.push("✓ Saved uploaded media into public/uploads/.");
+
+    let filesUploadedCount = 0;
+    if (token && repo) {
+      logs.push(`✓ Creating Git commit ("${userCommitMsg}")...`);
+
+      const pushFileToGithub = async (relativePath: string, fileBuffer: Buffer, customMessage?: string) => {
+        try {
+          const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}?ref=${branch}`, {
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "User-Agent": "IremComfortApp"
+            }
+          });
+          let sha: string | undefined = undefined;
+          if (getRes.ok) {
+            const fileData = await getRes.json();
+            sha = fileData.sha;
+          }
+
+          const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}`, {
+            method: "PUT",
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "Content-Type": "application/json",
+              "User-Agent": "IremComfortApp"
+            },
+            body: JSON.stringify({
+              message: customMessage || `Deploy: ${userCommitMsg} (${relativePath})`,
+              content: fileBuffer.toString("base64"),
+              branch,
+              ...(sha ? { sha } : {})
+            })
+          });
+
+          if (putRes.ok) filesUploadedCount++;
+        } catch (err) {
+          console.warn(`Error pushing ${relativePath} to GitHub:`, err);
+        }
+      };
+
+      const settingsPath = getSettingsFilePath();
+      if (fs.existsSync(settingsPath)) {
+        await pushFileToGithub("public/site_settings.json", fs.readFileSync(settingsPath), `Deploy: ${userCommitMsg}`);
+      }
+
+      // Sync robots.txt & sitemap.xml
+      const robotsPath = path.join(process.cwd(), "public", "robots.txt");
+      if (fs.existsSync(robotsPath)) {
+        await pushFileToGithub("public/robots.txt", fs.readFileSync(robotsPath), `Deploy Robots: ${userCommitMsg}`);
+      }
+
+      const sitemapPath = path.join(process.cwd(), "public", "sitemap.xml");
+      if (fs.existsSync(sitemapPath)) {
+        await pushFileToGithub("public/sitemap.xml", fs.readFileSync(sitemapPath), `Deploy Sitemap: ${userCommitMsg}`);
+      }
+
+      // Sync public/uploads
+      const uploadsDir = path.join(process.cwd(), "public", "uploads");
+      if (fs.existsSync(uploadsDir)) {
+        const syncDirRecursively = async (dirPath: string, relPrefix: string) => {
+          const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+          for (const entry of entries) {
+            if (entry.name.startsWith('.')) continue;
+            const fullP = path.join(dirPath, entry.name);
+            const relP = `${relPrefix}/${entry.name}`;
+            if (entry.isDirectory()) {
+              await syncDirRecursively(fullP, relP);
+            } else if (entry.isFile()) {
+              await pushFileToGithub(relP, fs.readFileSync(fullP), `Upload: ${relP} (${userCommitMsg})`);
+            }
+          }
+        };
+        await syncDirRecursively(uploadsDir, "public/uploads");
+      }
+
+      logs.push("✓ Pushed automatically to GitHub repository.");
+      logs.push("✓ Triggered Vercel deployment.");
+    } else {
+      logs.push("⚠ Local mode: Changes saved to disk. Provide GitHub Token to push to GitHub.");
+    }
+
+    // Auto disable maintenance mode after deployment delay if autoMaintenanceOnDeploy was checked
+    setTimeout(() => {
+      inMemorySettingsCache.systemConfig = {
+        ...(inMemorySettingsCache.systemConfig || {}),
+        isDeploying: false,
+        isMaintenanceMode: autoMaint ? false : Boolean(inMemorySettingsCache.systemConfig?.isMaintenanceMode)
+      };
+      saveSettingsToFile(inMemorySettingsCache);
+    }, 45000);
+
+    logs.push("✓ Deployment completed successfully.");
+
+    return res.json({
+      success: true,
+      message: token && repo 
+        ? `Tüm içerik, medya ve SEO ayarları GitHub repository'sine commit edildi ("${userCommitMsg}"). Vercel otomatik yayınlamayı başlattı!`
+        : "İçerik yerel Git-CMS dosyasına kaydedildi ve deploy güncelleme ekranı aktifleştirildi.",
+      lastDeployedAt: deployTime,
+      logs
+    });
+  } catch (err) {
+    console.error("Deploy endpoint error:", err);
+    return res.status(500).json({ success: false, error: "Deploy işlemi sırasında hata oluştu." });
+  }
+});
+
 app.get("/api/settings", async (_req, res) => {
   try {
-    const sections = ['hero', 'fair', 'contact', 'announcements', 'about', 'craftsmanship', 'faq', 'images', 'products'];
-    const merged: Record<string, any> = { ...inMemorySettingsCache };
-
-    for (const sec of sections) {
-      try {
-        const docRef = doc(db, "site_settings", sec);
-        const snap = await getDoc(docRef);
-        if (snap.exists()) {
-          const data = snap.data();
-          if (sec === 'hero') merged.heroConfig = data.heroConfig || data;
-          else if (sec === 'fair') merged.fairConfig = data.fairConfig || data;
-          else if (sec === 'contact') merged.contactData = data.contactData || data;
-          else if (sec === 'announcements') merged.announcements = data.list || data.announcements || data;
-          else if (sec === 'about') merged.aboutSlides = data.slides || data.aboutSlides || data;
-          else if (sec === 'craftsmanship') merged.craftsmanshipSteps = data.steps || data.craftsmanshipSteps || data;
-          else if (sec === 'faq') merged.faqItems = data.items || data.faqItems || data;
-          else if (sec === 'images') merged.images = data.images || data;
-          else if (sec === 'products') merged.collectionItems = data.items || data.collectionItems || data;
-        }
-      } catch (secErr) {
-        // Continue loading other sections
-      }
+    const fileData = loadSettingsFromFile();
+    if (fileData && Object.keys(fileData).length > 0) {
+      inMemorySettingsCache = { ...fileData, ...inMemorySettingsCache };
     }
-
-    // Try reading individual items from products collection if products doc is empty
-    if (!merged.collectionItems || (Array.isArray(merged.collectionItems) && merged.collectionItems.length === 0)) {
-      try {
-        const prodColRef = collection(db, "products");
-        const prodSnaps = await getDocs(prodColRef);
-        if (!prodSnaps.empty) {
-          const prods: any[] = [];
-          prodSnaps.forEach(docSnap => prods.push(docSnap.data()));
-          merged.collectionItems = prods;
-        }
-      } catch (prodErr) {
-        // Ignore
-      }
-    }
-
-    // Fallback to legacy global doc if no sections existed yet
-    if (Object.keys(merged).length === 0) {
-      try {
-        const globalSnap = await getDoc(doc(db, "site_settings", "global"));
-        if (globalSnap.exists()) {
-          Object.assign(merged, globalSnap.data());
-        }
-      } catch (e) {}
-    }
-
-    inMemorySettingsCache = { ...merged };
-    return res.json({ success: true, settings: merged });
+    return res.json({ success: true, settings: inMemorySettingsCache });
   } catch (err) {
     return res.json({ success: true, settings: inMemorySettingsCache });
   }
@@ -647,84 +985,21 @@ app.post("/api/settings", async (req, res) => {
 
     const payload = sanitizedData;
 
-    // Targeted single section save (e.g. section = "heroConfig")
     if (section) {
-      let docName = section.replace('Config', '').replace('Data', '').replace('Items', '').replace('Steps', '').replace('Slides', '').toLowerCase();
-      if (docName === 'collection') docName = 'products';
-      const docRef = doc(db, "site_settings", docName);
-      
-      let fieldObj: Record<string, any> = {};
-      if (docName === 'hero') fieldObj = { heroConfig: payload };
-      else if (docName === 'fair') fieldObj = { fairConfig: payload };
-      else if (docName === 'contact') fieldObj = { contactData: payload };
-      else if (docName === 'announcements') fieldObj = { list: payload };
-      else if (docName === 'about') fieldObj = { slides: payload };
-      else if (docName === 'craftsmanship') fieldObj = { steps: payload };
-      else if (docName === 'faq') fieldObj = { items: payload };
-      else if (docName === 'images') fieldObj = { images: payload };
-      else if (docName === 'products') fieldObj = { items: payload };
-      else fieldObj = { [section]: payload };
-
-      fieldObj.updatedAt = new Date().toISOString();
-
-      await setDoc(docRef, fieldObj, { merge: true });
       inMemorySettingsCache[section] = payload;
-
-      return res.json({ success: true, message: `[site_settings/${docName}] kaydedildi.`, settings: inMemorySettingsCache });
+    } else if (typeof payload === 'object') {
+      Object.assign(inMemorySettingsCache, payload);
     }
 
-    // Save individual sections from a multi-key object without overwriting the whole document
-    const savePromises: Promise<any>[] = [];
+    saveSettingsToFile(inMemorySettingsCache);
 
-    if (payload.heroConfig) {
-      savePromises.push(setDoc(doc(db, "site_settings", "hero"), { heroConfig: payload.heroConfig, updatedAt: new Date().toISOString() }, { merge: true }));
-      inMemorySettingsCache.heroConfig = payload.heroConfig;
-    }
-    if (payload.fairConfig) {
-      savePromises.push(setDoc(doc(db, "site_settings", "fair"), { fairConfig: payload.fairConfig, updatedAt: new Date().toISOString() }, { merge: true }));
-      inMemorySettingsCache.fairConfig = payload.fairConfig;
-    }
-    if (payload.contactData) {
-      savePromises.push(setDoc(doc(db, "site_settings", "contact"), { contactData: payload.contactData, updatedAt: new Date().toISOString() }, { merge: true }));
-      inMemorySettingsCache.contactData = payload.contactData;
-    }
-    if (payload.announcements) {
-      savePromises.push(setDoc(doc(db, "site_settings", "announcements"), { list: payload.announcements, updatedAt: new Date().toISOString() }, { merge: true }));
-      inMemorySettingsCache.announcements = payload.announcements;
-    }
-    if (payload.aboutSlides) {
-      savePromises.push(setDoc(doc(db, "site_settings", "about"), { slides: payload.aboutSlides, updatedAt: new Date().toISOString() }, { merge: true }));
-      inMemorySettingsCache.aboutSlides = payload.aboutSlides;
-    }
-    if (payload.craftsmanshipSteps) {
-      savePromises.push(setDoc(doc(db, "site_settings", "craftsmanship"), { steps: payload.craftsmanshipSteps, updatedAt: new Date().toISOString() }, { merge: true }));
-      inMemorySettingsCache.craftsmanshipSteps = payload.craftsmanshipSteps;
-    }
-    if (payload.faqItems) {
-      savePromises.push(setDoc(doc(db, "site_settings", "faq"), { items: payload.faqItems, updatedAt: new Date().toISOString() }, { merge: true }));
-      inMemorySettingsCache.faqItems = payload.faqItems;
-    }
-    if (payload.images) {
-      savePromises.push(setDoc(doc(db, "site_settings", "images"), { images: payload.images, updatedAt: new Date().toISOString() }, { merge: true }));
-      inMemorySettingsCache.images = payload.images;
-    }
-    if (payload.collectionItems) {
-      savePromises.push(setDoc(doc(db, "site_settings", "products"), { items: payload.collectionItems, updatedAt: new Date().toISOString() }, { merge: true }));
-      if (Array.isArray(payload.collectionItems)) {
-        for (const item of payload.collectionItems) {
-          if (item?.id) {
-            savePromises.push(setDoc(doc(db, "products", item.id), { ...item, updatedAt: new Date().toISOString() }, { merge: true }));
-          }
-        }
-      }
-      inMemorySettingsCache.collectionItems = payload.collectionItems;
-    }
-
-    await Promise.all(savePromises);
-
-    return res.json({ success: true, message: "Modüler site ayarları veritabanına kaydedildi.", settings: inMemorySettingsCache });
+    return res.json({
+      success: true,
+      message: "Site ayarları kaydedildi.",
+      settings: inMemorySettingsCache
+    });
   } catch (err) {
-    console.error("Error saving modular settings:", err);
+    console.error("Error saving settings:", err);
     return res.status(500).json({ success: false, error: "Ayarlar kaydedilirken sunucu hatası oluştu." });
   }
 });

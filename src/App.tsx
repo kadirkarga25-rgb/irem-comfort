@@ -22,8 +22,13 @@ import { SurveyPage } from './components/secret/SurveyPage';
 import { NotFoundPage } from './components/ui/NotFoundPage';
 import { LegalModal, LegalDocType } from './components/ui/LegalModal';
 import { CookieConsent } from './components/ui/CookieConsent';
+import { MaintenanceView } from './components/ui/MaintenanceView';
+import { DeployingView } from './components/ui/DeployingView';
+import { useAppImages } from './context/ImageContext';
 
-export default function App() {
+function MainAppContent() {
+  const { systemConfig } = useAppImages();
+
   const [scrollY, setScrollY] = useState(0);
   const [activeSection, setActiveSection] = useState('hero');
   const [contactPrefill, setContactPrefill] = useState('');
@@ -141,7 +146,7 @@ export default function App() {
 
   // Initialize Lenis Smooth Scroll
   useEffect(() => {
-    if (isAdminView || isResetView || isRemoteView || isSurveyView || isNotFoundView) return; // Don't run lenis inside special/404 pages
+    if (isAdminView || isResetView || isRemoteView || isSurveyView || isNotFoundView || systemConfig.isMaintenanceMode || systemConfig.isDeploying) return;
 
     const lenis = new Lenis({
       duration: 1.2,
@@ -171,7 +176,6 @@ export default function App() {
     const updateActiveSection = () => {
       const currentScroll = window.scrollY + 140;
 
-      // Bottom of page check
       if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 60) {
         setActiveSection('contact');
         return;
@@ -199,7 +203,6 @@ export default function App() {
     lenis.on('scroll', handleScroll);
     window.addEventListener('scroll', handleScroll, { passive: true });
 
-    // Initial check
     updateActiveSection();
 
     return () => {
@@ -209,11 +212,11 @@ export default function App() {
       lenis.destroy();
       lenisRef.current = null;
     };
-  }, [isAdminView, isResetView, isRemoteView, isSurveyView, isNotFoundView, isFairModalOpen, legalModalDoc]);
+  }, [isAdminView, isResetView, isRemoteView, isSurveyView, isNotFoundView, systemConfig.isMaintenanceMode, systemConfig.isDeploying, isFairModalOpen, legalModalDoc]);
 
   // Secondary Intersection Observer backup for static positions
   useEffect(() => {
-    if (isAdminView || isNotFoundView) return;
+    if (isAdminView || isNotFoundView || systemConfig.isMaintenanceMode || systemConfig.isDeploying) return;
 
     const sectionIds = ['hero', 'about', 'collection', 'craftsmanship', 'why-us', 'faq', 'contact'];
     
@@ -236,7 +239,7 @@ export default function App() {
     });
 
     return () => observer.disconnect();
-  }, [isAdminView, isNotFoundView]);
+  }, [isAdminView, isNotFoundView, systemConfig.isMaintenanceMode, systemConfig.isDeploying]);
 
   const scrollToSection = (sectionId: string) => {
     const target = document.getElementById(sectionId);
@@ -270,77 +273,101 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // 1. Admin view always takes precedence so admin is never locked out
+  if (isAdminView) {
+    return <AdminPage onReturnToSite={returnToPublicSite} />;
+  }
+
+  // 2. Maintenance Mode view for public site
+  if (systemConfig.isMaintenanceMode) {
+    return <MaintenanceView />;
+  }
+
+  // 3. Deployment updating view for public site
+  if (systemConfig.isDeploying) {
+    return <DeployingView />;
+  }
+
+  if (isResetView) {
+    return <PasswordResetPage onReturnToSite={returnToPublicSite} />;
+  }
+
+  if (isRemoteView) {
+    return <RemoteManagementPage onReturnToSite={returnToPublicSite} />;
+  }
+
+  if (isSurveyView) {
+    return <SurveyPage onReturnToSite={returnToPublicSite} />;
+  }
+
+  if (isNotFoundView) {
+    return <NotFoundPage onReturnToSite={returnToPublicSite} />;
+  }
+
+  return (
+    <div className="min-h-screen bg-white text-[#111111] relative selection:bg-[#0A2D6F] selection:text-white">
+      {/* Fair Modal (When activated from Admin) */}
+      <FairModal isOpen={isFairModalOpen} onClose={() => setIsFairModalOpen(false)} />
+
+      {/* 1. Opening Experience Overlay */}
+      <OpeningExperience scrollY={scrollY} />
+
+      {/* 2. Glassmorphic Header Navigation */}
+      <Header
+        scrollY={scrollY}
+        activeSection={activeSection}
+        onNavigate={scrollToSection}
+        onOpenFairModal={() => setIsFairModalOpen(true)}
+      />
+
+      {/* 3. Main Sections */}
+      <main>
+        <HeroSection
+          onDiscoverClick={() => scrollToSection('collection')}
+          onCraftsmanshipClick={() => scrollToSection('craftsmanship')}
+        />
+
+        <AboutSection />
+
+        <CollectionSection onInquireProduct={handleInquireProduct} />
+
+        <CraftsmanshipSection />
+
+        <WhyIremComfortSection />
+
+        <FaqSection />
+
+        <ContactSection prefilledSubject={contactPrefill} />
+
+        <NewsletterSection />
+      </main>
+
+      {/* 4. Footer */}
+      <Footer
+        onNavigate={scrollToSection}
+        onAdminClick={() => setIsAdminView(true)}
+        onOpenLegalDoc={(doc) => setLegalModalDoc(doc)}
+      />
+
+      {/* Legal Modal (Privacy, KVKK, Cookies) */}
+      <LegalModal
+        isOpen={Boolean(legalModalDoc)}
+        initialType={legalModalDoc || 'privacy'}
+        onClose={() => setLegalModalDoc(null)}
+      />
+
+      {/* Cookie Consent Banner */}
+      <CookieConsent
+        onOpenLegalDoc={(doc) => setLegalModalDoc(doc)}
+      />
+    </div>
+  );
+}
+
+export default function App() {
   return (
     <ImageProvider>
-      {isAdminView ? (
-        <AdminPage onReturnToSite={returnToPublicSite} />
-      ) : isResetView ? (
-        <PasswordResetPage onReturnToSite={returnToPublicSite} />
-      ) : isRemoteView ? (
-        <RemoteManagementPage onReturnToSite={returnToPublicSite} />
-      ) : isSurveyView ? (
-        <SurveyPage onReturnToSite={returnToPublicSite} />
-      ) : isNotFoundView ? (
-        <NotFoundPage onReturnToSite={returnToPublicSite} />
-      ) : (
-        <div className="min-h-screen bg-white text-[#111111] relative selection:bg-[#0A2D6F] selection:text-white">
-          {/* Fair Modal (When activated from Admin) */}
-          <FairModal isOpen={isFairModalOpen} onClose={() => setIsFairModalOpen(false)} />
-
-          {/* 1. Opening Experience Overlay */}
-          <OpeningExperience scrollY={scrollY} />
-
-          {/* 2. Glassmorphic Header Navigation */}
-          <Header
-            scrollY={scrollY}
-            activeSection={activeSection}
-            onNavigate={scrollToSection}
-            onOpenFairModal={() => setIsFairModalOpen(true)}
-          />
-
-          {/* 3. Main Sections */}
-          <main>
-            <HeroSection
-              onDiscoverClick={() => scrollToSection('collection')}
-              onCraftsmanshipClick={() => scrollToSection('craftsmanship')}
-            />
-
-            <AboutSection />
-
-            <CollectionSection onInquireProduct={handleInquireProduct} />
-
-            <CraftsmanshipSection />
-
-            <WhyIremComfortSection />
-
-            <FaqSection />
-
-            <ContactSection prefilledSubject={contactPrefill} />
-
-
-            <NewsletterSection />
-          </main>
-
-          {/* 4. Footer */}
-          <Footer
-            onNavigate={scrollToSection}
-            onAdminClick={() => setIsAdminView(true)}
-            onOpenLegalDoc={(doc) => setLegalModalDoc(doc)}
-          />
-
-          {/* Legal Modal (Privacy, KVKK, Cookies) */}
-          <LegalModal
-            isOpen={Boolean(legalModalDoc)}
-            initialType={legalModalDoc || 'privacy'}
-            onClose={() => setLegalModalDoc(null)}
-          />
-
-          {/* Cookie Consent Banner */}
-          <CookieConsent
-            onOpenLegalDoc={(doc) => setLegalModalDoc(doc)}
-          />
-        </div>
-      )}
+      <MainAppContent />
     </ImageProvider>
   );
 }

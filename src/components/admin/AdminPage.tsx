@@ -6,6 +6,8 @@ import { LogoFull } from '../brand/LogoFull';
 import { FairModal } from '../ui/FairModal';
 import { ImageCropModal, CropTargetSpecs } from './ImageCropModal';
 import { FaqAdminTab } from './FaqAdminTab';
+import { MediaLibraryAdminTab } from './MediaLibraryAdminTab';
+import { SeoAdminTab } from './SeoAdminTab';
 import { EMAIL_TEMPLATES, renderEmailHtml } from '../../utils/emailTemplates';
 import { 
   Lock, Key, User, LogOut, ExternalLink, Image as ImageIcon, 
@@ -13,7 +15,8 @@ import {
   ShieldCheck, AlertCircle, ArrowLeft, Home, Calendar, MapPin, 
   QrCode, ToggleLeft, ToggleRight, Send, MessageSquare, Crop, Info,
   Mail, Server, AtSign, Save, MailCheck, CheckCircle2, Shield,
-  Users, Download, Copy, Trash2, Plus, Search, Phone, HelpCircle
+  Users, Download, Copy, Trash2, Plus, Search, Phone, HelpCircle,
+  GitBranch, Globe, FileImage, Video
 } from 'lucide-react';
 
 
@@ -110,7 +113,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     addAboutSlide,
     deleteAboutSlide,
     moveAboutSlide,
-    resetAboutSlides
+    resetAboutSlides,
+    systemConfig,
+    updateSystemConfig,
+    triggerDeploy
   } = useAppImages();
 
   // Authentication State
@@ -123,7 +129,27 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Admin Panel Tabs
-  const [activeTab, setActiveTab] = useState<'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'presets' | 'leads' | 'newsletter' | 'email'>('fair');
+  const [activeTab, setActiveTab] = useState<'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'presets' | 'leads' | 'newsletter' | 'email' | 'system' | 'media' | 'seo'>('fair');
+
+  const [githubTokenInput, setGithubTokenInput] = useState<string>(() => localStorage.getItem('irem_github_token') || '');
+  const [commitMessageInput, setCommitMessageInput] = useState<string>('Site ayarları ve görseller güncellendi');
+  const [isDeployingInAdmin, setIsDeployingInAdmin] = useState(false);
+  const [deployResult, setDeployResult] = useState<{ success?: boolean; message?: string } | null>(null);
+
+  const confirmMaintenanceExit = (action: () => void) => {
+    if (systemConfig.isMaintenanceMode) {
+      const confirmExit = window.confirm(
+        "🛠️ BAKIM MODU HALEN AÇIK!\n\n" +
+        "Sitede bakım modu aktif durumda. Adminden çıktığınızda ziyaretçiler site kapalı bakım ekranını görmeye devam edecektir.\n\n" +
+        "Bakım modunu KAPATMADAN çıkmak istiyor musunuz?"
+      );
+      if (confirmExit) {
+        action();
+      }
+    } else {
+      action();
+    }
+  };
 
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [isPreviewFairOpen, setIsPreviewFairOpen] = useState(false);
@@ -690,7 +716,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
           {/* Return to Main Site Button */}
           <div className="mt-8 text-center pt-4 border-t border-slate-100">
             <button
-              onClick={onReturnToSite}
+              onClick={() => confirmMaintenanceExit(onReturnToSite)}
               className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-[#082C6C] transition-colors cursor-pointer"
             >
               <Home className="w-4 h-4" />
@@ -741,7 +767,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
         <div className="flex items-center gap-3">
           <button
-            onClick={onReturnToSite}
+            onClick={() => confirmMaintenanceExit(onReturnToSite)}
             className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <ExternalLink className="w-3.5 h-3.5" />
@@ -749,7 +775,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
           </button>
 
           <button
-            onClick={handleLogout}
+            onClick={() => confirmMaintenanceExit(handleLogout)}
             className="px-4 py-2 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
@@ -895,7 +921,79 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
             <Mail className="w-4 h-4 text-amber-500" />
             <span>E-Posta & SMTP Ayarları</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('media')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'media'
+                ? 'bg-[#082C6C] text-white shadow'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <FileImage className="w-4 h-4 text-amber-400" />
+            <span>🖼️ Medya Kütüphanesi</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('seo')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'seo'
+                ? 'bg-[#082C6C] text-white shadow'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Globe className="w-4 h-4 text-emerald-400" />
+            <span>🌐 SEO, Robots & Sitemap</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('system')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'system'
+                ? 'bg-purple-700 text-white shadow ring-2 ring-purple-300'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Server className="w-4 h-4 text-purple-400" />
+            <span>🚀 Deploy / Yayınla & Bakım Modu</span>
+            {(systemConfig.isMaintenanceMode || systemConfig.isDeploying) && (
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+            )}
+          </button>
         </div>
+
+        {/* Top Warning Banner if Maintenance Mode or Deploying is Active */}
+        {(systemConfig.isMaintenanceMode || systemConfig.isDeploying) && (
+          <div className={`p-4 rounded-2xl text-xs font-bold flex flex-wrap items-center justify-between gap-4 shadow-lg border ${
+            systemConfig.isMaintenanceMode 
+              ? 'bg-amber-500/10 border-amber-500 text-amber-900' 
+              : 'bg-blue-500/10 border-blue-500 text-blue-900'
+          }`}>
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl">{systemConfig.isMaintenanceMode ? '🛠️' : '🔄'}</span>
+              <div>
+                <span className="block font-extrabold uppercase">
+                  {systemConfig.isMaintenanceMode 
+                    ? 'SİTE BAKIM MODUNDA! Müşteriler bakım ekranını görmektedir.' 
+                    : 'SİTEDE YÜKLEME / DEPLOY YAPILIYOR! Müşteriler 1 dakikalık sayacı görmektedir.'}
+                </span>
+                <span className="text-[11px] font-normal text-slate-600">
+                  Yönetici panelinde değişiklik yapmaya ve ayarları düzenlemeye devam edebilirsiniz.
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                updateSystemConfig({ isMaintenanceMode: false, isDeploying: false });
+                showToast('Bakım ve Deploy durumları sıfırlandı, site tekrar canlıda!');
+              }}
+              className="px-4 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 text-xs font-bold transition-all shadow cursor-pointer active:scale-95"
+            >
+              Siteyi Şimdi Canlıya Al
+            </button>
+          </div>
+        )}
 
         {/* Tab 0: FAIR & EXHIBITION MANAGEMENT */}
         {activeTab === 'fair' && (
@@ -3180,6 +3278,311 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                 <span>{isEmailSaving ? 'Kaydediliyor...' : 'Ayarları Kaydet'}</span>
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Tab: MEDIA LIBRARY */}
+        {activeTab === 'media' && <MediaLibraryAdminTab />}
+
+        {/* Tab: SEO & SITEMAP */}
+        {activeTab === 'seo' && <SeoAdminTab />}
+
+        {/* Tab 10: SYSTEM, MAINTENANCE MODE & GITHUB DEPLOY */}
+        {activeTab === 'system' && (
+          <div className="space-y-6">
+            
+            {/* Header / Intro Card */}
+            <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-[#082C6C] to-slate-900 text-white shadow-xl space-y-3 border border-purple-500/30">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-400/40 flex items-center justify-center">
+                  <Server className="w-5 h-5 text-purple-300" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-white font-serif-luxury">Sistem Ayarları, Bakım Modu & GitHub/Vercel Deploy</h3>
+                  <p className="text-xs text-slate-300 font-light">
+                    Sitenizi bakıma alabilir, yapılan tüm görselleri ve ayarları doğrudan GitHub repository'nize aktararak Vercel üzerinde otomatik yayınlayabilirsiniz.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 1: Maintenance Mode (Bakım Modu) Toggle */}
+            <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🛠️</span>
+                    <h4 className="font-bold text-[#111111] text-base">Sitede Bakım Modu (Maintenance Mode)</h4>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Bakım modunu açtığınızda tüm site ziyaretçileri şık bir bakım ekranı ile karşılaşır. Yönetici paneline erişiminiz kesilmez.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 bg-slate-100 p-2 rounded-xl border border-slate-200">
+                  <span className={`text-xs font-bold uppercase tracking-wider ${
+                    systemConfig.isMaintenanceMode ? 'text-amber-600' : 'text-emerald-600'
+                  }`}>
+                    {systemConfig.isMaintenanceMode ? 'SİTE BAKIMDA (KAPALI)' : 'SİTE CANLI (AÇIK)'}
+                  </span>
+
+                  <button
+                    onClick={() => {
+                      const nextState = !systemConfig.isMaintenanceMode;
+                      updateSystemConfig({ isMaintenanceMode: nextState });
+                      showToast(nextState ? 'Site bakım moduna alındı!' : 'Site canlı yayına alındı!');
+                    }}
+                    className="p-1 rounded-full cursor-pointer transition-transform active:scale-95"
+                  >
+                    {systemConfig.isMaintenanceMode ? (
+                      <ToggleRight className="w-10 h-10 text-amber-500" />
+                    ) : (
+                      <ToggleLeft className="w-10 h-10 text-slate-400" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Editable Maintenance Message */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 block">Ziyaretçilere Gösterilecek Bakım Mesajı</label>
+                <textarea
+                  rows={2}
+                  value={systemConfig.maintenanceMessage}
+                  onChange={(e) => updateSystemConfig({ maintenanceMessage: e.target.value })}
+                  placeholder="Sitede bakım çalışması yapılmaktadır..."
+                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-medium"
+                />
+              </div>
+            </div>
+
+            {/* Section 1.5: Launch Sequence & Intro Video Settings */}
+            <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🎬</span>
+                  <div>
+                    <h4 className="font-bold text-[#111111] text-base">Yayınlama Sonrası Açılış Ekranı & Tanıtım Videosu</h4>
+                    <p className="text-xs text-slate-500">
+                      Deploy sonrasında site açılırken 10 saniye geri sayımlı tamamlama mesajı gösterilir ve ardından tanıtım videosu oynatılır.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    updateSystemConfig({ isDeploying: true });
+                    showToast('Yayınlama ekranı ve video önizlemesi başlatıldı!');
+                  }}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl shadow transition flex items-center gap-2 cursor-pointer"
+                >
+                  <Video className="w-4 h-4" />
+                  <span>Açılış Ekranını Test Et</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Stage 1 Message */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 block">1. Aşama Mesajı (İlk 10 Saniye)</label>
+                  <input
+                    type="text"
+                    value={systemConfig.stage1Text || "Sitemizin tamamlanmasına çok az kaldı, beklediğiniz için teşekkürler."}
+                    onChange={(e) => updateSystemConfig({ stage1Text: e.target.value })}
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-medium"
+                  />
+                </div>
+
+                {/* Stage 2 Message */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 block">2. Aşama Mesajı (Tamamlandı Mesajı)</label>
+                  <input
+                    type="text"
+                    value={systemConfig.stage2Text || "Sitemiz tamamlandı, beklediğiniz için teşekkürler."}
+                    onChange={(e) => updateSystemConfig({ stage2Text: e.target.value })}
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-medium"
+                  />
+                </div>
+
+                {/* Video URL or Upload */}
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs font-bold text-slate-700 block">Tanıtım Videosu Dosyası / URL'si (MP4)</label>
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
+                      value={systemConfig.introVideoUrl || ''}
+                      onChange={(e) => updateSystemConfig({ introVideoUrl: e.target.value })}
+                      placeholder="Video URL girin veya sağdaki butondan dosya yükleyin (.mp4)"
+                      className="flex-1 px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-mono"
+                    />
+                    <label className="px-4 py-2.5 bg-[#082C6C] hover:bg-blue-900 text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-2">
+                      <Upload className="w-4 h-4 text-amber-400" />
+                      <span>Video Yükle</span>
+                      <input
+                        type="file"
+                        accept="video/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            const url = ev.target?.result as string;
+                            updateSystemConfig({ introVideoUrl: url });
+                            showToast('Tanıtım videosu yüklendi!');
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                      />
+                    </label>
+                  </div>
+                  {systemConfig.introVideoUrl && (
+                    <div className="p-3 bg-slate-100 rounded-xl border border-slate-200 text-xs text-slate-600 flex items-center justify-between">
+                      <span className="truncate max-w-md font-mono text-[11px]">Aktif Video: {systemConfig.introVideoUrl.substring(0, 60)}...</span>
+                      <button
+                        onClick={() => {
+                          updateSystemConfig({ introVideoUrl: '' });
+                          showToast('Video kaldırıldı.');
+                        }}
+                        className="text-rose-600 font-bold hover:underline"
+                      >
+                        Kaldır
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Section 2: GitHub Repository & Vercel Deploy */}
+            <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-6">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <span className="text-xl">🚀</span>
+                <h4 className="font-bold text-[#111111] text-base">GitHub & Vercel Otomatik Yayınlama (Deploy)</h4>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* GitHub Repo */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 block">GitHub Repository Adı (kullanıcı/repo)</label>
+                  <input
+                    type="text"
+                    value={systemConfig.githubRepo}
+                    onChange={(e) => updateSystemConfig({ githubRepo: e.target.value })}
+                    placeholder="kargakadir4525/irem-comfort"
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-mono font-bold"
+                  />
+                </div>
+
+                {/* GitHub Branch */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 block">Hedef Branch</label>
+                  <input
+                    type="text"
+                    value={systemConfig.githubBranch}
+                    onChange={(e) => updateSystemConfig({ githubBranch: e.target.value })}
+                    placeholder="main"
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-mono"
+                  />
+                </div>
+
+                {/* Personal Access Token */}
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-xs font-bold text-slate-700 block">GitHub Personal Access Token (PAT)</label>
+                  <input
+                    type="password"
+                    value={githubTokenInput}
+                    onChange={(e) => {
+                      setGithubTokenInput(e.target.value);
+                      localStorage.setItem('irem_github_token', e.target.value);
+                    }}
+                    placeholder="ghp_xxxxxxxxxxxxxxxxxxxx..."
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-mono"
+                  />
+                  <p className="text-[11px] text-slate-500">
+                    * Token'ınız sadece bu cihazda saklanır ve GitHub API üzerinden görseller ve ayarlar repoya gönderilir. Vercel otomatik olarak yeni versiyonu yayınlar.
+                  </p>
+                </div>
+              </div>
+
+              {/* Deploy Status & Action */}
+              <div className="p-5 rounded-xl bg-slate-900 text-white space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <span className="text-slate-300 font-mono">
+                    Son Yayınlanma: <strong className="text-amber-400 font-sans">{systemConfig.lastDeployedAt ? new Date(systemConfig.lastDeployedAt).toLocaleString('tr-TR') : 'Henüz yapılmadı'}</strong>
+                  </span>
+                  
+                  {systemConfig.isDeploying && (
+                    <span className="px-3 py-1 rounded-full bg-blue-500/30 text-blue-300 border border-blue-400/40 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 animate-pulse">
+                      <span className="w-2 h-2 rounded-full bg-blue-400" />
+                      Yayınlama Devam Ediyor (1 Dk)
+                    </span>
+                  )}
+                </div>
+
+                {/* Commit Message Input */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                    <GitBranch className="w-3.5 h-3.5 text-amber-400" />
+                    Güncelleme / Commit Açıklaması (Versiyon Açıklaması)
+                  </label>
+                  <input
+                    type="text"
+                    value={commitMessageInput}
+                    onChange={(e) => setCommitMessageInput(e.target.value)}
+                    placeholder="Örn: Ana sayfa fotoğrafları ve fuar bilgileri güncellendi"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs focus:ring-2 focus:ring-amber-500 focus:outline-hidden"
+                  />
+                  <p className="text-[11px] text-slate-400">
+                    * 1 harf bile değişse bu açıklama ile GitHub üzerinde commit oluşturulur ve Vercel otomatik yayınlar. GitHub üzerinden önceki versiyonlara dönebilirsiniz.
+                  </p>
+                </div>
+
+                {deployResult && (
+                  <div className={`p-4 rounded-xl text-xs font-medium border space-y-2 ${
+                    deployResult.success 
+                      ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-200' 
+                      : 'bg-rose-950/80 border-rose-500/40 text-rose-200'
+                  }`}>
+                    <div className="flex items-center gap-2 font-bold">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                      <span>{deployResult.message}</span>
+                    </div>
+
+                    {(deployResult as any).logs && Array.isArray((deployResult as any).logs) && (
+                      <div className="pt-2 border-t border-emerald-800/60 font-mono text-[11px] space-y-1 text-emerald-300">
+                        {(deployResult as any).logs.map((logStr: string, idx: number) => (
+                          <div key={idx} className="flex items-center gap-1.5">
+                            <span>{logStr}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <button
+                  disabled={isDeployingInAdmin}
+                  onClick={async () => {
+                    setIsDeployingInAdmin(true);
+                    setDeployResult(null);
+                    showToast('Görsel ve veriler GitHub\'a gönderiliyor...');
+                    const res = await triggerDeploy(commitMessageInput, githubTokenInput);
+                    setIsDeployingInAdmin(false);
+                    setDeployResult(res);
+                    if (res.success) {
+                      showToast('🚀 Deploy başlatıldı! Vercel 1 dakika içinde yeni versiyonu yayınlayacak.');
+                    }
+                  }}
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 font-extrabold text-xs uppercase tracking-wider shadow-lg hover:brightness-110 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 disabled:opacity-50"
+                >
+                  <Send className={`w-4 h-4 ${isDeployingInAdmin ? 'animate-spin' : ''}`} />
+                  <span>{isDeployingInAdmin ? 'GitHub\'a Aktarılıyor...' : '🚀 DEĞİŞİKLİKLERİ GİTHUB\'A GÖNDER VE YAYINLA (DEPLOY ET)'}</span>
+                </button>
+              </div>
+            </div>
+
           </div>
         )}
 

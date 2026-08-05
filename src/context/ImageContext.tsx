@@ -7,7 +7,26 @@ import {
   DEFAULT_FAQ_ITEMS
 } from '../constants/data';
 import { CollectionItem, CraftsmanshipStep, ContactInfo, FaqItem, AboutSlide } from '../types';
-import { db, doc, setDoc, onSnapshot, deleteDoc, uploadBase64Image } from '../lib/firebase';
+
+async function uploadImageToGithub(dataUrl: string, folder: string = "site_images"): Promise<string> {
+  if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith("data:image/")) {
+    return dataUrl;
+  }
+  try {
+    const res = await fetch('/api/upload-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: dataUrl, folder })
+    });
+    const data = await res.json();
+    if (data?.success && data?.url) {
+      return data.url;
+    }
+  } catch (err) {
+    console.error("Error uploading image to GitHub via API:", err);
+  }
+  return dataUrl;
+}
 
 export interface HeroConfig {
   badgeText: string;
@@ -179,9 +198,45 @@ interface ImageContextType {
   moveAboutSlide: (id: string, direction: 'up' | 'down') => void;
   resetAboutSlides: () => void;
 
+  // System, Maintenance Mode & Deploy Store
+  systemConfig: SystemConfig;
+  updateSystemConfig: (newConfig: Partial<SystemConfig>) => void;
+  triggerDeploy: (commitMessage?: string, customToken?: string) => Promise<{ success: boolean; message: string; logs?: string[] }>;
+
+  // SEO, Robots & Sitemap Store
+  seoConfig: SeoConfig;
+  updateSeoConfig: (newConfig: Partial<SeoConfig>) => void;
+  resetSeoConfig: () => void;
+
   isManagerOpen: boolean;
   setIsManagerOpen: (open: boolean) => void;
 }
+
+export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
+  isMaintenanceMode: false,
+  autoMaintenanceOnDeploy: true,
+  isDeploying: false,
+  lastDeployedAt: null,
+  maintenanceTitle: "Website Maintenance",
+  maintenanceMessage: "Our website is currently being updated with new content.\nPlease try again in approximately 2–5 minutes.",
+  deployingMessage: "Website update is in progress.\nThe new version will be available in about 1 minute.",
+  githubRepo: "kargakadir4525/irem-comfort",
+  githubBranch: "main",
+  stage1Text: "Sitemizin tamamlanmasına çok az kaldı, beklediğiniz için teşekkürler.",
+  stage2Text: "Sitemiz tamamlandı, beklediğiniz için teşekkürler.",
+  enableLaunchIntro: true,
+  introVideoUrl: ""
+};
+
+export const DEFAULT_SEO_CONFIG: SeoConfig = {
+  metaTitle: "İrem Comfort — Bayan Hakiki Deri Terlik & Sandalet | Manisa İmalatı",
+  metaDescription: "1993'ten beri Manisa Ayakkabıcılar Sitesi'nde imal edilen %100 hakiki deri bayan ortopedik terlik ve sandalet modelleri.",
+  metaKeywords: "irem comfort, hakiki deri terlik, bayan terlik, ortopedik sandalet, manisa ayakkabı, imalat",
+  ogImage: "/uploads/logo/irem-comfort-logo.jpg",
+  canonicalUrl: "https://iremcomfort.com",
+  robotsTxt: "User-agent: *\nAllow: /\nSitemap: https://iremcomfort.com/sitemap.xml",
+  sitemapXml: ""
+};
 
 const ImageContext = createContext<ImageContextType | undefined>(undefined);
 
@@ -206,6 +261,8 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [craftsmanshipSteps, setCraftsmanshipSteps] = useState<CraftsmanshipStep[]>(CRAFTSMANSHIP_STEPS);
   const [faqItems, setFaqItems] = useState<FaqItem[]>(DEFAULT_FAQ_ITEMS);
   const [aboutSlides, setAboutSlides] = useState<AboutSlide[]>(DEFAULT_ABOUT_SLIDES);
+  const [systemConfig, setSystemConfig] = useState<SystemConfig>(DEFAULT_SYSTEM_CONFIG);
+  const [seoConfig, setSeoConfig] = useState<SeoConfig>(DEFAULT_SEO_CONFIG);
   const [isManagerOpen, setIsManagerOpen] = useState(false);
 
   // Clear legacy LocalStorage keys so they never interfere
@@ -225,11 +282,9 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (e) {}
   }, []);
 
-  // Real-time Firestore synchronization across split documents
+  // Real-time synchronization using server settings endpoint
   useEffect(() => {
-    const unsubscribes: (() => void)[] = [];
-
-    const fetchFallback = () => {
+    const fetchSettings = () => {
       fetch('/api/settings')
         .then(res => res.json())
         .then(data => {
@@ -244,100 +299,21 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             if (s.craftsmanshipSteps) setCraftsmanshipSteps(s.craftsmanshipSteps);
             if (s.faqItems) setFaqItems(s.faqItems);
             if (s.aboutSlides) setAboutSlides(s.aboutSlides);
+            if (s.systemConfig) setSystemConfig(prev => ({ ...prev, ...s.systemConfig }));
+            if (s.seoConfig) setSeoConfig(prev => ({ ...prev, ...s.seoConfig }));
           }
         })
         .catch(() => {});
     };
 
-    try {
-      unsubscribes.push(onSnapshot(doc(db, "site_settings", "hero"), snap => {
-        if (snap.exists() && snap.data().heroConfig) setHeroConfig(snap.data().heroConfig);
-      }, () => {}));
-
-      unsubscribes.push(onSnapshot(doc(db, "site_settings", "fair"), snap => {
-        if (snap.exists() && snap.data().fairConfig) setFairConfig(snap.data().fairConfig);
-      }, () => {}));
-
-      unsubscribes.push(onSnapshot(doc(db, "site_settings", "contact"), snap => {
-        if (snap.exists() && snap.data().contactData) setContactData(snap.data().contactData);
-      }, () => {}));
-
-      unsubscribes.push(onSnapshot(doc(db, "site_settings", "announcements"), snap => {
-        if (snap.exists() && (snap.data().list || snap.data().announcements)) {
-          setAnnouncements(snap.data().list || snap.data().announcements);
-        }
-      }, () => {}));
-
-      unsubscribes.push(onSnapshot(doc(db, "site_settings", "about"), snap => {
-        if (snap.exists() && (snap.data().slides || snap.data().aboutSlides)) {
-          setAboutSlides(snap.data().slides || snap.data().aboutSlides);
-        }
-      }, () => {}));
-
-      unsubscribes.push(onSnapshot(doc(db, "site_settings", "craftsmanship"), snap => {
-        if (snap.exists() && (snap.data().steps || snap.data().craftsmanshipSteps)) {
-          setCraftsmanshipSteps(snap.data().steps || snap.data().craftsmanshipSteps);
-        }
-      }, () => {}));
-
-      unsubscribes.push(onSnapshot(doc(db, "site_settings", "faq"), snap => {
-        if (snap.exists() && (snap.data().items || snap.data().faqItems)) {
-          setFaqItems(snap.data().items || snap.data().faqItems);
-        }
-      }, () => {}));
-
-      unsubscribes.push(onSnapshot(doc(db, "site_settings", "images"), snap => {
-        if (snap.exists() && (snap.data().images || snap.data())) {
-          const imgData = snap.data().images || snap.data();
-          if (imgData.heroImage) setImages(imgData);
-        }
-      }, () => {}));
-
-      unsubscribes.push(onSnapshot(doc(db, "site_settings", "products"), snap => {
-        if (snap.exists() && (snap.data().items || snap.data().collectionItems)) {
-          setCollectionItems(snap.data().items || snap.data().collectionItems);
-        }
-      }, () => {}));
-    } catch (e) {
-      console.warn("Firestore listeners warning:", e);
-    }
-
-    fetchFallback();
-
-    return () => {
-      unsubscribes.forEach(unsub => {
-        try { unsub(); } catch (e) {}
-      });
-    };
+    fetchSettings();
+    const interval = setInterval(fetchSettings, 5000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Save specific section to its dedicated Firestore document & backend route
+  // Save specific section to backend server & local file
   const saveSection = async (sectionName: string, dataObj: Record<string, any>) => {
-    let docName = sectionName.replace('Config', '').replace('Data', '').replace('Items', '').replace('Steps', '').replace('Slides', '').toLowerCase();
-    if (docName === 'collection') docName = 'products';
-
     const payload = dataObj[sectionName] !== undefined ? dataObj[sectionName] : dataObj;
-
-    try {
-      const docRef = doc(db, "site_settings", docName);
-      let fieldObj: Record<string, any> = {};
-
-      if (docName === 'hero') fieldObj = { heroConfig: payload };
-      else if (docName === 'fair') fieldObj = { fairConfig: payload };
-      else if (docName === 'contact') fieldObj = { contactData: payload };
-      else if (docName === 'announcements') fieldObj = { list: payload };
-      else if (docName === 'about') fieldObj = { slides: payload };
-      else if (docName === 'craftsmanship') fieldObj = { steps: payload };
-      else if (docName === 'faq') fieldObj = { items: payload };
-      else if (docName === 'images') fieldObj = { images: payload };
-      else if (docName === 'products') fieldObj = { items: payload };
-      else fieldObj = { [sectionName]: payload };
-
-      fieldObj.updatedAt = new Date().toISOString();
-      await setDoc(docRef, fieldObj, { merge: true });
-    } catch (err) {
-      console.warn(`Firestore direct save [site_settings/${docName}] warning:`, err);
-    }
 
     fetch('/api/settings', {
       method: 'POST',
@@ -347,7 +323,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateHeroImage = async (url: string) => {
-    const cleanUrl = await uploadBase64Image(url, 'hero');
+    const cleanUrl = await uploadImageToGithub(url, 'hero');
     setImages(prev => {
       const next = { ...prev, heroImage: cleanUrl };
       saveSection('images', { images: next });
@@ -356,7 +332,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateAboutImage = async (url: string) => {
-    const cleanUrl = await uploadBase64Image(url, 'about');
+    const cleanUrl = await uploadImageToGithub(url, 'about');
     setImages(prev => {
       const next = { ...prev, aboutImage: cleanUrl };
       saveSection('images', { images: next });
@@ -365,7 +341,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateCraftsmanshipImage = async (stepNumber: string, url: string) => {
-    const cleanUrl = await uploadBase64Image(url, 'craftsmanship');
+    const cleanUrl = await uploadImageToGithub(url, 'craftsmanship');
     setImages(prev => {
       const next = {
         ...prev,
@@ -380,7 +356,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateCollectionImage = async (itemId: string, field: 'image' | 'secondaryImage', url: string) => {
-    const cleanUrl = await uploadBase64Image(url, 'products');
+    const cleanUrl = await uploadImageToGithub(url, 'products');
     setImages(prev => {
       const next = {
         ...prev,
@@ -425,10 +401,10 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateFairConfig = async (newConfig: Partial<FairConfig>) => {
     const processed = { ...newConfig };
     if (processed.posterUrl && processed.posterUrl.startsWith('data:image/')) {
-      processed.posterUrl = await uploadBase64Image(processed.posterUrl, 'fair');
+      processed.posterUrl = await uploadImageToGithub(processed.posterUrl, 'fair');
     }
     if (processed.qrCodeUrl && processed.qrCodeUrl.startsWith('data:image/')) {
-      processed.qrCodeUrl = await uploadBase64Image(processed.qrCodeUrl, 'fair');
+      processed.qrCodeUrl = await uploadImageToGithub(processed.qrCodeUrl, 'fair');
     }
     setFairConfig(prev => {
       const next = { ...prev, ...processed };
@@ -468,30 +444,25 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateCollectionItem = async (itemId: string, newItem: Partial<CollectionItem>) => {
     const itemToSave = { ...newItem };
     if (itemToSave.image && itemToSave.image.startsWith('data:image/')) {
-      itemToSave.image = await uploadBase64Image(itemToSave.image, 'products');
+      itemToSave.image = await uploadImageToGithub(itemToSave.image, 'products');
     }
     if (itemToSave.secondaryImage && itemToSave.secondaryImage.startsWith('data:image/')) {
-      itemToSave.secondaryImage = await uploadBase64Image(itemToSave.secondaryImage, 'products');
+      itemToSave.secondaryImage = await uploadImageToGithub(itemToSave.secondaryImage, 'products');
     }
     setCollectionItems(prev => {
       const next = prev.map(item => item.id === itemId ? { ...item, ...itemToSave } : item);
       saveSection('collectionItems', { collectionItems: next });
       return next;
     });
-    // Also save individual product document
-    try {
-      const prodRef = doc(db, "products", itemId);
-      setDoc(prodRef, { ...newItem, id: itemId, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
-    } catch (e) {}
   };
 
   const addCollectionItem = async (newItem: Omit<CollectionItem, 'id'>) => {
     const itemToSave = { ...newItem };
     if (itemToSave.image && itemToSave.image.startsWith('data:image/')) {
-      itemToSave.image = await uploadBase64Image(itemToSave.image, 'products');
+      itemToSave.image = await uploadImageToGithub(itemToSave.image, 'products');
     }
     if (itemToSave.secondaryImage && itemToSave.secondaryImage.startsWith('data:image/')) {
-      itemToSave.secondaryImage = await uploadBase64Image(itemToSave.secondaryImage, 'products');
+      itemToSave.secondaryImage = await uploadImageToGithub(itemToSave.secondaryImage, 'products');
     }
     const id = `item-${Date.now()}`;
     const itemWithId: CollectionItem = { ...itemToSave, id };
@@ -500,10 +471,6 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       saveSection('collectionItems', { collectionItems: next });
       return next;
     });
-    try {
-      const prodRef = doc(db, "products", id);
-      setDoc(prodRef, { ...itemWithId, updatedAt: new Date().toISOString() }).catch(() => {});
-    } catch (e) {}
   };
 
   const deleteCollectionItem = (itemId: string) => {
@@ -512,9 +479,6 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       saveSection('collectionItems', { collectionItems: next });
       return next;
     });
-    try {
-      deleteDoc(doc(db, "products", itemId)).catch(() => {});
-    } catch (e) {}
   };
 
   const resetCollectionItems = () => {
@@ -525,7 +489,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateCraftsmanshipStep = async (stepNumber: string, newStep: Partial<CraftsmanshipStep>) => {
     const stepToSave = { ...newStep };
     if (stepToSave.image && stepToSave.image.startsWith('data:image/')) {
-      stepToSave.image = await uploadBase64Image(stepToSave.image, 'craftsmanship');
+      stepToSave.image = await uploadImageToGithub(stepToSave.image, 'craftsmanship');
     }
     setCraftsmanshipSteps(prev => {
       const next = prev.map(step => step.number === stepNumber ? { ...step, ...stepToSave } : step);
@@ -575,7 +539,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateAboutSlide = async (id: string, newSlide: Partial<AboutSlide>) => {
     const slideToSave = { ...newSlide };
     if (slideToSave.image && slideToSave.image.startsWith('data:image/')) {
-      slideToSave.image = await uploadBase64Image(slideToSave.image, 'about');
+      slideToSave.image = await uploadImageToGithub(slideToSave.image, 'about');
     }
     setAboutSlides(prev => {
       const next = prev.map(slide => slide.id === id ? { ...slide, ...slideToSave } : slide);
@@ -587,7 +551,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const addAboutSlide = async (newSlide: Omit<AboutSlide, 'id'>) => {
     const slideToSave = { ...newSlide };
     if (slideToSave.image && slideToSave.image.startsWith('data:image/')) {
-      slideToSave.image = await uploadBase64Image(slideToSave.image, 'about');
+      slideToSave.image = await uploadImageToGithub(slideToSave.image, 'about');
     }
     const newItem: AboutSlide = {
       ...slideToSave,
@@ -630,6 +594,63 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     saveSection('aboutSlides', { aboutSlides: DEFAULT_ABOUT_SLIDES });
   };
 
+  const updateSystemConfig = (newConfig: Partial<SystemConfig>) => {
+    setSystemConfig(prev => {
+      const next = { ...prev, ...newConfig };
+      saveSection('systemConfig', { systemConfig: next });
+      return next;
+    });
+  };
+
+  const updateSeoConfig = (newConfig: Partial<SeoConfig>) => {
+    setSeoConfig(prev => {
+      const next = { ...prev, ...newConfig };
+      saveSection('seoConfig', { seoConfig: next });
+      return next;
+    });
+  };
+
+  const resetSeoConfig = () => {
+    setSeoConfig(DEFAULT_SEO_CONFIG);
+    saveSection('seoConfig', { seoConfig: DEFAULT_SEO_CONFIG });
+  };
+
+  const triggerDeploy = async (commitMessage?: string, customToken?: string): Promise<{ success: boolean; message: string; logs?: string[] }> => {
+    const deployTime = new Date().toISOString();
+    updateSystemConfig({ isDeploying: true, lastDeployedAt: deployTime });
+
+    try {
+      const response = await fetch('/api/deploy-github', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          githubToken: customToken,
+          githubRepo: systemConfig.githubRepo,
+          githubBranch: systemConfig.githubBranch,
+          commitMessage: commitMessage || "Site güncellendi ve yayınlandı"
+        })
+      });
+
+      const data = await response.json();
+
+      setTimeout(() => {
+        updateSystemConfig({ isDeploying: false });
+      }, 45000);
+
+      if (data.success) {
+        return { success: true, message: data.message || 'GitHub & Vercel deployment tetiklendi!', logs: data.logs };
+      } else {
+        return { success: false, message: data.error || 'GitHub deploy hatası.', logs: data.logs };
+      }
+    } catch (err) {
+      console.error('Deploy error:', err);
+      setTimeout(() => {
+        updateSystemConfig({ isDeploying: false });
+      }, 45000);
+      return { success: false, message: 'Sunucuyla bağlantı hatası.' };
+    }
+  };
+
   return (
     <ImageContext.Provider
       value={{
@@ -670,6 +691,12 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         deleteAboutSlide,
         moveAboutSlide,
         resetAboutSlides,
+        systemConfig,
+        updateSystemConfig,
+        seoConfig,
+        updateSeoConfig,
+        resetSeoConfig,
+        triggerDeploy,
         isManagerOpen,
         setIsManagerOpen
       }}
