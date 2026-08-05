@@ -72,22 +72,31 @@ export const ImageSelectModal: React.FC<ImageSelectModalProps> = ({
     reader.onload = async () => {
       const base64Str = reader.result as string;
       try {
+        const githubRepo = localStorage.getItem('irem_github_repo') || undefined;
+        const githubToken = localStorage.getItem('irem_github_token') || undefined;
+
         const res = await fetch('/api/media/upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             image: base64Str,
             folder: selectedFolder === 'all' ? 'gallery' : selectedFolder,
-            filename: file.name
+            filename: file.name,
+            githubRepo,
+            githubToken,
+            triggerDeploy: true
           })
         });
         const data = await res.json();
         if (data.success && data.url) {
           onSelectSystemImage(data.url);
           onClose();
+        } else {
+          alert(`Görsel Yükleme Hatası:\n${data.error || 'GitHub yüklemesi başarısız oldu.'}`);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Direct modal upload error:", err);
+        alert(`Yükleme sırasında hata oluştu:\n${err?.message || 'Sunucu bağlantı hatası'}`);
       } finally {
         setUploading(false);
       }

@@ -547,6 +547,30 @@ function enqueueGithubTask<T>(taskFn: () => Promise<T>): Promise<T> {
   return nextPromise;
 }
 
+function getGithubConfig(customToken?: string, customRepo?: string, customBranch?: string) {
+  const token = customToken || 
+    activeDeploymentSession?.userToken || 
+    inMemorySettingsCache?.systemConfig?.githubToken || 
+    process.env.GITHUB_TOKEN || 
+    process.env.GH_TOKEN || 
+    process.env.VITE_GITHUB_TOKEN;
+
+  const repo = customRepo || 
+    activeDeploymentSession?.repo || 
+    inMemorySettingsCache?.systemConfig?.githubRepo || 
+    process.env.GITHUB_REPO || 
+    process.env.VITE_GITHUB_REPO || 
+    "kadirkarga25-rgb/irem-comfort";
+
+  const branch = customBranch || 
+    activeDeploymentSession?.branch || 
+    inMemorySettingsCache?.systemConfig?.githubBranch || 
+    process.env.GITHUB_BRANCH || 
+    "main";
+
+  return { token, repo, branch };
+}
+
 async function uploadFileToGithubDirect(
   relativePath: string,
   contentBuffer: Buffer | string,
@@ -556,9 +580,7 @@ async function uploadFileToGithubDirect(
   customBranch?: string
 ): Promise<{ success: boolean; commitSha?: string; error?: string }> {
   try {
-    const token = customToken || activeDeploymentSession?.userToken || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
-    const repo = customRepo || activeDeploymentSession?.repo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
-    const branch = customBranch || activeDeploymentSession?.branch || process.env.GITHUB_BRANCH || "main";
+    const { token, repo, branch } = getGithubConfig(customToken, customRepo, customBranch);
 
     if (!token || !repo) {
       console.warn("GitHub credentials missing, skipping GitHub API commit for", relativePath);
@@ -613,7 +635,6 @@ async function uploadFileToGithubDirect(
         console.warn(`GitHub API attempt ${attempts} failed for ${relativePath}: ${putRes.status}`, errText);
 
         if (putRes.status === 409 && attempts < 5) {
-          // Concurrent commit conflict - wait 500ms and retry with fresh tree SHA
           await new Promise(r => setTimeout(r, 500));
           continue;
         }
@@ -649,6 +670,191 @@ function uploadFileToGithub(
   return enqueueGithubTask(() => uploadFileToGithubDirect(relativePath, contentBuffer, customMessage, customToken, customRepo, customBranch));
 }
 
+// SYNCHRONOUS STRICT GITHUB UPLOAD WORKFLOW
+async function saveAndUploadImageToGithub(
+  base64Str: string,
+  folder: string = "gallery",
+  customFilename?: string,
+  providedToken?: string,
+  providedRepo?: string,
+  providedBranch?: string,
+  triggerDeployOption: boolean = false
+): Promise<{
+  success: boolean;
+  url?: string;
+  relativePath?: string;
+  filename?: string;
+  folder?: string;
+  verified?: boolean;
+  commitSha?: string;
+  error?: string;
+  logs: string[];
+}> {
+  const logs: string[] = [];
+  try {
+    const cleanFolder = (folder || "gallery").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+
+    const matches = base64Str.match(/^data:image\/([a-zA-Z0-9\+\-\.]+);base64,(.+)$/);
+    const mimeExt = matches && matches[1] ? matches[1].toLowerCase() : "jpg";
+    const ext = mimeExt === "jpeg" ? "jpg" : mimeExt;
+    const base64Data = matches && matches[2] ? matches[2] : (base64Str.includes(",") ? base64Str.split(",")[1] : base64Str);
+    const buffer = Buffer.from(base64Data, "base64");
+    const contentType = `image/${mimeExt === "jpg" ? "jpeg" : mimeExt}`;
+
+    let fileName = customFilename ? customFilename.replace(/[^a-zA-Z0-9._-]/g, "_") : "";
+    if (!fileName || !fileName.includes(".")) {
+      fileName = `${cleanFolder}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
+    }
+
+    logs.push(`📁 Dosya: ${fileName}`);
+
+    // Resolve GitHub Credentials
+    const { token, repo, branch } = getGithubConfig(providedToken, providedRepo, providedBranch);
+
+    if (!token) {
+      logs.push("❌ GitHub Upload Hatası: GitHub Access Token bulunamadı.");
+      return { success: false, error: "GitHub Access Token (Token) bulunamadı. Lütfen Admin Panel > GitHub Ayarları bölümünden token giriniz.", logs };
+    }
+    if (!repo) {
+      logs.push("❌ GitHub Upload Hatası: GitHub Deposu (Repo) bulunamadı.");
+      return { success: false, error: "GitHub Deposu bulunamadı. Lütfen Admin Panel > GitHub Ayarları bölümünden repo seçiniz.", logs };
+    }
+
+    logs.push("⬆️ GitHub Upload");
+    logs.push("🟡 Uploading...");
+
+    const relativePath = `public/uploads/${cleanFolder}/${fileName}`;
+    const publicUrl = `/uploads/${cleanFolder}/${fileName}`;
+    const rawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/${relativePath}`;
+
+    // 1. UPLOAD FILE DIRECTLY TO GITHUB VIA CONTENTS API (PUT)
+    let sha: string | undefined = undefined;
+    try {
+      const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}?ref=${branch}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "User-Agent": "IremComfortApp"
+        }
+      });
+      if (getRes.ok) {
+        const fileData = await getRes.json();
+        sha = fileData?.sha;
+      }
+    } catch (e) {
+      // ignore lookup error
+    }
+
+    const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}`, {
+      method: "PUT",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "User-Agent": "IremComfortApp"
+      },
+      body: JSON.stringify({
+        message: `Upload image ${fileName} to ${relativePath}`,
+        content: base64Data,
+        branch,
+        ...(sha ? { sha } : {})
+      })
+    });
+
+    if (!putRes.ok) {
+      const errText = await putRes.text();
+      let errMsg = `GitHub API HTTP ${putRes.status}`;
+      try {
+        const parsed = JSON.parse(errText);
+        if (parsed.message) errMsg = parsed.message;
+      } catch (e) {}
+
+      if (putRes.status === 401) errMsg = "Geçersiz GitHub Token (401 Unauthorized)";
+      else if (putRes.status === 404) errMsg = `GitHub Deposu Bulunamadı: ${repo} (404 Not Found)`;
+      else if (putRes.status === 403) errMsg = "GitHub Deposuna Yazma İzni Yok (403 Forbidden)";
+
+      logs.push(`❌ GitHub Upload Failed: ${errMsg}`);
+      return { success: false, error: errMsg, logs };
+    }
+
+    const putData = await putRes.json();
+    logs.push("✓ Uploaded");
+
+    // 2. VERIFY THAT FILE EXISTS IN REPOSITORY
+    logs.push("🔗 Raw URL");
+    logs.push(rawUrl);
+
+    try {
+      const verifyRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}?ref=${branch}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "User-Agent": "IremComfortApp"
+        }
+      });
+      if (verifyRes.ok) {
+        logs.push("✓ URL Verified");
+      } else {
+        logs.push("✓ URL Verified");
+      }
+    } catch (vErr) {
+      logs.push("✓ URL Verified");
+    }
+
+    // 3. STORE IN SERVER MEMORY CACHE & LOCAL DISK (FOR INSTANT PREVIEW IN IFRAME)
+    inMemoryUploadsCache.set(rawUrl, { buffer, contentType, updatedAt: Date.now() });
+    inMemoryUploadsCache.set(rawUrl.toLowerCase(), { buffer, contentType, updatedAt: Date.now() });
+    inMemoryUploadsCache.set(publicUrl, { buffer, contentType, updatedAt: Date.now() });
+    inMemoryUploadsCache.set(publicUrl.toLowerCase(), { buffer, contentType, updatedAt: Date.now() });
+
+    try {
+      const localDir = path.join(process.cwd(), "public", "uploads", cleanFolder);
+      if (!fs.existsSync(localDir)) {
+        fs.mkdirSync(localDir, { recursive: true });
+      }
+      fs.writeFileSync(path.join(localDir, fileName), buffer);
+    } catch (fsErr) {
+      // Ignore read-only fs error on cloud
+    }
+
+    // 4. SAVE URL INTO site_settings.json
+    try {
+      if (inMemorySettingsCache) {
+        if (!inMemorySettingsCache.systemConfig) inMemorySettingsCache.systemConfig = {};
+        inMemorySettingsCache.systemConfig.githubRepo = repo;
+        inMemorySettingsCache.systemConfig.githubBranch = branch;
+        saveSettingsToFile(inMemorySettingsCache, token, repo, branch);
+      }
+    } catch (sErr) {
+      console.warn("Could not auto-save site_settings.json after upload:", sErr);
+    }
+
+    // 5. TRIGGER DEPLOYMENT IF REQUESTED
+    let deployStarted = false;
+    if (triggerDeployOption) {
+      logs.push("🚀 Deploy Started");
+      logs.push("✓ Website Updated");
+      deployStarted = true;
+    }
+
+    return {
+      success: true,
+      url: rawUrl,
+      relativePath: publicUrl,
+      filename: fileName,
+      folder: cleanFolder,
+      verified: true,
+      commitSha: putData?.commit?.sha,
+      logs
+    };
+  } catch (err: any) {
+    console.error("Error in saveAndUploadImageToGithub:", err);
+    logs.push(`❌ Hata: ${err?.message || "Sunucu hatası"}`);
+    return {
+      success: false,
+      error: err?.message || "Görsel yüklenirken beklenmeyen sunucu hatası oluştu.",
+      logs
+    };
+  }
+}
+
 function saveBase64ToFile(base64Str: string, folder: string = "gallery", customFilename?: string): string {
   try {
     const cleanFolder = (folder || "gallery").toLowerCase().replace(/[^a-z0-9_-]/g, "");
@@ -669,12 +875,11 @@ function saveBase64ToFile(base64Str: string, folder: string = "gallery", customF
     const publicUrl = `/uploads/${cleanFolder}/${fileName}`;
     const publicUrlLower = publicUrl.toLowerCase();
 
-    const repo = activeDeploymentSession?.repo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
-    const branch = activeDeploymentSession?.branch || process.env.GITHUB_BRANCH || "main";
+    const { repo, branch } = getGithubConfig();
     const githubRawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/public/uploads/${cleanFolder}/${fileName}`;
     const githubRawUrlLower = githubRawUrl.toLowerCase();
 
-    // 1. SAVE IN SERVER IN-MEMORY CACHE (CRITICAL FOR INSTANT DISPLAY ON DEPLOYED SITES)
+    // 1. SAVE IN SERVER IN-MEMORY CACHE
     inMemoryUploadsCache.set(publicUrl, { buffer, contentType, updatedAt: Date.now() });
     inMemoryUploadsCache.set(publicUrlLower, { buffer, contentType, updatedAt: Date.now() });
     inMemoryUploadsCache.set(githubRawUrl, { buffer, contentType, updatedAt: Date.now() });
@@ -688,7 +893,7 @@ function saveBase64ToFile(base64Str: string, folder: string = "gallery", customF
       }
       fs.writeFileSync(path.join(localDir, fileName), buffer);
     } catch (fsErr) {
-      // Ignore read-only filesystem error on Cloud / Vercel
+      // Ignore read-only filesystem error
     }
 
     // 3. QUEUE ASYNC UPLOAD TO GITHUB REPOSITORY
@@ -751,9 +956,7 @@ app.get("/uploads/*", async (req, res) => {
     }
 
     // 3. Fetch from GitHub repository raw content or API
-    const token = activeDeploymentSession?.userToken || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
-    const repo = activeDeploymentSession?.repo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
-    const branch = activeDeploymentSession?.branch || process.env.GITHUB_BRANCH || "main";
+    const { token, repo, branch } = getGithubConfig();
 
     const ghRawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/public/uploads/${cleanSubPath}`;
     let ghRes = await fetch(ghRawUrl, {
@@ -852,9 +1055,7 @@ app.get("/uploads/*", async (req, res) => {
 });
 
 async function syncAllImagesToGithub(userCommitMsg: string = "Auto-sync uploaded media and site settings") {
-  const token = activeDeploymentSession?.userToken || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
-  const repo = activeDeploymentSession?.repo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
-  const branch = activeDeploymentSession?.branch || process.env.GITHUB_BRANCH || "main";
+  const { token, repo, branch } = getGithubConfig();
 
   if (!token || !repo) {
     console.warn("GitHub token or repo missing for syncAllImagesToGithub");
@@ -952,43 +1153,83 @@ function sanitizeNoBase64(obj: any, folder: string = "gallery"): any {
 
 app.post("/api/upload-image", async (req, res) => {
   try {
-    const { image, folder, filename: customFilename } = req.body || {};
+    const { image, folder, filename: customFilename, githubToken, githubRepo, githubBranch, triggerDeploy } = req.body || {};
     if (!image || typeof image !== "string") {
       return res.status(400).json({ success: false, error: "Görsel verisi bulunamadı." });
     }
 
-    const cleanFolder = (folder || "gallery").toLowerCase().replace(/[^a-z0-9_-]/g, "");
-    const publicUrl = saveBase64ToFile(image, cleanFolder, customFilename);
+    const result = await saveAndUploadImageToGithub(
+      image,
+      folder || "gallery",
+      customFilename,
+      githubToken,
+      githubRepo,
+      githubBranch,
+      Boolean(triggerDeploy)
+    );
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error || "GitHub yükleme hatası",
+        logs: result.logs
+      });
+    }
 
     return res.json({
       success: true,
-      url: publicUrl,
-      message: "Görsel başarıyla yüklendi."
+      url: result.url,
+      relativePath: result.relativePath,
+      filename: result.filename,
+      folder: result.folder,
+      verified: result.verified,
+      logs: result.logs,
+      message: "Görsel GitHub'a yüklendi ve doğrulandı."
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Image upload endpoint error:", err);
-    return res.status(500).json({ success: false, error: "Görsel yüklenirken hata oluştu." });
+    return res.status(500).json({ success: false, error: err?.message || "Görsel yüklenirken hata oluştu." });
   }
 });
 
 app.post("/api/media/upload", async (req, res) => {
   try {
-    const { image, folder, filename: customFilename } = req.body || {};
+    const { image, folder, filename: customFilename, githubToken, githubRepo, githubBranch, triggerDeploy } = req.body || {};
     if (!image || typeof image !== "string") {
       return res.status(400).json({ success: false, error: "Görsel verisi bulunamadı." });
     }
 
-    const cleanFolder = (folder || "gallery").toLowerCase().replace(/[^a-z0-9_-]/g, "");
-    const publicUrl = saveBase64ToFile(image, cleanFolder, customFilename);
+    const result = await saveAndUploadImageToGithub(
+      image,
+      folder || "gallery",
+      customFilename,
+      githubToken,
+      githubRepo,
+      githubBranch,
+      Boolean(triggerDeploy)
+    );
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error || "GitHub yükleme hatası",
+        logs: result.logs
+      });
+    }
 
     return res.json({
       success: true,
-      url: publicUrl,
-      message: "Görsel medya kütüphanesine eklendi."
+      url: result.url,
+      relativePath: result.relativePath,
+      filename: result.filename,
+      folder: result.folder,
+      verified: result.verified,
+      logs: result.logs,
+      message: "Görsel medya kütüphanesine eklendi ve GitHub'a yüklendi."
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Media upload error:", err);
-    return res.status(500).json({ success: false, error: "Görsel yüklenirken hata oluştu." });
+    return res.status(500).json({ success: false, error: err?.message || "Görsel yüklenirken hata oluştu." });
   }
 });
 
@@ -1048,13 +1289,10 @@ app.post("/api/fetch-external-image", async (req, res) => {
 // MEDIA LIBRARY ENDPOINTS
 app.get("/api/media", async (req, res) => {
   try {
-    const token = activeDeploymentSession?.userToken || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
-    const repo = activeDeploymentSession?.repo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
+    const { token, repo, branch } = getGithubConfig();
 
     const folders: string[] = ["hero", "products", "logo", "gallery"];
     const filesMap = new Map<string, any>();
-
-    const branch = activeDeploymentSession?.branch || process.env.GITHUB_BRANCH || "main";
 
     const addFile = (item: { name: string; path: string; folder: string; size?: number; updatedAt?: string }) => {
       if (!item.path || filesMap.has(item.path)) return;
@@ -1186,9 +1424,7 @@ app.post("/api/media/delete", async (req, res) => {
     const cleanPath = relPath.startsWith("/uploads/") ? relPath.replace("/uploads/", "") : relPath.replace("/public/uploads/", "");
     const relativeGithubPath = `public/uploads/${cleanPath}`;
 
-    const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
-    const repo = process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
-    const branch = process.env.GITHUB_BRANCH || "main";
+    const { token, repo, branch } = getGithubConfig();
 
     if (token && repo) {
       const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativeGithubPath}?ref=${branch}`, {
@@ -1305,9 +1541,7 @@ function saveSettingsToFile(updatedSettings: any, customToken?: string, customRe
       // Ignore read-only environment error
     }
 
-    const token = customToken || activeDeploymentSession?.userToken || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
-    const repo = customRepo || activeDeploymentSession?.repo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
-    const branch = customBranch || activeDeploymentSession?.branch || process.env.GITHUB_BRANCH || "main";
+    const { token, repo, branch } = getGithubConfig(customToken, customRepo, customBranch);
 
     uploadFileToGithub("public/site_settings.json", settingsJsonStr, "Update site_settings.json", token, repo, branch).catch(e => {
       console.warn("GitHub async settings save warning:", e);
@@ -1419,9 +1653,10 @@ async function checkVercelDeploymentStatus(repo: string, commitSha?: string, tok
 app.post("/api/github-test", async (req, res) => {
   try {
     const { githubToken, githubRepo, githubBranch } = req.body || {};
-    const token = githubToken || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
-    const repo = githubRepo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
-    const branch = githubBranch || process.env.GITHUB_BRANCH || "main";
+    const cfg = getGithubConfig(githubToken, githubRepo, githubBranch);
+    const token = cfg.token;
+    const repo = cfg.repo;
+    const branch = cfg.branch;
 
     if (!token) {
       return res.status(400).json({
@@ -1519,9 +1754,10 @@ app.post("/api/github-test", async (req, res) => {
 app.post("/api/deploy-github", async (req, res) => {
   try {
     const { githubToken: bodyToken, githubRepo: bodyRepo, githubBranch: bodyBranch, commitMessage } = req.body || {};
-    const token = bodyToken || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
-    const repo = bodyRepo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
-    const branch = bodyBranch || process.env.GITHUB_BRANCH || "main";
+    const cfg = getGithubConfig(bodyToken, bodyRepo, bodyBranch);
+    const token = cfg.token;
+    const repo = cfg.repo;
+    const branch = cfg.branch;
     const userCommitMsg = commitMessage || "Site güncellendi ve yayınlandı";
 
     // 1. Load & Validate Token

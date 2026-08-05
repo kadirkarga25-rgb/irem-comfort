@@ -53,13 +53,19 @@ export const MediaLibraryAdminTab: React.FC = () => {
     setTimeout(() => setMessage(null), 4000);
   };
 
+  const [uploadLogs, setUploadLogs] = useState<string[]>([]);
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
 
     setUploading(true);
+    setUploadLogs([]);
     let successCount = 0;
     const total = fileList.length;
+
+    const githubRepo = localStorage.getItem('irem_github_repo') || undefined;
+    const githubToken = localStorage.getItem('irem_github_token') || undefined;
 
     for (let i = 0; i < total; i++) {
       setUploadProgress({ current: i + 1, total });
@@ -76,13 +82,24 @@ export const MediaLibraryAdminTab: React.FC = () => {
               body: JSON.stringify({
                 image: base64Str,
                 folder: uploadFolder,
-                filename: file.name
+                filename: file.name,
+                githubRepo,
+                githubToken,
+                triggerDeploy: true
               })
             });
             const data = await res.json();
-            if (data.success) successCount++;
-          } catch (err) {
+            if (data.logs && Array.isArray(data.logs)) {
+              setUploadLogs(prev => [...prev, ...data.logs]);
+            }
+            if (data.success) {
+              successCount++;
+            } else {
+              showToast('error', data.error || 'Görsel GitHub\'a yüklenemedi!');
+            }
+          } catch (err: any) {
             console.error("Upload error for file:", file.name, err);
+            showToast('error', `Yükleme Hatası: ${err?.message || 'Sunucu hatası'}`);
           }
           resolve(null);
         };
@@ -92,7 +109,9 @@ export const MediaLibraryAdminTab: React.FC = () => {
 
     setUploading(false);
     setUploadProgress(null);
-    showToast('success', `${successCount} / ${total} dosya '${uploadFolder}' klasörüne başarıyla yüklendi.`);
+    if (successCount > 0) {
+      showToast('success', `${successCount} / ${total} dosya GitHub deposuna (${uploadFolder}) başarıyla yüklendi ve doğrulandı.`);
+    }
     fetchMedia();
   };
 
@@ -545,14 +564,18 @@ export const MediaLibraryAdminTab: React.FC = () => {
                     🌐 Tam İnternet Görsel Bağlantısı (URL):
                   </span>
                   <button
-                    onClick={() => copyToClipboard(previewFile.path.startsWith('http') ? previewFile.path : `https://raw.githubusercontent.com/kargakadir4525/irem-comfort/main/public${previewFile.path}`)}
+                    onClick={() => {
+                      const repo = localStorage.getItem('irem_github_repo') || 'kadirkarga25-rgb/irem-comfort';
+                      const rawUrl = previewFile.path.startsWith('http') ? previewFile.path : `https://raw.githubusercontent.com/${repo}/main/public${previewFile.path}`;
+                      copyToClipboard(rawUrl);
+                    }}
                     className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-sans font-bold rounded-lg text-[11px] flex items-center gap-1 cursor-pointer transition shadow-xs"
                   >
                     <Copy className="w-3 h-3" /> Tam Linki Kopyala
                   </button>
                 </div>
                 <div className="bg-slate-900 p-2 rounded-lg text-[11px] text-emerald-400 break-all select-all border border-slate-800">
-                  {previewFile.path.startsWith('http') ? previewFile.path : `https://raw.githubusercontent.com/kargakadir4525/irem-comfort/main/public${previewFile.path}`}
+                  {previewFile.path.startsWith('http') ? previewFile.path : `https://raw.githubusercontent.com/${localStorage.getItem('irem_github_repo') || 'kadirkarga25-rgb/irem-comfort'}/main/public${previewFile.path}`}
                 </div>
               </div>
 
