@@ -265,27 +265,35 @@ export const MediaLibraryAdminTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Google Image / External URL Quick Import Bar */}
-      <div className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center gap-3">
-        <div className="flex items-center gap-2 text-xs font-semibold text-amber-400 shrink-0">
-          <Sparkles className="w-4 h-4" />
-          <span>Google / Web Görsel Bağlantısı İçe Aktar:</span>
+      {/* Automatic Image Link Converter Banner */}
+      <div className="bg-slate-900/90 p-4 rounded-2xl border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+        <div className="flex items-center gap-3 text-xs text-slate-300">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+            <Sparkles className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="font-bold text-amber-400 text-xs">🚀 Otomatik İnternet Bağlantısı Dönüştürücü Active</p>
+            <p className="text-[11px] text-slate-400">Yüklediğiniz tüm fotoğraflar otomatik olarak GitHub sunucusunda kalıcı görsele dönüştürülür ve sitenizde kesintisiz yayınlanır.</p>
+          </div>
         </div>
-        <input 
-          type="url"
-          placeholder="https://... Google veya Web görsel adresini buraya yapıştırın"
-          value={externalUrlInput}
-          onChange={(e) => setExternalUrlInput(e.target.value)}
-          className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
-        />
-        <button
-          onClick={handleImportExternalUrl}
-          disabled={importingUrl || !externalUrlInput.trim()}
-          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition flex items-center gap-2 shrink-0 cursor-pointer"
-        >
-          {importingUrl ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-          <span>{importingUrl ? 'İndiriliyor...' : 'İçe Aktar & Kaydet'}</span>
-        </button>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <input 
+            type="url"
+            placeholder="İsteğe bağlı web / Google resmi bağlantısı yapıştırın"
+            value={externalUrlInput}
+            onChange={(e) => setExternalUrlInput(e.target.value)}
+            className="flex-1 sm:w-64 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+          />
+          <button
+            onClick={handleImportExternalUrl}
+            disabled={importingUrl || !externalUrlInput.trim()}
+            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shrink-0 cursor-pointer"
+          >
+            {importingUrl ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+            <span>{importingUrl ? 'İndiriliyor...' : 'İndir & Bağlantı Yap'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Search & Folder Filters */}

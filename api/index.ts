@@ -743,13 +743,13 @@ app.get("/uploads/*", async (req, res) => {
       return res.send(buffer);
     }
 
-    // 3. Fetch from GitHub repository raw content
+    // 3. Fetch from GitHub repository raw content or API
     const token = activeDeploymentSession?.userToken || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
     const repo = activeDeploymentSession?.repo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
     const branch = activeDeploymentSession?.branch || process.env.GITHUB_BRANCH || "main";
 
     const ghRawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/public/uploads/${cleanSubPath}`;
-    const ghRes = await fetch(ghRawUrl, {
+    let ghRes = await fetch(ghRawUrl, {
       headers: token ? { "Authorization": `Bearer ${token}`, "User-Agent": "IremComfortApp" } : { "User-Agent": "IremComfortApp" }
     });
 
@@ -777,6 +777,37 @@ app.get("/uploads/*", async (req, res) => {
       res.setHeader("Content-Type", contentType);
       res.setHeader("Cache-Control", "public, max-age=86400");
       return res.send(buffer);
+    } else if (token && repo) {
+      // Direct GitHub API contents fallback (instant commit read bypassing CDN delay)
+      try {
+        const apiRes = await fetch(`https://api.github.com/repos/${repo}/contents/public/uploads/${cleanSubPath}?ref=${branch}`, {
+          headers: { "Authorization": `Bearer ${token}`, "User-Agent": "IremComfortApp" }
+        });
+        if (apiRes.ok) {
+          const apiData = await apiRes.json();
+          if (apiData && apiData.content) {
+            const buffer = Buffer.from(apiData.content, apiData.encoding === "base64" ? "base64" : "utf-8");
+            const contentType = cleanSubPath.endsWith(".png") ? "image/png" : 
+              cleanSubPath.endsWith(".webp") ? "image/webp" : 
+              cleanSubPath.endsWith(".svg") ? "image/svg+xml" : "image/jpeg";
+
+            inMemoryUploadsCache.set(publicUrl, { buffer, contentType, updatedAt: Date.now() });
+            inMemoryUploadsCache.set(publicUrlLower, { buffer, contentType, updatedAt: Date.now() });
+
+            try {
+              const dir = path.dirname(localFilePath);
+              if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+              fs.writeFileSync(localFilePath, buffer);
+            } catch (e) {}
+
+            res.setHeader("Content-Type", contentType);
+            res.setHeader("Cache-Control", "public, max-age=86400");
+            return res.send(buffer);
+          }
+        }
+      } catch (apiErr) {
+        console.warn("GitHub API fallback fetch error:", apiErr);
+      }
     }
 
     // 4. Fallback to default logo as JPEG image so browser image renders gracefully
@@ -990,8 +1021,8 @@ app.post("/api/fetch-external-image", async (req, res) => {
 // MEDIA LIBRARY ENDPOINTS
 app.get("/api/media", async (req, res) => {
   try {
-    const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
-    const repo = process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
+    const token = activeDeploymentSession?.userToken || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.VITE_GITHUB_TOKEN;
+    const repo = activeDeploymentSession?.repo || process.env.GITHUB_REPO || process.env.VITE_GITHUB_REPO || "kargakadir4525/irem-comfort";
 
     const folders: string[] = ["hero", "products", "logo", "gallery"];
     const filesMap = new Map<string, any>();
