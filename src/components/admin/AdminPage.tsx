@@ -9,6 +9,7 @@ import { ImageSelectModal } from './ImageSelectModal';
 import { FaqAdminTab } from './FaqAdminTab';
 import { MediaLibraryAdminTab } from './MediaLibraryAdminTab';
 import { SeoAdminTab } from './SeoAdminTab';
+import { AppearanceAdminTab } from './AppearanceAdminTab';
 import { EMAIL_TEMPLATES, renderEmailHtml } from '../../utils/emailTemplates';
 import { 
   Lock, Key, User, LogOut, ExternalLink, Image as ImageIcon, 
@@ -17,7 +18,7 @@ import {
   QrCode, ToggleLeft, ToggleRight, Send, MessageSquare, Crop, Info,
   Mail, Server, AtSign, Save, MailCheck, CheckCircle2, Shield,
   Users, Download, Copy, Trash2, Plus, Search, Phone, HelpCircle,
-  GitBranch, Globe, FileImage, Video, RefreshCw, PowerOff
+  GitBranch, Globe, FileImage, Video, RefreshCw, PowerOff, Palette
 } from 'lucide-react';
 
 
@@ -130,7 +131,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Admin Panel Tabs
-  const [activeTab, setActiveTab] = useState<'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'presets' | 'leads' | 'newsletter' | 'email' | 'system' | 'media' | 'seo'>('fair');
+  const [activeTab, setActiveTab] = useState<'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'presets' | 'leads' | 'newsletter' | 'email' | 'system' | 'media' | 'seo' | 'appearance'>('fair');
 
   const [githubRepoInput, setGithubRepoInput] = useState<string>(() => systemConfig.githubRepo || localStorage.getItem('irem_github_repo') || 'kadirkarga25-rgb/irem-comfort');
   const [githubBranchInput, setGithubBranchInput] = useState<string>(() => systemConfig.githubBranch || localStorage.getItem('irem_github_branch') || 'main');
@@ -951,6 +952,18 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
           </button>
 
           <button
+            onClick={() => setActiveTab('appearance')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'appearance'
+                ? 'bg-amber-500 text-slate-900 font-bold shadow-md'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Palette className="w-4 h-4 text-purple-700" />
+            <span>🎨 Görünüm, Tema & Sıralama</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('general')}
             className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'general'
@@ -1130,6 +1143,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
               Siteyi Şimdi Canlıya Al
             </button>
           </div>
+        )}
+
+        {/* Tab: APPEARANCE & SECTION ORDER */}
+        {activeTab === 'appearance' && (
+          <AppearanceAdminTab />
         )}
 
         {/* Tab 0: FAIR & EXHIBITION MANAGEMENT */}

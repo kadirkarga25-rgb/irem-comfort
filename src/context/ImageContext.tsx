@@ -6,7 +6,7 @@ import {
   ANNOUNCEMENT_TICKER,
   DEFAULT_FAQ_ITEMS
 } from '../constants/data';
-import { CollectionItem, CraftsmanshipStep, ContactInfo, FaqItem, AboutSlide, SystemConfig, SeoConfig } from '../types';
+import { CollectionItem, CraftsmanshipStep, ContactInfo, FaqItem, AboutSlide, SystemConfig, SeoConfig, ThemeConfig, ThemePreset, SectionOrderItem } from '../types';
 
 async function uploadImageToGithub(dataUrl: string, folder: string = "site_images"): Promise<string> {
   if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith("data:image/")) {
@@ -221,9 +221,99 @@ interface ImageContextType {
   updateSeoConfig: (newConfig: Partial<SeoConfig>) => void;
   resetSeoConfig: () => void;
 
+  // Theme & Color Store
+  themeConfig: ThemeConfig;
+  updateThemeConfig: (newConfig: Partial<ThemeConfig>) => void;
+  resetThemeConfig: () => void;
+
+  // Homepage Section Order Store
+  sectionOrder: SectionOrderItem[];
+  updateSectionOrder: (newOrder: SectionOrderItem[]) => void;
+  moveSection: (id: string, direction: 'up' | 'down') => void;
+  toggleSectionEnabled: (id: string) => void;
+  resetSectionOrder: () => void;
+
   isManagerOpen: boolean;
   setIsManagerOpen: (open: boolean) => void;
 }
+
+export const DEFAULT_THEME_CONFIG: ThemeConfig = {
+  preset: 'lux-gold',
+  primaryColor: '#0A2D6F',
+  accentColor: '#D4AF37',
+  backgroundColor: '#FFFFFF',
+  textColor: '#111111',
+  headerBg: '#062050'
+};
+
+export const THEME_PRESETS: ThemePreset[] = [
+  {
+    id: 'lux-gold',
+    name: 'Altın & Deri Lüks (Varsayılan)',
+    description: 'Lacivert zemin, kelebek altın detaylar, klasik Manisa ayakkabı amblemi',
+    primaryColor: '#0A2D6F',
+    accentColor: '#D4AF37',
+    backgroundColor: '#FFFFFF',
+    textColor: '#111111',
+    headerBg: '#062050',
+    previewGradient: 'from-[#0A2D6F] to-[#D4AF37]'
+  },
+  {
+    id: 'dark-bordeaux',
+    name: 'Gece Siyahı & Bordo Elegant',
+    description: 'Mat kütle siyahı, koyu bordo dikiş vurguları ve asil tasarım',
+    primaryColor: '#18181B',
+    accentColor: '#991B1B',
+    backgroundColor: '#FAFAFA',
+    textColor: '#18181B',
+    headerBg: '#0F0F10',
+    previewGradient: 'from-[#18181B] to-[#991B1B]'
+  },
+  {
+    id: 'emerald-gold',
+    name: 'Zümrüt Yeşil & Altın Klasik',
+    description: 'Koyu zümrüt yeşili ve kehribar altın dokusu ile organik konfor hissi',
+    primaryColor: '#064E3B',
+    accentColor: '#D97706',
+    backgroundColor: '#F8FAF9',
+    textColor: '#0F172A',
+    headerBg: '#022C22',
+    previewGradient: 'from-[#064E3B] to-[#D97706]'
+  },
+  {
+    id: 'leather-brown',
+    name: 'Atölye Taba & Hakiki Deri Kahve',
+    description: 'Hakiki taba deri tonları, zanaat ruhunu yansıtan sıcak doğal renkler',
+    primaryColor: '#3F2E21',
+    accentColor: '#C59B27',
+    backgroundColor: '#FAF7F2',
+    textColor: '#271D16',
+    headerBg: '#281D15',
+    previewGradient: 'from-[#3F2E21] to-[#C59B27]'
+  },
+  {
+    id: 'ocean-copper',
+    name: 'Deniz Mavisi & Bakır Comfort',
+    description: 'Ferah deniz mavisi ve bakır şerit tonlarıyla ferah yazlık konsept',
+    primaryColor: '#0284C7',
+    accentColor: '#D97706',
+    backgroundColor: '#F0F9FF',
+    textColor: '#0F172A',
+    headerBg: '#075985',
+    previewGradient: 'from-[#0284C7] to-[#D97706]'
+  }
+];
+
+export const DEFAULT_SECTION_ORDER: SectionOrderItem[] = [
+  { id: 'hero', title: 'Hero (Ana Karşılama)', subtitle: 'Slogan, butonlar ve öne çıkan hakiki deri terlik görseli', enabled: true },
+  { id: 'about', title: 'Hakkımızda & Hikayemiz', subtitle: 'Manisa imalatı, 1993\'ten beri miras ve slayt galeri', enabled: true },
+  { id: 'collection', title: 'Koleksiyon & Ürünlerimiz', subtitle: 'Sandalet ve terlik ürün kartları, kategori filtreleri', enabled: true },
+  { id: 'craftsmanship', title: 'Zanaat & Atölye Süreci', subtitle: 'Elde kesim, saya dikim, ortopedik montaj adımları', enabled: true },
+  { id: 'why-us', title: 'Neden İrem Comfort', subtitle: 'Anatomik taban, %100 hakiki saya, toptan avantajlar', enabled: true },
+  { id: 'faq', title: 'Sıkça Sorulan Sorular (SSS)', subtitle: 'Toptan sipariş, kalıp, kargo ve deri bakımı rehberi', enabled: true },
+  { id: 'contact', title: 'İletişim & Konum', subtitle: 'WhatsApp, showroom adresi, harita ve mesaj formu', enabled: true },
+  { id: 'newsletter', title: 'E-Bülten & Kataloğ', subtitle: 'E-posta e-bülten kayıt alanı ve dijital katalog indirme', enabled: true }
+];
 
 export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
   isMaintenanceMode: false,
@@ -277,7 +367,20 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [aboutSlides, setAboutSlides] = useState<AboutSlide[]>(DEFAULT_ABOUT_SLIDES);
   const [systemConfig, setSystemConfig] = useState<SystemConfig>(DEFAULT_SYSTEM_CONFIG);
   const [seoConfig, setSeoConfig] = useState<SeoConfig>(DEFAULT_SEO_CONFIG);
+  const [themeConfig, setThemeConfig] = useState<ThemeConfig>(DEFAULT_THEME_CONFIG);
+  const [sectionOrder, setSectionOrder] = useState<SectionOrderItem[]>(DEFAULT_SECTION_ORDER);
   const [isManagerOpen, setIsManagerOpen] = useState(false);
+
+  // Apply dynamic theme CSS custom properties to document root
+  useEffect(() => {
+    if (themeConfig) {
+      document.documentElement.style.setProperty('--primary', themeConfig.primaryColor);
+      document.documentElement.style.setProperty('--accent', themeConfig.accentColor);
+      document.documentElement.style.setProperty('--bg-light', themeConfig.backgroundColor);
+      document.documentElement.style.setProperty('--text-dark', themeConfig.textColor);
+      document.documentElement.style.setProperty('--header-bg', themeConfig.headerBg);
+    }
+  }, [themeConfig]);
 
   // Clear legacy LocalStorage keys so they never interfere
   useEffect(() => {
@@ -315,6 +418,8 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             if (s.aboutSlides) setAboutSlides(s.aboutSlides);
             if (s.systemConfig) setSystemConfig(prev => ({ ...prev, ...s.systemConfig }));
             if (s.seoConfig) setSeoConfig(prev => ({ ...prev, ...s.seoConfig }));
+            if (s.themeConfig) setThemeConfig(prev => ({ ...prev, ...s.themeConfig }));
+            if (s.sectionOrder && Array.isArray(s.sectionOrder)) setSectionOrder(s.sectionOrder);
           }
         })
         .catch(() => {});
@@ -629,6 +734,54 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     saveSection('seoConfig', { seoConfig: DEFAULT_SEO_CONFIG });
   };
 
+  const updateThemeConfig = (newConfig: Partial<ThemeConfig>) => {
+    setThemeConfig(prev => {
+      const next = { ...prev, ...newConfig };
+      saveSection('themeConfig', { themeConfig: next });
+      return next;
+    });
+  };
+
+  const resetThemeConfig = () => {
+    setThemeConfig(DEFAULT_THEME_CONFIG);
+    saveSection('themeConfig', { themeConfig: DEFAULT_THEME_CONFIG });
+  };
+
+  const updateSectionOrder = (newOrder: SectionOrderItem[]) => {
+    setSectionOrder(newOrder);
+    saveSection('sectionOrder', { sectionOrder: newOrder });
+  };
+
+  const moveSection = (id: string, direction: 'up' | 'down') => {
+    setSectionOrder(prev => {
+      const idx = prev.findIndex(item => item.id === id);
+      if (idx === -1) return prev;
+      if (direction === 'up' && idx === 0) return prev;
+      if (direction === 'down' && idx === prev.length - 1) return prev;
+
+      const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+      const next = [...prev];
+      const [moved] = next.splice(idx, 1);
+      next.splice(targetIdx, 0, moved);
+
+      saveSection('sectionOrder', { sectionOrder: next });
+      return next;
+    });
+  };
+
+  const toggleSectionEnabled = (id: string) => {
+    setSectionOrder(prev => {
+      const next = prev.map(item => item.id === id ? { ...item, enabled: !item.enabled } : item);
+      saveSection('sectionOrder', { sectionOrder: next });
+      return next;
+    });
+  };
+
+  const resetSectionOrder = () => {
+    setSectionOrder(DEFAULT_SECTION_ORDER);
+    saveSection('sectionOrder', { sectionOrder: DEFAULT_SECTION_ORDER });
+  };
+
   const triggerDeploy = async (
     commitMessage?: string,
     customToken?: string,
@@ -760,6 +913,14 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         seoConfig,
         updateSeoConfig,
         resetSeoConfig,
+        themeConfig,
+        updateThemeConfig,
+        resetThemeConfig,
+        sectionOrder,
+        updateSectionOrder,
+        moveSection,
+        toggleSectionEnabled,
+        resetSectionOrder,
         triggerDeploy,
         isManagerOpen,
         setIsManagerOpen

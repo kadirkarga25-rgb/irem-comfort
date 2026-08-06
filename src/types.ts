@@ -106,4 +106,32 @@ export interface MediaFile {
   updatedAt: string;
 }
 
+export interface ThemeConfig {
+  preset: string; // 'lux-gold' | 'dark-bordeaux' | 'emerald-gold' | 'leather-brown' | 'ocean-copper' | 'custom'
+  primaryColor: string;
+  accentColor: string;
+  backgroundColor: string;
+  textColor: string;
+  headerBg: string;
+}
+
+export interface ThemePreset {
+  id: string;
+  name: string;
+  description: string;
+  primaryColor: string;
+  accentColor: string;
+  backgroundColor: string;
+  textColor: string;
+  headerBg: string;
+  previewGradient: string;
+}
+
+export interface SectionOrderItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  enabled: boolean;
+}
+
 

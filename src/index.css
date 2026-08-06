@@ -3,15 +3,16 @@
 @layer base {
   :root {
     --primary: #0A2D6F;
-    --accent: #163E87;
-    --bg-light: #F8F8F8;
+    --accent: #D4AF37;
+    --bg-light: #FFFFFF;
     --text-dark: #111111;
+    --header-bg: #062050;
   }
 
   body {
     font-family: 'Plus Jakarta Sans', 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
     color: var(--text-dark);
-    background-color: #ffffff;
+    background-color: var(--bg-light);
     overflow-x: hidden;
   }
 
@@ -36,11 +37,11 @@ body.modal-open {
   background: #f1f1f1;
 }
 ::-webkit-scrollbar-thumb {
-  background: #0A2D6F;
+  background: var(--primary);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #163E87;
+  background: var(--accent);
 }
 
 /* Glassmorphism helpers */

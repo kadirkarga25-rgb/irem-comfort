@@ -27,7 +27,7 @@ import { DeployingView } from './components/ui/DeployingView';
 import { useAppImages } from './context/ImageContext';
 
 function MainAppContent() {
-  const { systemConfig } = useAppImages();
+  const { systemConfig, sectionOrder } = useAppImages();
 
   const [scrollY, setScrollY] = useState(0);
   const [activeSection, setActiveSection] = useState('hero');
@@ -171,7 +171,7 @@ function MainAppContent() {
 
     animationFrameId = requestAnimationFrame(raf);
 
-    const sectionIds = ['hero', 'about', 'collection', 'craftsmanship', 'why-us', 'faq', 'contact'];
+    const activeSectionIds = (sectionOrder || []).filter(s => s.enabled !== false).map(s => s.id);
 
     const updateActiveSection = () => {
       const currentScroll = window.scrollY + 140;
@@ -182,8 +182,8 @@ function MainAppContent() {
       }
 
       let foundSection = 'hero';
-      for (let i = sectionIds.length - 1; i >= 0; i--) {
-        const id = sectionIds[i];
+      for (let i = activeSectionIds.length - 1; i >= 0; i--) {
+        const id = activeSectionIds[i];
         const el = document.getElementById(id);
         if (el) {
           if (currentScroll >= el.offsetTop - 20) {
@@ -212,13 +212,13 @@ function MainAppContent() {
       lenis.destroy();
       lenisRef.current = null;
     };
-  }, [isAdminView, isResetView, isRemoteView, isSurveyView, isNotFoundView, systemConfig.isMaintenanceMode, systemConfig.isDeploying, isFairModalOpen, legalModalDoc]);
+  }, [isAdminView, isResetView, isRemoteView, isSurveyView, isNotFoundView, systemConfig.isMaintenanceMode, systemConfig.isDeploying, isFairModalOpen, legalModalDoc, sectionOrder]);
 
   // Secondary Intersection Observer backup for static positions
   useEffect(() => {
     if (isAdminView || isNotFoundView || systemConfig.isMaintenanceMode || systemConfig.isDeploying) return;
 
-    const sectionIds = ['hero', 'about', 'collection', 'craftsmanship', 'why-us', 'faq', 'contact'];
+    const activeSectionIds = (sectionOrder || []).filter(s => s.enabled !== false).map(s => s.id);
     
     const handleObserver = (entries: IntersectionObserverEntry[]) => {
       entries.forEach((entry) => {
@@ -233,13 +233,14 @@ function MainAppContent() {
       threshold: 0
     });
 
-    sectionIds.forEach((id) => {
+    activeSectionIds.forEach((id) => {
       const el = document.getElementById(id);
       if (el) observer.observe(el);
     });
 
     return () => observer.disconnect();
-  }, [isAdminView, isNotFoundView, systemConfig.isMaintenanceMode, systemConfig.isDeploying]);
+  }, [isAdminView, isNotFoundView, systemConfig.isMaintenanceMode, systemConfig.isDeploying, sectionOrder]);
+
 
   const scrollToSection = (sectionId: string) => {
     const target = document.getElementById(sectionId);
@@ -304,6 +305,35 @@ function MainAppContent() {
     return <NotFoundPage onReturnToSite={returnToPublicSite} />;
   }
 
+  const renderSection = (sectionId: string) => {
+    switch (sectionId) {
+      case 'hero':
+        return (
+          <HeroSection
+            key="hero"
+            onDiscoverClick={() => scrollToSection('collection')}
+            onCraftsmanshipClick={() => scrollToSection('craftsmanship')}
+          />
+        );
+      case 'about':
+        return <AboutSection key="about" />;
+      case 'collection':
+        return <CollectionSection key="collection" onInquireProduct={handleInquireProduct} />;
+      case 'craftsmanship':
+        return <CraftsmanshipSection key="craftsmanship" />;
+      case 'why-us':
+        return <WhyIremComfortSection key="why-us" />;
+      case 'faq':
+        return <FaqSection key="faq" />;
+      case 'contact':
+        return <ContactSection key="contact" prefilledSubject={contactPrefill} />;
+      case 'newsletter':
+        return <NewsletterSection key="newsletter" />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white text-[#111111] relative selection:bg-[#0A2D6F] selection:text-white">
       {/* Fair Modal (When activated from Admin) */}
@@ -320,26 +350,11 @@ function MainAppContent() {
         onOpenFairModal={() => setIsFairModalOpen(true)}
       />
 
-      {/* 3. Main Sections */}
+      {/* 3. Main Sections - Dynamically Reordered */}
       <main>
-        <HeroSection
-          onDiscoverClick={() => scrollToSection('collection')}
-          onCraftsmanshipClick={() => scrollToSection('craftsmanship')}
-        />
-
-        <AboutSection />
-
-        <CollectionSection onInquireProduct={handleInquireProduct} />
-
-        <CraftsmanshipSection />
-
-        <WhyIremComfortSection />
-
-        <FaqSection />
-
-        <ContactSection prefilledSubject={contactPrefill} />
-
-        <NewsletterSection />
+        {(sectionOrder || []).map((sec) => (
+          sec.enabled !== false ? renderSection(sec.id) : null
+        ))}
       </main>
 
       {/* 4. Footer */}
