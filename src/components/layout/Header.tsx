@@ -20,7 +20,7 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigate,
   onOpenFairModal
 }) => {
-  const { setIsManagerOpen } = useAppImages();
+  const { sectionOrder, setIsManagerOpen } = useAppImages();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Header is always visible so navigation links and Ana Sayfa never disappear
@@ -29,7 +29,18 @@ export const Header: React.FC<HeaderProps> = ({
   // Logo text "İrem Comfort" is shown clearly
   const showFullLogoText = true;
 
-  const navLinks = [
+  const SECTION_LABELS: Record<string, string> = {
+    hero: 'Ana Sayfa',
+    about: 'Hakkımızda',
+    collection: 'Koleksiyon',
+    craftsmanship: 'Zanaat',
+    'why-us': 'Neden Biz',
+    faq: 'SSS',
+    contact: 'İletişim',
+    newsletter: 'E-Bülten'
+  };
+
+  const defaultNavLinks = [
     { id: 'hero', label: 'Ana Sayfa' },
     { id: 'about', label: 'Hakkımızda' },
     { id: 'collection', label: 'Koleksiyon' },
@@ -38,6 +49,15 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'faq', label: 'SSS' },
     { id: 'contact', label: 'İletişim' }
   ];
+
+  const navLinks = (sectionOrder && sectionOrder.length > 0)
+    ? sectionOrder
+        .filter(sec => sec.enabled !== false && SECTION_LABELS[sec.id])
+        .map(sec => ({
+          id: sec.id,
+          label: SECTION_LABELS[sec.id] || sec.title
+        }))
+    : defaultNavLinks;
 
 
   const handleNavClick = (id: string) => {
