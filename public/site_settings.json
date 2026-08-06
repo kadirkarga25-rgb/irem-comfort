@@ -13,7 +13,7 @@
     "autoMaintenanceOnDeploy": true,
     "maxWaitTimeSeconds": 120,
     "isDeploying": true,
-    "lastDeployedAt": "2026-08-06T10:26:03.994Z",
+    "lastDeployedAt": "2026-08-06T10:32:24.808Z",
     "maintenanceTitle": "Website Maintenance",
     "maintenanceMessage": "Sitemiz sizler için güncellenmekte ve iyileştirilmektedir. Lütfen 2-5 dakika içerisinde tekrar deneyiniz.",
     "deployingMessage": "Sitemizin tamamlanmasına çok az kaldı, beklediğiniz için teşekkürler.",
@@ -37,10 +37,10 @@
     "heroImage": "/uploads/gallery/Ads_z_tasar_m.png",
     "aboutImage": "/uploads/gallery/banner-1785919037841.png",
     "craftsmanshipImages": {
-      "01": "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&q=80&w=1000",
-      "02": "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=1000",
-      "03": "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&q=80&w=1000",
-      "04": "https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&q=80&w=1000"
+      "01": "/uploads/gallery/ChatGPT_Image_4_A_u_2026_15_07_00.png",
+      "02": "/uploads/gallery/ChatGPT_Image_4_A_u_2026_15_11_49.png",
+      "03": "/uploads/gallery/ChatGPT_Image_4_A_u_2026_15_13_39.png",
+      "04": "/uploads/gallery/ChatGPT_Image_4_A_u_2026_15_15_56.png"
     },
     "collectionImages": {
       "cift-tokali-comfort-terlik": {
