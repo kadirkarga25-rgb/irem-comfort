@@ -85,7 +85,7 @@ export const MediaLibraryAdminTab: React.FC = () => {
                 filename: file.name,
                 githubRepo,
                 githubToken,
-                triggerDeploy: true
+                triggerDeploy: false
               })
             });
             const data = await res.json();

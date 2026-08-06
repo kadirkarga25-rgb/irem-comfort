@@ -84,7 +84,7 @@ export const ImageSelectModal: React.FC<ImageSelectModalProps> = ({
             filename: file.name,
             githubRepo,
             githubToken,
-            triggerDeploy: true
+            triggerDeploy: false
           })
         });
         const data = await res.json();

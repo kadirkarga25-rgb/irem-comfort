@@ -728,46 +728,72 @@ async function saveAndUploadImageToGithub(
     logs.push(`Uploaded Path: ${relativePath}`);
     logs.push(`Repo: ${repo} (branch: ${branch})`);
 
-    // 1. Check existing file SHA if updating
-    let sha: string | undefined = undefined;
-    try {
-      const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}?ref=${branch}`, {
+    // 1 & 2. Fetch fresh SHA and upload file with automatic 409 Conflict retry (up to 3 attempts)
+    let putStatus = 0;
+    let responseText = "";
+    let putData: any = {};
+    let attempt = 0;
+    const maxAttempts = 3;
+
+    while (attempt < maxAttempts) {
+      attempt++;
+      let currentSha: string | undefined = undefined;
+      try {
+        const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}?ref=${branch}`, {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "User-Agent": "IremComfortApp",
+            "Cache-Control": "no-cache"
+          }
+        });
+        if (getRes.ok) {
+          const fileData = await getRes.json();
+          currentSha = fileData?.sha;
+        }
+      } catch (e) {
+        // ignore lookup error
+      }
+
+      const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}`, {
+        method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
           "User-Agent": "IremComfortApp"
-        }
+        },
+        body: JSON.stringify({
+          message: `Upload image ${fileName} to ${relativePath}`,
+          content: base64Data,
+          branch,
+          ...(currentSha ? { sha: currentSha } : {})
+        })
       });
-      if (getRes.ok) {
-        const fileData = await getRes.json();
-        sha = fileData?.sha;
+
+      putStatus = putRes.status;
+      responseText = await putRes.text();
+
+      logs.push(`Attempt ${attempt}/${maxAttempts} - HTTP status: ${putStatus}`);
+      logs.push(`GitHub response body: ${responseText.length > 300 ? responseText.substring(0, 300) + "..." : responseText}`);
+
+      if (putRes.ok) {
+        try {
+          putData = JSON.parse(responseText);
+        } catch (e) {}
+        break; // Upload succeeded!
       }
-    } catch (e) {
-      // ignore lookup error
+
+      // If HTTP 409 Conflict, retry with fresh SHA
+      if (putStatus === 409 && attempt < maxAttempts) {
+        logs.push(`⚠️ HTTP 409 Conflict (outdated SHA). Fetching latest SHA from GitHub and retrying (attempt ${attempt + 1}/${maxAttempts})...`);
+        await new Promise(r => setTimeout(r, 600));
+        continue;
+      }
+
+      // Non-409 error or max attempts reached
+      break;
     }
 
-    // 2. Upload file directly to GitHub via Contents API (PUT)
-    const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}`, {
-      method: "PUT",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json",
-        "User-Agent": "IremComfortApp"
-      },
-      body: JSON.stringify({
-        message: `Upload image ${fileName} to ${relativePath}`,
-        content: base64Data,
-        branch,
-        ...(sha ? { sha } : {})
-      })
-    });
-
-    const putStatus = putRes.status;
-    const responseText = await putRes.text();
-
-    logs.push(`HTTP status: ${putStatus}`);
-    logs.push(`GitHub response body: ${responseText.length > 300 ? responseText.substring(0, 300) + "..." : responseText}`);
-
-    if (!putRes.ok) {
+    if (putStatus < 200 || putStatus >= 300) {
       let errMsg = `GitHub API HTTP ${putStatus}: ${responseText}`;
       try {
         const parsed = JSON.parse(responseText);
@@ -777,15 +803,11 @@ async function saveAndUploadImageToGithub(
       if (putStatus === 401) errMsg = "Geçersiz GitHub Token (401 Unauthorized)";
       else if (putStatus === 404) errMsg = `GitHub Deposu Bulunamadı: ${repo} (404 Not Found)`;
       else if (putStatus === 403) errMsg = "GitHub Deposuna Yazma İzni Yok (403 Forbidden)";
+      else if (putStatus === 409) errMsg = `GitHub SHA Çatışması (409 Conflict): Outdated SHA after ${maxAttempts} attempts`;
 
       logs.push(`❌ GitHub Upload Failed: ${errMsg}`);
       return { success: false, error: errMsg, logs };
     }
-
-    let putData: any = {};
-    try {
-      putData = JSON.parse(responseText);
-    } catch (e) {}
 
     const commitSha = putData?.commit?.sha || putData?.content?.sha || "sha_unknown";
     const returnedPath = putData?.content?.path || relativePath;
@@ -842,22 +864,11 @@ async function saveAndUploadImageToGithub(
       // Ignore read-only fs error on cloud
     }
 
-    // 6. SAVE URL INTO site_settings.json
-    try {
-      if (inMemorySettingsCache) {
-        if (!inMemorySettingsCache.systemConfig) inMemorySettingsCache.systemConfig = {};
-        inMemorySettingsCache.systemConfig.githubRepo = repo;
-        inMemorySettingsCache.systemConfig.githubBranch = branch;
-        saveSettingsToFile(inMemorySettingsCache, token, repo, branch);
-      }
-    } catch (sErr) {
-      console.warn("Could not auto-save site_settings.json after upload:", sErr);
-    }
-
-    // 7. TRIGGER DEPLOYMENT IF REQUESTED
-    if (triggerDeployOption) {
-      logs.push("🚀 Deploy Started");
-      logs.push("✓ Website Updated");
+    // Image uploaded & verified successfully! Do NOT update site_settings.json on GitHub or trigger deployment during image upload.
+    // The image URL will be saved to site_settings.json when the user clicks 'Publish'.
+    if (inMemorySettingsCache?.systemConfig) {
+      inMemorySettingsCache.systemConfig.githubRepo = repo;
+      inMemorySettingsCache.systemConfig.githubBranch = branch;
     }
 
     return {
@@ -1549,7 +1560,7 @@ function loadSettingsFromFile(): any {
 inMemorySettingsCache = loadSettingsFromFile();
 generateSitemapAndRobots(inMemorySettingsCache);
 
-function saveSettingsToFile(updatedSettings: any, customToken?: string, customRepo?: string, customBranch?: string) {
+function saveSettingsToFile(updatedSettings: any, customToken?: string, customRepo?: string, customBranch?: string, syncToGithub: boolean = false) {
   try {
     if (updatedSettings && typeof updatedSettings === 'object') {
       delete updatedSettings.system;
@@ -1559,7 +1570,7 @@ function saveSettingsToFile(updatedSettings: any, customToken?: string, customRe
 
     const settingsJsonStr = JSON.stringify(updatedSettings, null, 2);
 
-    // Write to local disk if possible
+    // Write to local disk if possible (for local draft state on dev server)
     try {
       const settingsPath = path.join(process.cwd(), "public", "site_settings.json");
       fs.writeFileSync(settingsPath, settingsJsonStr, "utf-8");
@@ -1567,16 +1578,18 @@ function saveSettingsToFile(updatedSettings: any, customToken?: string, customRe
       // Ignore read-only environment error
     }
 
-    const { token, repo, branch } = getGithubConfig(customToken, customRepo, customBranch);
+    if (syncToGithub) {
+      const { token, repo, branch } = getGithubConfig(customToken, customRepo, customBranch);
 
-    uploadFileToGithub("public/site_settings.json", settingsJsonStr, "Update site_settings.json", token, repo, branch).catch(e => {
-      console.warn("GitHub async settings save warning:", e);
-    });
-    if (inMemoryRobots) {
-      uploadFileToGithub("public/robots.txt", inMemoryRobots, "Update robots.txt", token, repo, branch).catch(() => {});
-    }
-    if (inMemorySitemap) {
-      uploadFileToGithub("public/sitemap.xml", inMemorySitemap, "Update sitemap.xml", token, repo, branch).catch(() => {});
+      uploadFileToGithub("public/site_settings.json", settingsJsonStr, "Update site_settings.json", token, repo, branch).catch(e => {
+        console.warn("GitHub async settings save warning:", e);
+      });
+      if (inMemoryRobots) {
+        uploadFileToGithub("public/robots.txt", inMemoryRobots, "Update robots.txt", token, repo, branch).catch(() => {});
+      }
+      if (inMemorySitemap) {
+        uploadFileToGithub("public/sitemap.xml", inMemorySitemap, "Update sitemap.xml", token, repo, branch).catch(() => {});
+      }
     }
   } catch (e) {
     console.error("Failed to process saveSettingsToFile:", e);
@@ -1985,7 +1998,7 @@ app.get("/api/deploy-status", async (_req, res) => {
         isMaintenanceMode: false,
         lastDeployedAt: new Date().toISOString()
       };
-      saveSettingsToFile(inMemorySettingsCache, session.userToken, session.repo, session.branch);
+      saveSettingsToFile(inMemorySettingsCache, session.userToken, session.repo, session.branch, true);
 
       return res.json({
         success: true,
@@ -2010,7 +2023,7 @@ app.get("/api/deploy-status", async (_req, res) => {
         isDeploying: false,
         isMaintenanceMode: false
       };
-      saveSettingsToFile(inMemorySettingsCache, session.userToken, session.repo, session.branch);
+      saveSettingsToFile(inMemorySettingsCache, session.userToken, session.repo, session.branch, true);
 
       return res.json({
         success: false,
@@ -2039,7 +2052,7 @@ app.get("/api/deploy-status", async (_req, res) => {
         isMaintenanceMode: false,
         lastDeployedAt: new Date().toISOString()
       };
-      saveSettingsToFile(inMemorySettingsCache, session.userToken, session.repo, session.branch);
+      saveSettingsToFile(inMemorySettingsCache, session.userToken, session.repo, session.branch, true);
 
       return res.json({
         success: true,
@@ -2093,7 +2106,7 @@ app.get("/api/deploy-status", async (_req, res) => {
           isMaintenanceMode: false,
           lastDeployedAt: new Date().toISOString()
         };
-        saveSettingsToFile(inMemorySettingsCache, session.userToken, session.repo, session.branch);
+        saveSettingsToFile(inMemorySettingsCache, session.userToken, session.repo, session.branch, true);
       }
     }
 
