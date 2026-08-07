@@ -28,7 +28,7 @@ import { DeployingView } from './components/ui/DeployingView';
 import { useAppImages } from './context/ImageContext';
 
 function MainAppContent() {
-  const { systemConfig, sectionOrder, isSettingsLoaded } = useAppImages();
+  const { systemConfig, sectionOrder } = useAppImages();
 
   const [scrollY, setScrollY] = useState(0);
   const [activeSection, setActiveSection] = useState('hero');
@@ -274,29 +274,6 @@ function MainAppContent() {
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  // 0. Single Source of Truth Startup Gate: Never render app until fetchSettings completes
-  if (!isSettingsLoaded) {
-    return (
-      <div className="fixed inset-0 bg-[#062050] flex flex-col items-center justify-center z-[9999] font-sans text-white px-4">
-        <div className="flex flex-col items-center gap-6 max-w-sm text-center animate-fade-in">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-[#0A2D6F] to-[#D4AF37] p-1 shadow-2xl flex items-center justify-center">
-            <div className="w-full h-full bg-[#062050] rounded-[14px] flex items-center justify-center">
-              <span className="font-serif text-2xl font-bold tracking-wider text-[#D4AF37]">İC</span>
-            </div>
-          </div>
-          <div>
-            <h1 className="font-serif text-xl font-bold tracking-wide text-white">İREM COMFORT</h1>
-            <p className="text-xs text-[#D4AF37] tracking-widest uppercase mt-1">Hakiki Deri & Ortopedik Konfor</p>
-          </div>
-          <div className="w-48 h-1 bg-white/10 rounded-full overflow-hidden mt-2 relative">
-            <div className="absolute inset-y-0 bg-gradient-to-r from-[#D4AF37] via-amber-200 to-[#D4AF37] animate-pulse w-full rounded-full"></div>
-          </div>
-          <span className="text-xs text-slate-300 font-medium tracking-wide">Yükleniyor...</span>
-        </div>
-      </div>
-    );
-  }
 
   // 1. Admin view always takes precedence so admin is never locked out
   if (isAdminView) {
