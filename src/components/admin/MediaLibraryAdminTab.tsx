@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Upload, Trash2, Edit3, FolderPlus, Folder, FileImage, 
-  Copy, Check, Eye, RefreshCw, Search, FolderOpen, ArrowUpRight, Sparkles
+  Copy, Check, Eye, RefreshCw, Search, FolderOpen, ArrowUpRight, Sparkles,
+  Video, Play, CheckCircle2
 } from 'lucide-react';
 import { MediaFile } from '../../types';
+import { useAppImages } from '../../context/ImageContext';
 
 export const MediaLibraryAdminTab: React.FC = () => {
-  const [folders, setFolders] = useState<string[]>(['hero', 'products', 'logo', 'gallery']);
+  const { systemConfig, updateSystemConfig } = useAppImages();
+  const [folders, setFolders] = useState<string[]>(['hero', 'products', 'logo', 'gallery', 'videos']);
   const [files, setFiles] = useState<MediaFile[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,7 +37,7 @@ export const MediaLibraryAdminTab: React.FC = () => {
       const res = await fetch('/api/media');
       const data = await res.json();
       if (data.success) {
-        setFolders(data.folders || ['hero', 'products', 'logo', 'gallery']);
+        setFolders(data.folders || ['hero', 'products', 'logo', 'gallery', 'videos']);
         setFiles(data.files || []);
       }
     } catch (err) {
@@ -51,6 +54,20 @@ export const MediaLibraryAdminTab: React.FC = () => {
   const showToast = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 4000);
+  };
+
+  const isVideo = (f: { name: string; path: string; folder: string }) => {
+    const p = (f.path || f.name).toLowerCase();
+    return p.endsWith('.mp4') || p.endsWith('.webm') || f.folder === 'videos';
+  };
+
+  const handleSelectDeploymentVideo = (file: MediaFile) => {
+    const videoUrl = file.path.startsWith('http') ? file.path : `/uploads/${file.folder}/${file.name}`;
+    updateSystemConfig({
+      deploymentVideo: videoUrl,
+      enableDeploymentIntro: true
+    });
+    showToast('success', `🎯 "${file.name}" aktif yayınlama (deployment) videosu olarak kaydedildi!`);
   };
 
   const [uploadLogs, setUploadLogs] = useState<string[]>([]);
@@ -261,12 +278,12 @@ export const MediaLibraryAdminTab: React.FC = () => {
             <span>
               {uploading && uploadProgress 
                 ? `Yükleniyor (${uploadProgress.current}/${uploadProgress.total})...` 
-                : uploading ? 'Yükleniyor...' : 'Yeni Görsel Yükle'}
+                : uploading ? 'Yükleniyor...' : 'Yeni Medya / Video Yükle'}
             </span>
             <input 
               type="file" 
               multiple 
-              accept="image/*" 
+              accept="image/*,video/mp4,video/webm" 
               className="hidden" 
               onChange={handleFileUpload}
               disabled={uploading}
@@ -414,22 +431,52 @@ export const MediaLibraryAdminTab: React.FC = () => {
                 key={file.id} 
                 className="group relative bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden hover:border-amber-500/50 transition-all shadow-md flex flex-col justify-between"
               >
-                {/* Image Thumbnail */}
+                {/* Media Thumbnail or Video Player */}
                 <div className="relative aspect-square bg-slate-950 overflow-hidden flex items-center justify-center p-2">
-                  <img 
-                    src={file.path.startsWith('http') ? file.path : `/uploads/${file.folder}/${file.name}`} 
-                    alt={file.name} 
-                    className="max-h-full max-w-full object-contain rounded-lg group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      if (!target.src.includes('irem-comfort-logo')) {
-                        target.src = '/uploads/logo/irem-comfort-logo.jpg';
-                      }
-                    }}
-                  />
-                  <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-slate-950/80 text-[10px] font-mono text-amber-400 border border-white/10 uppercase">
-                    {file.folder}
-                  </span>
+                  {isVideo(file) ? (
+                    <div className="relative w-full h-full flex items-center justify-center bg-slate-950 rounded-lg overflow-hidden group/vid">
+                      <video 
+                        src={file.path.startsWith('http') ? file.path : `/uploads/${file.folder}/${file.name}`} 
+                        className="w-full h-full object-cover rounded-lg opacity-80 group-hover/vid:opacity-100 transition"
+                        muted
+                        preload="metadata"
+                      />
+                      <div className="absolute inset-0 bg-slate-950/40 flex items-center justify-center group-hover/vid:bg-slate-950/20 transition">
+                        <div className="w-10 h-10 rounded-full bg-amber-500/90 text-slate-950 flex items-center justify-center shadow-lg group-hover/vid:scale-110 transition">
+                          <Play className="w-5 h-5 ml-0.5 fill-current" />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <img 
+                      src={file.path.startsWith('http') ? file.path : `/uploads/${file.folder}/${file.name}`} 
+                      alt={file.name} 
+                      className="max-h-full max-w-full object-contain rounded-lg group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        if (!target.src.includes('irem-comfort-logo')) {
+                          target.src = '/uploads/logo/irem-comfort-logo.jpg';
+                        }
+                      }}
+                    />
+                  )}
+                  
+                  <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                    <span className="px-2 py-0.5 rounded-md bg-slate-950/80 text-[10px] font-mono text-amber-400 border border-white/10 uppercase">
+                      {file.folder}
+                    </span>
+                    {isVideo(file) && (
+                      <span className="px-1.5 py-0.5 rounded-md bg-indigo-500/90 text-[10px] font-bold text-white flex items-center gap-1">
+                        <Video className="w-2.5 h-2.5" /> Video
+                      </span>
+                    )}
+                  </div>
+
+                  {systemConfig.deploymentVideo === (file.path.startsWith('http') ? file.path : `/uploads/${file.folder}/${file.name}`) && (
+                    <span className="absolute bottom-2 left-2 right-2 px-2 py-1 bg-amber-500 text-slate-950 font-bold text-[10px] rounded-md text-center shadow-md flex items-center justify-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Yayınlama Videosu
+                    </span>
+                  )}
                 </div>
 
                 {/* File Details */}
@@ -451,6 +498,20 @@ export const MediaLibraryAdminTab: React.FC = () => {
                     >
                       <Eye className="w-3.5 h-3.5" />
                     </button>
+
+                    {isVideo(file) && (
+                      <button
+                        onClick={() => handleSelectDeploymentVideo(file)}
+                        className={`p-1.5 rounded-lg transition ${
+                          systemConfig.deploymentVideo === (file.path.startsWith('http') ? file.path : `/uploads/${file.folder}/${file.name}`)
+                            ? 'bg-amber-500 text-slate-950 font-bold'
+                            : 'hover:bg-slate-800 text-amber-400 hover:text-amber-300'
+                        }`}
+                        title="Yayınlama Videosu Yap"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                      </button>
+                    )}
 
                     <button
                       onClick={() => copyToClipboard(file.path)}
@@ -569,18 +630,37 @@ export const MediaLibraryAdminTab: React.FC = () => {
             </div>
 
             <div className="bg-slate-950 p-4 rounded-2xl flex items-center justify-center min-h-[250px] max-h-[400px]">
-              <img 
-                src={previewFile.path.startsWith('http') ? previewFile.path : `/uploads/${previewFile.folder}/${previewFile.name}`} 
-                alt={previewFile.name} 
-                className="max-h-[350px] object-contain rounded-lg"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  if (!target.src.includes('irem-comfort-logo')) {
-                    target.src = '/uploads/logo/irem-comfort-logo.jpg';
-                  }
-                }}
-              />
+              {isVideo(previewFile) ? (
+                <video 
+                  src={previewFile.path.startsWith('http') ? previewFile.path : `/uploads/${previewFile.folder}/${previewFile.name}`} 
+                  controls
+                  autoPlay
+                  className="max-h-[350px] w-full rounded-lg bg-black"
+                />
+              ) : (
+                <img 
+                  src={previewFile.path.startsWith('http') ? previewFile.path : `/uploads/${previewFile.folder}/${previewFile.name}`} 
+                  alt={previewFile.name} 
+                  className="max-h-[350px] object-contain rounded-lg"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    if (!target.src.includes('irem-comfort-logo')) {
+                      target.src = '/uploads/logo/irem-comfort-logo.jpg';
+                    }
+                  }}
+                />
+              )}
             </div>
+
+            {isVideo(previewFile) && (
+              <button
+                onClick={() => handleSelectDeploymentVideo(previewFile)}
+                className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-sans font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg transition"
+              >
+                <Play className="w-4 h-4 fill-current" />
+                <span>🎯 Bu Videoyu Aktif Yayınlama (Deployment) Videosu Yap</span>
+              </button>
+            )}
 
             <div className="space-y-3 text-xs font-mono bg-slate-950 p-4 rounded-xl border border-slate-800 text-slate-300">
               <div className="flex justify-between">

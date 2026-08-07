@@ -72,20 +72,26 @@ export interface AboutSlide {
 }
 
 export interface SystemConfig {
-  isMaintenanceMode: boolean;
-  autoMaintenanceOnDeploy: boolean;
   maxWaitTimeSeconds?: number;
   isDeploying: boolean;
   lastDeployedAt: string | null;
-  maintenanceTitle: string;
-  maintenanceMessage: string;
   deployingMessage: string;
   githubRepo: string;
   githubBranch: string;
-  introVideoUrl?: string;
-  enableLaunchIntro?: boolean;
   stage1Text?: string;
   stage2Text?: string;
+
+  // Deployment Experience & Video System
+  deploymentVideo?: string;
+  enableDeploymentIntro?: boolean;
+  videoVolume?: number; // 0.0 to 1.0
+  loopVideo?: boolean;
+  autoplayVideo?: boolean;
+  mutedVideo?: boolean;
+  skipButton?: boolean;
+  fadeDuration?: number; // milliseconds
+  minLoadingTime?: number; // seconds
+  deploymentRevision?: string;
 }
 
 export interface SeoConfig {
@@ -105,6 +111,7 @@ export interface MediaFile {
   folder: string;
   size: number;
   updatedAt: string;
+  type?: 'image' | 'video';
 }
 
 export interface ThemeConfig {

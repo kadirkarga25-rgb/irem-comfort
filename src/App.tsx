@@ -24,7 +24,6 @@ import { SurveyPage } from './components/secret/SurveyPage';
 import { NotFoundPage } from './components/ui/NotFoundPage';
 import { LegalModal, LegalDocType } from './components/ui/LegalModal';
 import { CookieConsent } from './components/ui/CookieConsent';
-import { MaintenanceView } from './components/ui/MaintenanceView';
 import { DeployingView } from './components/ui/DeployingView';
 import { useAppImages } from './context/ImageContext';
 
@@ -281,13 +280,14 @@ function MainAppContent() {
     return <AdminPage onReturnToSite={returnToPublicSite} />;
   }
 
-  // 2. Maintenance Mode view for public site
-  if (systemConfig.isMaintenanceMode) {
-    return <MaintenanceView />;
-  }
+  // 2. Deployment Experience for public site (Active deploy or new deployment revision)
+  const hasNewDeploymentRevision = Boolean(
+    systemConfig.enableDeploymentIntro && 
+    systemConfig.deploymentRevision && 
+    systemConfig.deploymentRevision !== localStorage.getItem('last_watched_deployment_revision')
+  );
 
-  // 3. Deployment updating view for public site
-  if (systemConfig.isDeploying) {
+  if (systemConfig.isDeploying || hasNewDeploymentRevision) {
     return <DeployingView />;
   }
 

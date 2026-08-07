@@ -31,12 +31,6 @@ export const DashboardOverviewAdminTab: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleToggleMaintenanceMode = () => {
-    updateSystemConfig({
-      isMaintenanceMode: !systemConfig.isMaintenanceMode
-    });
-  };
-
   return (
     <div className="space-y-6">
       {/* Top Banner Control Center */}
@@ -57,18 +51,6 @@ export const DashboardOverviewAdminTab: React.FC = () => {
 
         <div className="flex flex-wrap items-center gap-3">
           <button
-            onClick={handleToggleMaintenanceMode}
-            className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer shadow-md ${
-              systemConfig.isMaintenanceMode
-                ? 'bg-amber-500 text-slate-950 hover:bg-amber-400'
-                : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
-            }`}
-          >
-            <Power className="w-4 h-4" />
-            <span>{systemConfig.isMaintenanceMode ? 'Bakım Modu Aktif (Kapat)' : 'Bakım Modunu Aç'}</span>
-          </button>
-
-          <button
             onClick={() => triggerDeploy('Dashboard Manuel Tetikleme')}
             disabled={systemConfig.isDeploying}
             className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl flex items-center gap-2 shadow-lg transition-all cursor-pointer disabled:opacity-50"
@@ -88,13 +70,13 @@ export const DashboardOverviewAdminTab: React.FC = () => {
             <Globe className="w-4 h-4 text-[#082C6C]" />
           </div>
           <div className="flex items-baseline justify-between">
-            <span className={`text-lg font-extrabold ${systemConfig.isMaintenanceMode ? 'text-amber-600' : 'text-emerald-600'}`}>
-              {systemConfig.isMaintenanceMode ? 'Bakım Modunda' : 'Canlı Yayında'}
+            <span className="text-lg font-extrabold text-emerald-600">
+              Canlı Yayında
             </span>
             <span className="text-[10px] font-bold text-slate-400">0.4s Tepki Süresi</span>
           </div>
           <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-            <div className={`h-full ${systemConfig.isMaintenanceMode ? 'bg-amber-500' : 'bg-emerald-500'} w-full`} />
+            <div className="h-full bg-emerald-500 w-full" />
           </div>
         </div>
 

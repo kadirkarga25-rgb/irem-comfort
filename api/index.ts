@@ -716,12 +716,13 @@ async function saveAndUploadImageToGithub(
   try {
     const cleanFolder = (folder || "gallery").toLowerCase().replace(/[^a-z0-9_-]/g, "");
 
-    const matches = base64Str.match(/^data:image\/([a-zA-Z0-9\+\-\.]+);base64,(.+)$/);
-    const mimeExt = matches && matches[1] ? matches[1].toLowerCase() : "jpg";
+    const matches = base64Str.match(/^data:(image|video)\/([a-zA-Z0-9\+\-\.]+);base64,(.+)$/);
+    const mediaCategory = matches && matches[1] ? matches[1] : "image";
+    const mimeExt = matches && matches[2] ? matches[2].toLowerCase() : "jpg";
     const ext = mimeExt === "jpeg" ? "jpg" : mimeExt;
-    const base64Data = matches && matches[2] ? matches[2] : (base64Str.includes(",") ? base64Str.split(",")[1] : base64Str);
+    const base64Data = matches && matches[3] ? matches[3] : (base64Str.includes(",") ? base64Str.split(",")[1] : base64Str);
     const buffer = Buffer.from(base64Data, "base64");
-    const contentType = `image/${mimeExt === "jpg" ? "jpeg" : mimeExt}`;
+    const contentType = `${mediaCategory}/${mimeExt === "jpg" ? "jpeg" : mimeExt}`;
 
     let fileName = customFilename ? customFilename.replace(/[^a-zA-Z0-9._-]/g, "_") : "";
     if (!fileName || !fileName.includes(".")) {
@@ -918,12 +919,13 @@ function saveBase64ToFile(base64Str: string, folder: string = "gallery", customF
   try {
     const cleanFolder = (folder || "gallery").toLowerCase().replace(/[^a-z0-9_-]/g, "");
 
-    const matches = base64Str.match(/^data:image\/([a-zA-Z0-9\+\-\.]+);base64,(.+)$/);
-    const mimeExt = matches && matches[1] ? matches[1].toLowerCase() : "jpg";
+    const matches = base64Str.match(/^data:(image|video)\/([a-zA-Z0-9\+\-\.]+);base64,(.+)$/);
+    const mediaCategory = matches && matches[1] ? matches[1] : "image";
+    const mimeExt = matches && matches[2] ? matches[2].toLowerCase() : "jpg";
     const ext = mimeExt === "jpeg" ? "jpg" : mimeExt;
-    const base64Data = matches && matches[2] ? matches[2] : (base64Str.includes(",") ? base64Str.split(",")[1] : base64Str);
+    const base64Data = matches && matches[3] ? matches[3] : (base64Str.includes(",") ? base64Str.split(",")[1] : base64Str);
     const buffer = Buffer.from(base64Data, "base64");
-    const contentType = `image/${mimeExt === "jpg" ? "jpeg" : mimeExt}`;
+    const contentType = `${mediaCategory}/${mimeExt === "jpg" ? "jpeg" : mimeExt}`;
     
     let fileName = customFilename ? customFilename.replace(/[^a-zA-Z0-9._-]/g, "_") : "";
     if (!fileName || !fileName.includes(".")) {
@@ -1005,7 +1007,7 @@ app.get("/uploads/*", async (req, res) => {
     // 2. Serve local disk file if exists
     if (fs.existsSync(localFilePath) && fs.statSync(localFilePath).isFile()) {
       const ext = path.extname(localFilePath).toLowerCase();
-      const contentType = ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : ext === ".svg" ? "image/svg+xml" : "image/jpeg";
+      const contentType = ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : ext === ".svg" ? "image/svg+xml" : ext === ".mp4" ? "video/mp4" : ext === ".webm" ? "video/webm" : "image/jpeg";
       const buffer = fs.readFileSync(localFilePath);
       inMemoryUploadsCache.set(publicUrl, { buffer, contentType, updatedAt: Date.now() });
       inMemoryUploadsCache.set(publicUrlLower, { buffer, contentType, updatedAt: Date.now() });
@@ -1375,7 +1377,7 @@ app.get("/api/media", async (req, res) => {
 
     if (token && repo) {
       try {
-        for (const f of ["hero", "products", "logo", "gallery"]) {
+        for (const f of ["hero", "products", "logo", "gallery", "videos"]) {
           const ghRes = await fetch(`https://api.github.com/repos/${repo}/contents/public/uploads/${f}`, {
             headers: { "Authorization": `Bearer ${token}`, "User-Agent": "IremComfortApp" }
           });
@@ -1676,6 +1678,7 @@ async function publishSettings(
   verified: boolean;
   commitSha?: string;
   publishedAt?: string;
+  settings?: any;
   error?: string;
   details?: string;
   diagnostics: any;
@@ -2138,7 +2141,7 @@ app.post("/api/deploy-github", async (req, res) => {
     }
 
     // Commit created & pushed! Now wait for Vercel.
-    activeDeploymentSession.commitSha = setRes.commitSha;
+    activeDeploymentSession.commitSha = pubRes.commitSha;
     activeDeploymentSession.logs.push("✓ Commit created");
     activeDeploymentSession.logs.push("✓ Push completed");
     activeDeploymentSession.logs.push("✓ Waiting for Vercel...");
@@ -2270,12 +2273,12 @@ app.get("/api/deploy-status", async (_req, res) => {
         session.logs.push("✓ Website is live");
       }
 
-      // Deployment completed successfully! Unset isDeploying and disable maintenance mode.
+      // Deployment completed successfully! Update deployment revision and lastDeployedAt.
       inMemorySettingsCache.systemConfig = {
         ...(inMemorySettingsCache.systemConfig || {}),
         isDeploying: false,
-        isMaintenanceMode: false,
-        lastDeployedAt: new Date().toISOString()
+        lastDeployedAt: new Date().toISOString(),
+        deploymentRevision: session.commitSha || `rev_${Date.now()}`
       };
       saveSettingsToFile(inMemorySettingsCache, session.userToken, session.repo, session.branch, true);
 
@@ -2328,8 +2331,8 @@ app.get("/api/deploy-status", async (_req, res) => {
         inMemorySettingsCache.systemConfig = {
           ...(inMemorySettingsCache.systemConfig || {}),
           isDeploying: false,
-          isMaintenanceMode: false,
-          lastDeployedAt: new Date().toISOString()
+          lastDeployedAt: new Date().toISOString(),
+          deploymentRevision: session.commitSha || `rev_${Date.now()}`
         };
         saveSettingsToFile(inMemorySettingsCache, session.userToken, session.repo, session.branch, true);
       }
@@ -2344,26 +2347,6 @@ app.get("/api/deploy-status", async (_req, res) => {
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err?.message || "Status polling error" });
   }
-});
-
-app.post("/api/maintenance/disable", (_req, res) => {
-  if (activeDeploymentSession) {
-    activeDeploymentSession.status = 'READY';
-    if (activeDeploymentSession.logs) {
-      activeDeploymentSession.logs.push("⚠️ Maintenance mode forcibly disabled by administrator.");
-    }
-  }
-  inMemorySettingsCache.systemConfig = {
-    ...(inMemorySettingsCache.systemConfig || {}),
-    isMaintenanceMode: false,
-    isDeploying: false
-  };
-  saveSettingsToFile(inMemorySettingsCache);
-  return res.json({
-    success: true,
-    message: "Bakım modu zorla kapatıldı ve site canlıya alındı.",
-    systemConfig: inMemorySettingsCache.systemConfig
-  });
 });
 
 app.post("/api/deploy-cancel", (_req, res) => {

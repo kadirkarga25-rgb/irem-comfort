@@ -1,27 +1,34 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogoFull } from '../brand/LogoFull';
-import { RefreshCw, CheckCircle2, Sparkles, Lock, Play, Pause, Volume2, VolumeX, ArrowRight, Video, Upload, AlertCircle } from 'lucide-react';
+import { 
+  RefreshCw, CheckCircle2, Sparkles, Lock, Play, Pause, Volume2, 
+  VolumeX, ArrowRight, Video, AlertCircle, X, ChevronRight
+} from 'lucide-react';
 import { useAppImages, DeploymentProgress } from '../../context/ImageContext';
 
-export const DeployingView: React.FC = () => {
+interface Props {
+  onComplete?: () => void;
+}
+
+export const DeployingView: React.FC<Props> = ({ onComplete }) => {
   const { systemConfig, updateSystemConfig } = useAppImages();
 
   // Sequence Steps: 
-  // 'stage1' -> "Sitemizin tamamlanmasına çok az kaldı, beklediğiniz için teşekkürler." (Live Deploy Polling)
-  // 'stage2' -> "Sitemiz tamamlandı, beklediğiniz için teşekkürler." (Shows video launch option)
-  // 'video'  -> Playing video / Start Website
-  const [sequenceStep, setSequenceStep] = useState<'stage1' | 'stage2' | 'video'>('stage1');
+  // 'building' -> Real-time Vercel & GitHub Build Polling
+  // 'video_presentation' -> Auto playing selected deployment video or welcome presentation
+  const [sequenceStep, setSequenceStep] = useState<'building' | 'video_presentation'>('building');
   const [deployProgress, setDeployProgress] = useState<DeploymentProgress | null>(null);
   const [deployError, setDeployError] = useState<string | null>(null);
-  
+  const [isFadingOut, setIsFadingOut] = useState(false);
+
   // Video playback controls
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(systemConfig.mutedVideo ?? true);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // Custom uploaded video state
-  const [customVideoUrl, setCustomVideoUrl] = useState<string>(systemConfig.introVideoUrl || '');
+  const videoUrl = systemConfig.deploymentVideo || '';
+  const fadeMs = systemConfig.fadeDuration ?? 800;
 
   // Poll real deployment status from backend
   useEffect(() => {
@@ -35,11 +42,12 @@ export const DeployingView: React.FC = () => {
           setDeployProgress(dep);
 
           if (dep.status === 'READY') {
-            setSequenceStep('stage2');
-            updateSystemConfig({ isDeploying: false, isMaintenanceMode: false });
+            setSequenceStep('video_presentation');
           } else if (dep.status === 'ERROR') {
             setDeployError(dep.error || 'Deployment failed');
           }
+        } else if (!systemConfig.isDeploying) {
+          setSequenceStep('video_presentation');
         }
       } catch (e) {
         console.warn('Status poll error:', e);
@@ -47,27 +55,44 @@ export const DeployingView: React.FC = () => {
     };
 
     checkStatus();
-    timer = setInterval(checkStatus, 2500);
+    timer = setInterval(checkStatus, 2000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [systemConfig.isDeploying]);
 
-  const handleStartWebsite = () => {
-    updateSystemConfig({ isDeploying: false });
-    window.location.href = '/';
-  };
+  // Handle video element setup once video presentation is mounted
+  useEffect(() => {
+    if (sequenceStep === 'video_presentation' && videoRef.current) {
+      const vid = videoRef.current;
+      vid.volume = systemConfig.videoVolume ?? 0.8;
+      vid.muted = systemConfig.mutedVideo ?? true;
+      setIsMuted(vid.muted);
 
-  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+      if (systemConfig.autoplayVideo !== false) {
+        vid.play()
+          .then(() => setIsPlaying(true))
+          .catch((err) => {
+            console.warn("Autoplay muted fallback:", err);
+            vid.muted = true;
+            setIsMuted(true);
+            vid.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+          });
+      }
+    }
+  }, [sequenceStep, videoUrl]);
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const url = event.target?.result as string;
-      setCustomVideoUrl(url);
-      updateSystemConfig({ introVideoUrl: url });
-    };
-    reader.readAsDataURL(file);
+  const finishDeploymentExperience = () => {
+    setIsFadingOut(true);
+    if (systemConfig.deploymentRevision) {
+      localStorage.setItem('last_watched_deployment_revision', systemConfig.deploymentRevision);
+    } else {
+      localStorage.setItem('last_watched_deployment_revision', `rev_${Date.now()}`);
+    }
+
+    setTimeout(() => {
+      updateSystemConfig({ isDeploying: false });
+      if (onComplete) onComplete();
+    }, fadeMs);
   };
 
   const togglePlay = () => {
@@ -89,83 +114,106 @@ export const DeployingView: React.FC = () => {
 
   const handleVideoEnded = () => {
     setIsPlaying(false);
+    if (!systemConfig.loopVideo) {
+      // Smooth auto transition on video complete
+      finishDeploymentExperience();
+    }
   };
 
   const currentStepNum = (deployProgress?.stepIndex ?? 0) + 1;
   const progressPercent = Math.min(100, Math.round((currentStepNum / 9) * 100));
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-between items-center p-6 relative overflow-hidden font-sans selection:bg-[#082C6C] selection:text-white">
+    <div 
+      className="fixed inset-0 z-50 bg-slate-950 text-white flex flex-col justify-between items-center p-4 sm:p-6 overflow-hidden font-sans selection:bg-[#082C6C] selection:text-white"
+      style={{
+        transition: `opacity ${fadeMs}ms ease-out`,
+        opacity: isFadingOut ? 0 : 1,
+        pointerEvents: isFadingOut ? 'none' : 'auto'
+      }}
+    >
       {/* Background Glows */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#082C6C]/40 blur-[140px] rounded-full pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[300px] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none" />
 
-      {/* Header */}
-      <header className="w-full max-w-5xl flex items-center justify-between pt-4 z-10">
-        <div className="bg-slate-900/80 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 shadow-lg">
-          <LogoFull className="h-8 text-white" />
+      {/* Header Bar */}
+      <header className="w-full max-w-6xl flex items-center justify-between pt-2 z-20">
+        <div className="bg-slate-900/80 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/10 shadow-lg">
+          <LogoFull className="h-7 text-white" />
         </div>
 
-        <a
-          href="/admin"
-          className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white text-xs font-semibold border border-white/10 transition-all flex items-center gap-2 cursor-pointer"
-        >
-          <Lock className="w-3.5 h-3.5 text-amber-400" />
-          <span>Yönetici Paneli</span>
-        </a>
+        <div className="flex items-center gap-3">
+          {systemConfig.skipButton !== false && sequenceStep === 'video_presentation' && (
+            <button
+              onClick={finishDeploymentExperience}
+              className="px-5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold shadow-xl transition flex items-center gap-2 cursor-pointer active:scale-95"
+            >
+              <span>Atla / Siteye Geç</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
+
+          <a
+            href="/admin"
+            className="px-4 py-2.5 rounded-2xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white text-xs font-semibold border border-white/10 transition flex items-center gap-2 cursor-pointer"
+          >
+            <Lock className="w-3.5 h-3.5 text-amber-400" />
+            <span>Yönetici Paneli</span>
+          </a>
+        </div>
       </header>
 
       {/* Main Container */}
-      <main className="max-w-2xl w-full text-center my-auto py-12 space-y-8 z-10">
+      <main className="max-w-3xl w-full text-center my-auto py-8 space-y-6 z-10">
         <AnimatePresence mode="wait">
-          {/* STAGE 1: REAL DEPLOYMENT PROGRESS & STEP LOGS */}
-          {sequenceStep === 'stage1' && (
+          {/* STATE 1: BUILDING & DEPLOYMENT PROGRESS */}
+          {sequenceStep === 'building' && (
             <motion.div
-              key="stage1"
+              key="building"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.5 }}
-              className="space-y-8"
+              transition={{ duration: 0.4 }}
+              className="space-y-6"
             >
               {/* Spinner Icon */}
               <div className="relative inline-block">
-                <div className={`w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-gradient-to-tr ${
+                <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-tr ${
                   deployError ? 'from-rose-950 via-rose-900 to-slate-900 border-rose-500/40' : 'from-[#082C6C] via-indigo-900 to-slate-900 border-blue-400/30'
                 } border flex items-center justify-center shadow-2xl mx-auto`}>
                   {deployError ? (
-                    <AlertCircle className="w-12 h-12 text-rose-400" />
+                    <AlertCircle className="w-10 h-10 text-rose-400" />
                   ) : (
-                    <RefreshCw className="w-12 h-12 text-blue-400 animate-spin" />
+                    <RefreshCw className="w-10 h-10 text-amber-400 animate-spin" />
                   )}
                 </div>
                 <span className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-white text-[10px] font-extrabold uppercase tracking-widest shadow ${
-                  deployError ? 'bg-rose-600' : 'bg-blue-500'
+                  deployError ? 'bg-rose-600' : 'bg-amber-500 text-slate-950'
                 }`}>
                   {deployError ? 'HATA' : 'YAYINLANIYOR'}
                 </span>
               </div>
 
-              {/* Text Message 1 */}
-              <div className="space-y-4">
-                <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white font-serif-luxury leading-tight">
-                  {systemConfig.stage1Text || "Sitemizin tamamlanmasına çok az kaldı, beklediğiniz için teşekkürler."}
+              {/* Message */}
+              <div className="space-y-2">
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-serif-luxury leading-tight">
+                  {systemConfig.stage1Text || "Sitemizin güncellenmesi tamamlanıyor, beklediğiniz için teşekkürler."}
                 </h1>
-                <p className="text-sm text-slate-400 max-w-md mx-auto font-light">
-                  Güncellenen dosyalar ve görseller Vercel üzerinde yayına alınıyor...
+                <p className="text-xs text-slate-400 max-w-md mx-auto font-light">
+                  Yeni site ayarları ve içerikler canlı sunucuya aktarılıyor...
                 </p>
               </div>
 
-              {/* Live Progress Card */}
-              <div className="bg-slate-900/90 p-6 rounded-2xl border border-white/10 backdrop-blur-md space-y-4 max-w-lg mx-auto text-left shadow-2xl">
+              {/* Progress Card */}
+              <div className="bg-slate-900/90 p-5 rounded-3xl border border-white/10 backdrop-blur-md space-y-4 max-w-lg mx-auto text-left shadow-2xl">
                 <div className="flex items-center justify-between text-xs font-mono font-bold">
                   <span className="text-slate-300 flex items-center gap-1.5">
                     <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
-                    {deployError ? 'Yayınlama Durduruldu' : 'Vercel Deployment Adımları'}
+                    {deployError ? 'Yayınlama Durduruldu' : 'Deployment İlerlemesi'}
                   </span>
                   {deployProgress?.durationString && (
                     <span className="text-amber-400 font-bold">
-                      Duration: {deployProgress.durationString}
+                      Süre: {deployProgress.durationString}
                     </span>
                   )}
                 </div>
@@ -180,8 +228,8 @@ export const DeployingView: React.FC = () => {
                   />
                 </div>
 
-                {/* Step Logs Box */}
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs space-y-2 max-h-48 overflow-y-auto">
+                {/* Step Logs Console */}
+                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 font-mono text-xs space-y-2 max-h-40 overflow-y-auto">
                   {deployProgress?.logs && deployProgress.logs.length > 0 ? (
                     deployProgress.logs.map((logStr, idx) => {
                       const isSuccess = logStr.startsWith('✓');
@@ -207,132 +255,88 @@ export const DeployingView: React.FC = () => {
                       );
                     })
                   ) : (
-                    <div className="text-slate-500 text-center py-2 italic">
-                      ✓ Content validated<br />
-                      ✓ Images prepared<br />
-                      ⏳ Uploading to GitHub...
+                    <div className="text-slate-500 text-center py-2 italic text-[11px]">
+                      ✓ İçerik doğrulaması tamamlandı<br />
+                      ✓ Görseller hazırlandı<br />
+                      ⏳ GitHub & Vercel senkronizasyonu...
                     </div>
                   )}
                 </div>
 
-                {/* Real Error Box if deployment fails */}
                 {deployError && (
-                  <div className="p-3 bg-rose-950/80 border border-rose-500/50 rounded-xl text-rose-200 text-xs space-y-1">
+                  <div className="p-3 bg-rose-950/80 border border-rose-500/50 rounded-2xl text-rose-200 text-xs space-y-1">
                     <p className="font-bold flex items-center gap-1.5 text-rose-300">
                       <AlertCircle className="w-4 h-4 text-rose-400" />
-                      Hata Detayı:
+                      Hata Bildirimi:
                     </p>
                     <p className="font-mono text-[11px] text-rose-200">{deployError}</p>
-                    <p className="text-[10px] text-amber-300 font-sans pt-1">
-                      Bakım modu aktif tutulmuştur. Yönetici panelinden hatayı inceleyebilirsiniz.
-                    </p>
                   </div>
                 )}
               </div>
             </motion.div>
           )}
 
-          {/* STAGE 2 & 3: COMPLETED MESSAGE & VIDEO INTRO */}
-          {(sequenceStep === 'stage2' || sequenceStep === 'video') && (
+          {/* STATE 2: VIDEO EXPERIENCE & WELCOME SCREEN */}
+          {sequenceStep === 'video_presentation' && (
             <motion.div
-              key="stage2"
-              initial={{ opacity: 0, scale: 0.95 }}
+              key="video_presentation"
+              initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
-              className="space-y-8"
+              className="space-y-6"
             >
-              {/* Checkmark Icon */}
-              <div className="relative inline-block">
-                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-gradient-to-tr from-emerald-950 via-emerald-900 to-slate-900 border border-emerald-400/40 flex items-center justify-center shadow-2xl shadow-emerald-900/60 mx-auto">
-                  <CheckCircle2 className="w-14 h-14 text-emerald-400" />
-                </div>
-                <span className="absolute -bottom-2 -right-2 px-3 py-1 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-extrabold uppercase tracking-widest shadow">
-                  TAMAMLANDI
+              <div className="space-y-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold uppercase tracking-wider">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Site Güncellendi
                 </span>
-              </div>
-
-              {/* Text Message 2 */}
-              <div className="space-y-4">
                 <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white font-serif-luxury leading-tight">
-                  {systemConfig.stage2Text || "Sitemiz tamamlandı, beklediğiniz için teşekkürler."}
+                  {systemConfig.stage2Text || "Sitemiz güncellendi, hoş geldiniz!"}
                 </h1>
-                <p className="text-sm text-slate-300 max-w-md mx-auto font-light">
-                  Aşağıdaki tanıtım videosunu izleyebilir veya doğrudan siteye giriş yapabilirsiniz.
-                </p>
               </div>
 
-              {/* Video Section Container */}
-              <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-2xl max-w-xl mx-auto space-y-4 text-left">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <span className="text-xs font-bold text-amber-400 flex items-center gap-2">
-                    <Video className="w-4 h-4 text-amber-400" />
-                    <span>Tanıtım Videosu</span>
-                  </span>
-
-                  {/* Quick Video Upload Input for Admin/User */}
-                  <label className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-semibold rounded-xl border border-slate-700 transition cursor-pointer flex items-center gap-1.5">
-                    <Upload className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Video Yükle (MP4)</span>
-                    <input
-                      type="file"
-                      accept="video/*"
-                      className="hidden"
-                      onChange={handleVideoUpload}
+              {/* Video Player or Welcome Card */}
+              <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl max-w-2xl mx-auto space-y-4">
+                {videoUrl ? (
+                  <div className="relative aspect-video bg-black rounded-2xl overflow-hidden border border-slate-800 group shadow-2xl">
+                    <video
+                      ref={videoRef}
+                      src={videoUrl}
+                      className="w-full h-full object-contain bg-black"
+                      onEnded={handleVideoEnded}
+                      loop={systemConfig.loopVideo}
+                      playsInline
                     />
-                  </label>
-                </div>
 
-                {/* Video Player Box */}
-                <div className="relative aspect-video bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center group">
-                  {customVideoUrl ? (
-                    <>
-                      <video
-                        ref={videoRef}
-                        src={customVideoUrl}
-                        className="w-full h-full object-cover"
-                        onEnded={handleVideoEnded}
-                        playsInline
-                      />
-
-                      {/* Video Controls Overlay */}
-                      <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                        <button
-                          onClick={togglePlay}
-                          className="p-4 rounded-full bg-amber-500 text-slate-950 hover:scale-110 transition shadow-xl cursor-pointer"
-                        >
-                          {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
-                        </button>
-                        <button
-                          onClick={toggleMute}
-                          className="p-3 rounded-full bg-slate-800/80 text-white hover:bg-slate-700 transition cursor-pointer"
-                        >
-                          {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center p-6 space-y-3">
-                      <Video className="w-12 h-12 text-slate-700 mx-auto" />
-                      <p className="text-xs text-slate-400">Henüz video yüklenmedi.</p>
-                      <label className="inline-flex px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl cursor-pointer transition">
-                        <span>Video Yükle (.mp4)</span>
-                        <input
-                          type="file"
-                          accept="video/*"
-                          className="hidden"
-                          onChange={handleVideoUpload}
-                        />
-                      </label>
+                    {/* Interactive Overlay */}
+                    <div className="absolute inset-0 bg-slate-950/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                      <button
+                        onClick={togglePlay}
+                        className="p-4 rounded-full bg-amber-500 text-slate-950 hover:scale-110 transition shadow-2xl cursor-pointer"
+                      >
+                        {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
+                      </button>
+                      <button
+                        onClick={toggleMute}
+                        className="p-3.5 rounded-full bg-slate-800/80 text-white hover:bg-slate-700 transition cursor-pointer"
+                      >
+                        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                      </button>
                     </div>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="p-8 text-center space-y-3 bg-slate-950 rounded-2xl border border-slate-800/80">
+                    <Sparkles className="w-12 h-12 text-amber-400 mx-auto animate-pulse" />
+                    <p className="text-sm font-semibold text-slate-200">En güncel ürünler ve koleksiyonlar hazır.</p>
+                    <p className="text-xs text-slate-400">Yeni versiyon sitemizde gezintiye başlamak için butona tıklayın.</p>
+                  </div>
+                )}
 
-                {/* Launch Website Action Button */}
+                {/* Primary Action Button */}
                 <button
-                  onClick={handleStartWebsite}
+                  onClick={finishDeploymentExperience}
                   className="w-full py-4 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-extrabold text-sm rounded-2xl shadow-xl hover:shadow-amber-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                 >
-                  <span>Siteyi Başlat</span>
+                  <span>Siteye Giriş Yap</span>
                   <ArrowRight className="w-5 h-5" />
                 </button>
               </div>
@@ -342,10 +346,9 @@ export const DeployingView: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="w-full text-center text-slate-500 text-[11px] font-light z-10 pb-4">
-        <p>© {new Date().getFullYear()} İrem Comfort Ayakkabıcılık - Otomatik Yayınlama & Tanıtım Sistemi</p>
+      <footer className="w-full text-center text-slate-500 text-[11px] font-light z-20 pb-2">
+        <p>© {new Date().getFullYear()} İrem Comfort Ayakkabıcılık — Deployment Experience System</p>
       </footer>
     </div>
   );
 };
-

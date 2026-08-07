@@ -8,6 +8,7 @@ import { ImageCropModal, CropTargetSpecs } from './ImageCropModal';
 import { ImageSelectModal } from './ImageSelectModal';
 import { FaqAdminTab } from './FaqAdminTab';
 import { MediaLibraryAdminTab } from './MediaLibraryAdminTab';
+import { DeploymentExperienceAdminTab } from './DeploymentExperienceAdminTab';
 import { SeoAdminTab } from './SeoAdminTab';
 import { AppearanceAdminTab } from './AppearanceAdminTab';
 import { CrmAdminTab } from './CrmAdminTab';
@@ -143,7 +144,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Admin Panel Tabs
-  const [activeTab, setActiveTab] = useState<'overview' | 'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'page_builder' | 'presets' | 'leads' | 'newsletter' | 'email' | 'system' | 'media' | 'seo' | 'appearance' | 'crm' | 'analytics' | 'security' | 'ai_arch' | 'live_monitor' | 'backup' | 'ai_training' | 'infrastructure' | 'conv_logs'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'page_builder' | 'presets' | 'leads' | 'newsletter' | 'email' | 'system' | 'media' | 'deployment_exp' | 'seo' | 'appearance' | 'crm' | 'analytics' | 'security' | 'ai_arch' | 'live_monitor' | 'backup' | 'ai_training' | 'infrastructure' | 'conv_logs'>('overview');
 
   const [githubRepoInput, setGithubRepoInput] = useState<string>(() => systemConfig.githubRepo || localStorage.getItem('irem_github_repo') || 'kadirkarga25-rgb/irem-comfort');
   const [githubBranchInput, setGithubBranchInput] = useState<string>(() => systemConfig.githubBranch || localStorage.getItem('irem_github_branch') || 'main');
@@ -1176,6 +1177,18 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
           >
             <FileImage className="w-4 h-4 text-amber-400" />
             <span>🖼️ Medya Kütüphanesi</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('deployment_exp')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'deployment_exp'
+                ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Video className="w-4 h-4 text-indigo-600" />
+            <span>🎬 Deployment Deneyimi (Video)</span>
           </button>
 
           <button
@@ -3640,6 +3653,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
         {/* Tab: MEDIA LIBRARY */}
         {activeTab === 'media' && <MediaLibraryAdminTab />}
+
+        {/* Tab: DEPLOYMENT EXPERIENCE */}
+        {activeTab === 'deployment_exp' && (
+          <DeploymentExperienceAdminTab 
+            onTestDeploymentExperience={() => {
+              updateSystemConfig({ isDeploying: true });
+              showToast('🎬 Yayınlama deneyimi ve video ekranı canlı teste alındı!');
+            }} 
+          />
+        )}
 
         {/* Tab: SEO & SITEMAP */}
         {activeTab === 'seo' && <SeoAdminTab />}

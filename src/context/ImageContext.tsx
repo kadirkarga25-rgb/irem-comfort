@@ -316,20 +316,24 @@ export const DEFAULT_SECTION_ORDER: SectionOrderItem[] = [
 ];
 
 export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
-  isMaintenanceMode: false,
-  autoMaintenanceOnDeploy: true,
   maxWaitTimeSeconds: 120,
   isDeploying: false,
   lastDeployedAt: null,
-  maintenanceTitle: "Website Maintenance",
-  maintenanceMessage: "Our website is currently being updated with new content.\nPlease try again in approximately 2–5 minutes.",
   deployingMessage: "Website update is in progress.\nThe new version will be available in about 1 minute.",
   githubRepo: "kadirkarga25-rgb/irem-comfort",
   githubBranch: "main",
-  stage1Text: "Sitemizin tamamlanmasına çok az kaldı, beklediğiniz için teşekkürler.",
-  stage2Text: "Sitemiz tamamlandı, beklediğiniz için teşekkürler.",
-  enableLaunchIntro: true,
-  introVideoUrl: ""
+  stage1Text: "Sitemizin güncellenmesi tamamlanıyor, beklediğiniz için teşekkürler.",
+  stage2Text: "Sitemiz güncellendi, hoş geldiniz!",
+  deploymentVideo: "",
+  enableDeploymentIntro: true,
+  videoVolume: 0.8,
+  loopVideo: false,
+  autoplayVideo: true,
+  mutedVideo: true,
+  skipButton: true,
+  fadeDuration: 800,
+  minLoadingTime: 3,
+  deploymentRevision: "v1.0.0"
 };
 
 export const DEFAULT_SEO_CONFIG: SeoConfig = {
@@ -837,7 +841,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
               if (dep.status === 'READY') {
                 clearInterval(pollInterval);
-                updateSystemConfig({ isDeploying: false, isMaintenanceMode: false, lastDeployedAt: new Date().toISOString() });
+                updateSystemConfig({ isDeploying: false, lastDeployedAt: new Date().toISOString() });
                 resolve({
                   success: true,
                   message: 'Deployment completed successfully.',
@@ -846,7 +850,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 });
               } else if (dep.status === 'ERROR') {
                 clearInterval(pollInterval);
-                updateSystemConfig({ isDeploying: false, isMaintenanceMode: false });
+                updateSystemConfig({ isDeploying: false });
                 resolve({
                   success: false,
                   message: dep.error || 'Deployment failed.',
