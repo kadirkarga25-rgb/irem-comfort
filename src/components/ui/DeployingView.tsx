@@ -89,6 +89,8 @@ export const DeployingView: React.FC<Props> = ({ onComplete }) => {
       localStorage.setItem('last_watched_deployment_revision', `rev_${Date.now()}`);
     }
 
+    fetch('/api/deploy-reset', { method: 'POST' }).catch(() => {});
+
     setTimeout(() => {
       updateSystemConfig({ isDeploying: false });
       if (onComplete) onComplete();
@@ -143,15 +145,13 @@ export const DeployingView: React.FC<Props> = ({ onComplete }) => {
         </div>
 
         <div className="flex items-center gap-3">
-          {systemConfig.skipButton !== false && sequenceStep === 'video_presentation' && (
-            <button
-              onClick={finishDeploymentExperience}
-              className="px-5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold shadow-xl transition flex items-center gap-2 cursor-pointer active:scale-95"
-            >
-              <span>Atla / Siteye Geç</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          )}
+          <button
+            onClick={finishDeploymentExperience}
+            className="px-4 py-2.5 rounded-2xl bg-amber-500/90 hover:bg-amber-400 text-slate-950 text-xs font-extrabold shadow-xl transition flex items-center gap-2 cursor-pointer active:scale-95"
+          >
+            <X className="w-4 h-4" />
+            <span>Kapat / Siteye Geç</span>
+          </button>
 
           <a
             href="/admin"

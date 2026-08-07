@@ -11,14 +11,22 @@
   "systemConfig": {
     "maxWaitTimeSeconds": 120,
     "isDeploying": false,
+<<<<<<< HEAD
     "lastDeployedAt": "2026-08-07T08:06:51.819Z",
+=======
+    "lastDeployedAt": "2026-08-05T07:06:22.589Z",
+>>>>>>> 19a121b (Bütün Fotograflar Eklendi.)
     "deployingMessage": "Sitemizin tamamlanmasına çok az kaldı, beklediğiniz için teşekkürler.",
     "githubRepo": "kadirkarga25-rgb/irem-comfort",
     "githubBranch": "main",
     "stage1Text": "Sitemizin tamamlanmasına çok az kaldı, beklediğiniz için teşekkürler.",
     "stage2Text": "Sitemiz tamamlandı, beklediğiniz için teşekkürler.",
     "deploymentVideo": "",
+<<<<<<< HEAD
     "enableDeploymentIntro": true,
+=======
+    "enableDeploymentIntro": false,
+>>>>>>> 19a121b (Bütün Fotograflar Eklendi.)
     "videoVolume": 0.8,
     "loopVideo": false,
     "autoplayVideo": true,

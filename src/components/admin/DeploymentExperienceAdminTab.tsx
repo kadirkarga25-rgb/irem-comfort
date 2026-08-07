@@ -19,7 +19,7 @@ export const DeploymentExperienceAdminTab: React.FC<Props> = ({ onTestDeployment
 
   // Form State initialized from systemConfig
   const [videoUrl, setVideoUrl] = useState(systemConfig.deploymentVideo || '');
-  const [enableIntro, setEnableIntro] = useState(systemConfig.enableDeploymentIntro ?? true);
+  const [enableIntro, setEnableIntro] = useState(systemConfig.enableDeploymentIntro ?? false);
   const [volume, setVolume] = useState(systemConfig.videoVolume ?? 0.8);
   const [loop, setLoop] = useState(systemConfig.loopVideo ?? false);
   const [autoplay, setAutoplay] = useState(systemConfig.autoplayVideo ?? true);

@@ -131,7 +131,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     resetAboutSlides,
     systemConfig,
     updateSystemConfig,
-    triggerDeploy
+    triggerDeploy,
+    isDirty,
+    setIsDirty,
+    markDirty,
+    saveAllChanges,
+    discardUnsavedChanges
   } = useAppImages();
 
   // Authentication State
@@ -296,10 +301,61 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     };
   }, []);
 
+  // Prevent accidental navigation/tab-close when there are unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = 'Kaydedilmemiş değişiklikleriniz var. Ayrılmak istediğinizden emin misiniz?';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
+  const [showExitConfirmModal, setShowExitConfirmModal] = useState(false);
+  const [pendingExitAction, setPendingExitAction] = useState<(() => void) | null>(null);
+  const [isSavingAll, setIsSavingAll] = useState(false);
+
   const handleSiteExit = (action: () => void) => {
-    // Fire background GitHub media & settings sync
-    syncAllMediaToGithub(true);
-    action();
+    if (isDirty) {
+      setPendingExitAction(() => action);
+      setShowExitConfirmModal(true);
+    } else {
+      syncAllMediaToGithub(true);
+      action();
+    }
+  };
+
+  const handleSaveAllSubmit = async () => {
+    setIsSavingAll(true);
+    try {
+      const res = await saveAllChanges({
+        githubRepo: githubRepoInput,
+        githubBranch: githubBranchInput,
+        emailConfig,
+        newsletterSubject,
+        newsletterBadge,
+        newsletterTitle,
+        newsletterSubtitle,
+        newsletterBody,
+        newsletterCtaText,
+        newsletterCtaUrl,
+        newsletterBanner,
+        newsletterOfferBox
+      });
+      if (res.success) {
+        showToast('✓ Tüm değişiklikler immutable deep merge yöntemiyle başarıyla kaydedildi!');
+        syncAllMediaToGithub(true);
+      } else {
+        showToast('❌ Kaydetme hatası: ' + res.message);
+      }
+    } catch (err) {
+      showToast('❌ Kaydetme işlemi başarısız.');
+    } finally {
+      setIsSavingAll(false);
+    }
   };
 
   const [successToast, setSuccessToast] = useState<string | null>(null);
@@ -940,11 +996,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
             <ImageIcon className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold font-serif-luxury tracking-wide flex items-center gap-2">
+            <h1 className="text-lg font-bold font-serif-luxury tracking-wide flex items-center gap-2 flex-wrap">
               <span>İrem Comfort Admin</span>
               <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-extrabold px-2 py-0.5 rounded border border-emerald-400/30 uppercase tracking-widest">
                 Yetkili Oturumu
               </span>
+              {isDirty && (
+                <span className="bg-amber-500/30 text-amber-300 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-amber-400/50 uppercase tracking-wider flex items-center gap-1.5 animate-pulse shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                  Kaydedilmemiş Değişiklikler
+                </span>
+              )}
             </h1>
             <p className="text-xs text-white/70 font-light">
               Görsel, Ürün, Fotoğraf ve Fuar Yönetim Merkezi
@@ -4200,6 +4262,111 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
           setUploadTarget(null);
         }}
       />
+
+      {/* Sticky Floating Save Banner for Unsaved Changes Mode */}
+      {isDirty && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[90] w-[92%] max-w-4xl bg-slate-950/95 border-2 border-amber-500 text-white rounded-2xl p-4 shadow-2xl backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 animate-pulse">
+              <Save className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-sm text-amber-300">KAYDEDİLMEMİŞ DEĞİŞİKLİKLER MODU</span>
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+              </div>
+              <p className="text-xs text-slate-300">
+                Admin girdi alanlarında değişiklik yapıldı. Değişiklikleri tüm state'e <span className="font-mono text-amber-300 font-bold">immutable deep merge</span> ile kaydetmek için butona tıklayın.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <button
+              onClick={() => discardUnsavedChanges()}
+              disabled={isSavingAll}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>İptal Et</span>
+            </button>
+
+            <button
+              onClick={handleSaveAllSubmit}
+              disabled={isSavingAll}
+              className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-xl transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+            >
+              {isSavingAll ? (
+                <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
+              ) : (
+                <Check className="w-4 h-4 text-slate-950" />
+              )}
+              <span>{isSavingAll ? 'Immutable Deep Merge Yapılıyor...' : 'Tüm Değişiklikleri Kaydet'}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Exit Confirmation Guard Modal */}
+      {showExitConfirmModal && (
+        <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border-2 border-amber-500/60 rounded-2xl max-w-md w-full p-6 text-white shadow-2xl space-y-5 animate-scale-up">
+            <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-amber-300">Kaydedilmemiş Değişiklikler Var!</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Admin panelinde yaptığınız düzenlemeler henüz kaydedilmedi.</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Sayfadan ayrılmadan önce yaptığınız tüm değişiklikleri immutable deep merge ile kaydetmek ister misiniz? Kaydetmeden ayrılırsanız son değişiklikler kaybolacaktır.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2">
+              <button
+                onClick={() => {
+                  setShowExitConfirmModal(false);
+                  setPendingExitAction(null);
+                }}
+                className="w-full sm:w-auto px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition cursor-pointer"
+              >
+                Vazgeç / İptal
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowExitConfirmModal(false);
+                  discardUnsavedChanges();
+                  if (pendingExitAction) {
+                    syncAllMediaToGithub(true);
+                    pendingExitAction();
+                  }
+                }}
+                className="w-full sm:w-auto px-4 py-2 bg-rose-900/60 hover:bg-rose-800 text-rose-200 text-xs font-semibold rounded-xl border border-rose-700/50 transition cursor-pointer"
+              >
+                Kaydetmeden Çık
+              </button>
+
+              <button
+                onClick={async () => {
+                  setShowExitConfirmModal(false);
+                  await handleSaveAllSubmit();
+                  if (pendingExitAction) {
+                    pendingExitAction();
+                  }
+                }}
+                className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              >
+                <Save className="w-4 h-4" />
+                <span>Kaydet ve Çık</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

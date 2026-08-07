@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { 
   COLLECTION_ITEMS, 
   CRAFTSMANSHIP_STEPS, 
@@ -7,6 +7,7 @@ import {
   DEFAULT_FAQ_ITEMS
 } from '../constants/data';
 import { CollectionItem, CraftsmanshipStep, ContactInfo, FaqItem, AboutSlide, SystemConfig, SeoConfig, ThemeConfig, ThemePreset, SectionOrderItem } from '../types';
+import { deepMerge } from '../utils/deepMerge';
 
 async function uploadImageToGithub(dataUrl: string, folder: string = "site_images"): Promise<string> {
   if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith("data:image/")) {
@@ -233,6 +234,13 @@ interface ImageContextType {
   toggleSectionEnabled: (id: string) => void;
   resetSectionOrder: () => void;
 
+  // Dirty State & Immutable Deep Merge Store
+  isDirty: boolean;
+  setIsDirty: (dirty: boolean) => void;
+  markDirty: () => void;
+  saveAllChanges: (additionalState?: Record<string, any>) => Promise<{ success: boolean; message: string }>;
+  discardUnsavedChanges: () => Promise<void>;
+
   isManagerOpen: boolean;
   setIsManagerOpen: (open: boolean) => void;
 }
@@ -325,7 +333,7 @@ export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
   stage1Text: "Sitemizin güncellenmesi tamamlanıyor, beklediğiniz için teşekkürler.",
   stage2Text: "Sitemiz güncellendi, hoş geldiniz!",
   deploymentVideo: "",
-  enableDeploymentIntro: true,
+  enableDeploymentIntro: false,
   videoVolume: 0.8,
   loopVideo: false,
   autoplayVideo: true,
@@ -375,6 +383,11 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [sectionOrder, setSectionOrder] = useState<SectionOrderItem[]>(DEFAULT_SECTION_ORDER);
   const [isManagerOpen, setIsManagerOpen] = useState(false);
 
+  // Dirty State & Deep Merge Save Ref
+  const [isDirty, setIsDirty] = useState(false);
+  const markDirty = useCallback(() => setIsDirty(true), []);
+  const lastSavedSettingsRef = useRef<any>(null);
+
   // Apply dynamic theme CSS custom properties to document root
   useEffect(() => {
     if (themeConfig) {
@@ -406,11 +419,13 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Real-time synchronization using server settings endpoint
   useEffect(() => {
     const fetchSettings = () => {
+      if (isDirty) return; // Prevent overwriting user's unsaved changes during polling
       fetch('/api/settings')
         .then(res => res.json())
         .then(data => {
           if (data?.success && data?.settings) {
             const s = data.settings;
+            lastSavedSettingsRef.current = s;
             if (s.images) setImages(s.images);
             if (s.heroConfig) setHeroConfig(s.heroConfig);
             if (s.fairConfig) setFairConfig(s.fairConfig);
@@ -432,7 +447,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     fetchSettings();
     const interval = setInterval(fetchSettings, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isDirty]);
 
   // Save specific section to backend server & local file
   const saveSection = async (sectionName: string, dataObj: Record<string, any>) => {
@@ -510,15 +525,17 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const updateHeroConfig = (newConfig: Partial<HeroConfig>) => {
     setHeroConfig(prev => {
-      const next = { ...prev, ...newConfig };
+      const next = deepMerge(prev, newConfig);
       saveSection('heroConfig', { heroConfig: next });
       return next;
     });
+    setIsDirty(true);
   };
 
   const resetHeroConfig = () => {
     setHeroConfig(DEFAULT_HERO_CONFIG);
     saveSection('heroConfig', { heroConfig: DEFAULT_HERO_CONFIG });
+    setIsDirty(true);
   };
 
   const updateFairConfig = async (newConfig: Partial<FairConfig>) => {
@@ -530,38 +547,44 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       processed.qrCodeUrl = await uploadImageToGithub(processed.qrCodeUrl, 'fair');
     }
     setFairConfig(prev => {
-      const next = { ...prev, ...processed };
+      const next = deepMerge(prev, processed);
       saveSection('fairConfig', { fairConfig: next });
       return next;
     });
+    setIsDirty(true);
   };
 
   const resetFairConfig = () => {
     setFairConfig(DEFAULT_FAIR_CONFIG);
     saveSection('fairConfig', { fairConfig: DEFAULT_FAIR_CONFIG });
+    setIsDirty(true);
   };
 
   const updateContactData = (newContact: Partial<ContactInfo>) => {
     setContactData(prev => {
-      const next = { ...prev, ...newContact };
+      const next = deepMerge(prev, newContact);
       saveSection('contactData', { contactData: next });
       return next;
     });
+    setIsDirty(true);
   };
 
   const resetContactData = () => {
     setContactData(CONTACT_DATA);
     saveSection('contactData', { contactData: CONTACT_DATA });
+    setIsDirty(true);
   };
 
   const updateAnnouncements = (list: string[]) => {
     setAnnouncements(list);
     saveSection('announcements', { announcements: list });
+    setIsDirty(true);
   };
 
   const resetAnnouncements = () => {
     setAnnouncements(ANNOUNCEMENT_TICKER);
     saveSection('announcements', { announcements: ANNOUNCEMENT_TICKER });
+    setIsDirty(true);
   };
 
   const updateCollectionItem = async (itemId: string, newItem: Partial<CollectionItem>) => {
@@ -719,41 +742,47 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const updateSystemConfig = (newConfig: Partial<SystemConfig>) => {
     setSystemConfig(prev => {
-      const next = { ...prev, ...newConfig };
+      const next = deepMerge(prev, newConfig);
       saveSection('systemConfig', { systemConfig: next });
       return next;
     });
+    setIsDirty(true);
   };
 
   const updateSeoConfig = (newConfig: Partial<SeoConfig>) => {
     setSeoConfig(prev => {
-      const next = { ...prev, ...newConfig };
+      const next = deepMerge(prev, newConfig);
       saveSection('seoConfig', { seoConfig: next });
       return next;
     });
+    setIsDirty(true);
   };
 
   const resetSeoConfig = () => {
     setSeoConfig(DEFAULT_SEO_CONFIG);
     saveSection('seoConfig', { seoConfig: DEFAULT_SEO_CONFIG });
+    setIsDirty(true);
   };
 
   const updateThemeConfig = (newConfig: Partial<ThemeConfig>) => {
     setThemeConfig(prev => {
-      const next = { ...prev, ...newConfig };
+      const next = deepMerge(prev, newConfig);
       saveSection('themeConfig', { themeConfig: next });
       return next;
     });
+    setIsDirty(true);
   };
 
   const resetThemeConfig = () => {
     setThemeConfig(DEFAULT_THEME_CONFIG);
     saveSection('themeConfig', { themeConfig: DEFAULT_THEME_CONFIG });
+    setIsDirty(true);
   };
 
   const updateSectionOrder = (newOrder: SectionOrderItem[]) => {
     setSectionOrder(newOrder);
     saveSection('sectionOrder', { sectionOrder: newOrder });
+    setIsDirty(true);
   };
 
   const moveSection = (id: string, direction: 'up' | 'down') => {
@@ -771,6 +800,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       saveSection('sectionOrder', { sectionOrder: next });
       return next;
     });
+    setIsDirty(true);
   };
 
   const toggleSectionEnabled = (id: string) => {
@@ -779,11 +809,77 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       saveSection('sectionOrder', { sectionOrder: next });
       return next;
     });
+    setIsDirty(true);
   };
 
   const resetSectionOrder = () => {
     setSectionOrder(DEFAULT_SECTION_ORDER);
     saveSection('sectionOrder', { sectionOrder: DEFAULT_SECTION_ORDER });
+    setIsDirty(true);
+  };
+
+  const saveAllChanges = async (additionalState?: Record<string, any>): Promise<{ success: boolean; message: string }> => {
+    const currentStateObj = {
+      images,
+      heroConfig,
+      fairConfig,
+      contactData,
+      announcements,
+      collectionItems,
+      craftsmanshipSteps,
+      faqItems,
+      aboutSlides,
+      systemConfig,
+      seoConfig,
+      themeConfig,
+      sectionOrder,
+      ...(additionalState || {})
+    };
+
+    // Immutable Deep Merge with last saved baseline settings
+    const mergedPayload = deepMerge(lastSavedSettingsRef.current || {}, currentStateObj);
+
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section: 'ALL', data: mergedPayload })
+      });
+      const data = await res.json();
+      if (data.success || res.ok) {
+        lastSavedSettingsRef.current = mergedPayload;
+        setIsDirty(false);
+        return { success: true, message: '✓ Tüm değişiklikler immutable deep merge ile başarıyla kaydedildi!' };
+      }
+    } catch (err) {
+      console.error('Error in saveAllChanges:', err);
+    }
+    return { success: false, message: 'Ayarlar kaydedilirken bir hata oluştu.' };
+  };
+
+  const discardUnsavedChanges = async () => {
+    try {
+      const res = await fetch('/api/settings');
+      const data = await res.json();
+      if (data?.success && data?.settings) {
+        const s = data.settings;
+        lastSavedSettingsRef.current = s;
+        if (s.images) setImages(s.images);
+        if (s.heroConfig) setHeroConfig(s.heroConfig);
+        if (s.fairConfig) setFairConfig(s.fairConfig);
+        if (s.contactData) setContactData(s.contactData);
+        if (s.announcements) setAnnouncements(s.announcements);
+        if (s.collectionItems) setCollectionItems(s.collectionItems);
+        if (s.craftsmanshipSteps) setCraftsmanshipSteps(s.craftsmanshipSteps);
+        if (s.faqItems) setFaqItems(s.faqItems);
+        if (s.aboutSlides) setAboutSlides(s.aboutSlides);
+        if (s.systemConfig) setSystemConfig(s.systemConfig);
+        if (s.seoConfig) setSeoConfig(s.seoConfig);
+        if (s.themeConfig) setThemeConfig(s.themeConfig);
+        if (s.sectionOrder && Array.isArray(s.sectionOrder)) setSectionOrder(s.sectionOrder);
+      }
+    } catch (e) {}
+    setIsDirty(false);
   };
 
   const triggerDeploy = async (
@@ -925,6 +1021,11 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         moveSection,
         toggleSectionEnabled,
         resetSectionOrder,
+        isDirty,
+        setIsDirty,
+        markDirty,
+        saveAllChanges,
+        discardUnsavedChanges,
         triggerDeploy,
         isManagerOpen,
         setIsManagerOpen

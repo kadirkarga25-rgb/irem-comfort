@@ -1649,7 +1649,12 @@ function saveDraftSettings(updatedSettings: any) {
     inMemorySettingsCache = updatedSettings;
     generateSitemapAndRobots(updatedSettings);
 
-    const settingsJsonStr = JSON.stringify(updatedSettings, null, 2);
+    const cleanSettingsForFile = JSON.parse(JSON.stringify(updatedSettings));
+    if (cleanSettingsForFile && cleanSettingsForFile.systemConfig) {
+      cleanSettingsForFile.systemConfig.isDeploying = false;
+    }
+
+    const settingsJsonStr = JSON.stringify(cleanSettingsForFile, null, 2);
 
     try {
       const settingsPath = path.join(process.cwd(), "public", "site_settings.json");
@@ -1703,6 +1708,9 @@ async function publishSettings(
     const sanitizedSettings = sanitizeNoBase64(rawPayload);
     const canonicalSettings = JSON.parse(JSON.stringify(sanitizedSettings));
     delete canonicalSettings.system;
+    if (canonicalSettings.systemConfig) {
+      canonicalSettings.systemConfig.isDeploying = false;
+    }
 
     // 1. Sync all uploaded media to GitHub
     await syncAllImagesToGithub("Pre-publish media sync");
@@ -2345,17 +2353,13 @@ app.get("/api/deploy-status", async (_req, res) => {
   }
 });
 
-app.post("/api/deploy-cancel", (_req, res) => {
-  if (activeDeploymentSession) {
-    activeDeploymentSession.status = 'ERROR';
-    activeDeploymentSession.error = "Deploy işlemi iptal edildi.";
+app.post(["/api/deploy-cancel", "/api/deploy-reset"], (_req, res) => {
+  activeDeploymentSession = null;
+  if (inMemorySettingsCache && inMemorySettingsCache.systemConfig) {
+    inMemorySettingsCache.systemConfig.isDeploying = false;
   }
-  inMemorySettingsCache.systemConfig = {
-    ...(inMemorySettingsCache.systemConfig || {}),
-    isDeploying: false
-  };
   saveSettingsToFile(inMemorySettingsCache);
-  return res.json({ success: true, message: "Deploy işlemi iptal edildi." });
+  return res.json({ success: true, message: "Deploy işlemi sıfırlandı ve kapatıldı." });
 });
 
 app.get("/api/settings", async (_req, res) => {
