@@ -40,26 +40,11 @@ export interface SystemCoreConfig {
   };
 }
 
-const CONFIG_CENTER_KEY = 'ic_cms_config_center_v6';
-
 export class ConfigCenter {
   private config: SystemCoreConfig;
 
   constructor() {
-    this.config = this.loadConfig();
-  }
-
-  private loadConfig(): SystemCoreConfig {
-    try {
-      const saved = localStorage.getItem(CONFIG_CENTER_KEY);
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch {
-      // Fallback
-    }
-
-    return {
+    this.config = {
       ai: {
         enabled: true,
         minimumConfidence: 0.40,
@@ -87,8 +72,8 @@ export class ConfigCenter {
         forceHttps: true
       },
       deployment: {
-        githubRepo: localStorage.getItem('irem_github_repo') || 'kadirkarga25-rgb/irem-comfort',
-        githubBranch: localStorage.getItem('irem_github_branch') || 'main',
+        githubRepo: 'kadirkarga25-rgb/irem-comfort',
+        githubBranch: 'main',
         autoDeployOnUpdate: false
       }
     };
@@ -109,12 +94,6 @@ export class ConfigCenter {
       security: { ...this.config.security, ...(updates.security || {}) },
       deployment: { ...this.config.deployment, ...(updates.deployment || {}) }
     };
-
-    try {
-      localStorage.setItem(CONFIG_CENTER_KEY, JSON.stringify(this.config));
-    } catch {
-      // Memory fallback
-    }
 
     loggerService.info('ConfigCenter', 'System configuration updated successfully.');
     eventBus.emit('SettingsUpdated', this.config, 'ConfigCenter');

@@ -135,18 +135,51 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     isDirty,
     setIsDirty,
     markDirty,
+    getCurrentAdminState,
     saveAllChanges,
     discardUnsavedChanges
   } = useAppImages();
 
-  // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('irem_admin_session') === 'true';
+  // Authentication & Session Security State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [rememberMe, setRememberMe] = useState<boolean>(() => {
+    return localStorage.getItem('irem_remember_me') !== 'false';
   });
-
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState<string>(() => {
+    return localStorage.getItem('irem_remembered_admin_username') || '';
+  });
+  const [password, setPassword] = useState<string>('');
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
+
+  // Periodic session token verification with backend
+  useEffect(() => {
+    if (!isAuthenticated || !sessionToken) return;
+
+    const verifyInterval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/auth/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionToken}`
+          }
+        });
+        const data = await res.json();
+        if (!data.authenticated) {
+          setIsAuthenticated(false);
+          setSessionToken(null);
+          setPassword('');
+          setLoginError('Oturum süreniz doldu. Lütfen tekrar şifre girin.');
+        }
+      } catch (e) {
+        // Ignored temporary offline check
+      }
+    }, 45000);
+
+    return () => clearInterval(verifyInterval);
+  }, [isAuthenticated, sessionToken]);
 
   // Admin Panel Tabs
   const [activeTab, setActiveTab] = useState<'overview' | 'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'page_builder' | 'presets' | 'leads' | 'newsletter' | 'email' | 'system' | 'media' | 'deployment_exp' | 'seo' | 'appearance' | 'crm' | 'analytics' | 'security' | 'ai_arch' | 'live_monitor' | 'backup' | 'ai_training' | 'infrastructure' | 'conv_logs'>('overview');
@@ -190,17 +223,34 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   const handlePublishSettingsDirect = async () => {
     setIsPublishingDirect(true);
     try {
+      const freshStatePayload = getCurrentAdminState({
+        githubRepo: githubRepoInput,
+        githubBranch: githubBranchInput,
+        emailConfig,
+        newsletterSubject,
+        newsletterBadge,
+        newsletterTitle,
+        newsletterSubtitle,
+        newsletterBody,
+        newsletterCtaText,
+        newsletterCtaUrl,
+        newsletterBanner,
+        newsletterOfferBox
+      });
+
       const res = await fetch('/api/publish-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token: githubTokenInput || localStorage.getItem('irem_github_token'),
           repo: githubRepoInput || localStorage.getItem('irem_github_repo'),
-          branch: githubBranchInput || localStorage.getItem('irem_github_branch')
+          branch: githubBranchInput || localStorage.getItem('irem_github_branch'),
+          settings: freshStatePayload
         })
       });
       const data = await res.json();
       if (data.success) {
+        setIsDirty(false);
         showToast("✓ Site ayarları kalıcı olarak GitHub'a yayınlandı ve doğrulandı!");
         if (data.diagnostics) {
           setPersistenceDiagnostics(data.diagnostics);
@@ -433,16 +483,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
           const res = await fetch('/api/contact/leads');
           if (res.ok) {
             const data = await res.json();
-            if (data.leads && Array.isArray(data.leads) && data.leads.length > 0) {
+            if (data.leads && Array.isArray(data.leads)) {
               setContactLeads(data.leads);
-              return;
             }
           }
         } catch (e) {
-          console.log('Lead fetch fallback to local storage');
+          console.log('Lead fetch error');
         }
-        const local = JSON.parse(localStorage.getItem('irem_contact_leads') || '[]');
-        setContactLeads(local);
       };
 
       const loadEmailConfig = async () => {
@@ -467,22 +514,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
             const data = await res.json();
             if (data.subscribers && Array.isArray(data.subscribers)) {
               setSubscribers(data.subscribers);
-              setIsSubscribersLoading(false);
-              return;
             }
           }
         } catch (e) {
-          console.log('Subscriber fetch fallback');
+          console.log('Subscriber fetch error');
+        } finally {
+          setIsSubscribersLoading(false);
         }
-        const local = JSON.parse(localStorage.getItem('irem_newsletter_subscribers') || '[]');
-        const formatted = local.map((email: string, i: number) => ({
-          id: `local-${i}`,
-          email,
-          createdAt: new Date().toISOString(),
-          source: 'Web Form'
-        }));
-        setSubscribers(formatted);
-        setIsSubscribersLoading(false);
       };
 
       loadLeads();
@@ -747,26 +785,63 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     setTimeout(() => setSuccessToast(null), 3000);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
+    setIsLoggingIn(true);
 
-    const cleanUser = username.trim().toLowerCase();
-    const cleanPass = password.trim();
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: username.trim(),
+          password: password.trim()
+        })
+      });
 
-    // Default admin credentials
-    if ((cleanUser === 'admin' || cleanUser === 'iremcomfort') && (cleanPass === 'irem45' || cleanPass === 'irem1234')) {
-      setIsAuthenticated(true);
-      localStorage.setItem('irem_admin_session', 'true');
-      showToast('Yönetici girişi başarılı!');
-    } else {
-      setLoginError('Kullanıcı adı veya şifre hatalı! Lütfen bilgilerinizi kontrol edin.');
+      const data = await res.json();
+
+      if (res.ok && data.success && data.token) {
+        setSessionToken(data.token);
+        setIsAuthenticated(true);
+        setPassword('');
+
+        // Handle "Beni Hatırla" (Remember username only)
+        if (rememberMe) {
+          localStorage.setItem('irem_remembered_admin_username', username.trim());
+          localStorage.setItem('irem_remember_me', 'true');
+        } else {
+          localStorage.removeItem('irem_remembered_admin_username');
+          localStorage.setItem('irem_remember_me', 'false');
+        }
+
+        showToast('✓ Yönetici girişi başarıyla doğrulandı!');
+      } else {
+        setLoginError(data.error || 'Kullanıcı adı veya şifre hatalı!');
+      }
+    } catch (err: any) {
+      setLoginError('Sunucuya bağlanılamadı. Lütfen bağlantınızı kontrol edin.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (sessionToken) {
+      try {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionToken}`
+          }
+        });
+      } catch (e) {}
+    }
+    setSessionToken(null);
     setIsAuthenticated(false);
-    localStorage.removeItem('irem_admin_session');
+    setPassword('');
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -947,12 +1022,35 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
               </div>
             </div>
 
+            {/* Beni Hatırla (Remember username only) */}
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 text-[#082C6C] focus:ring-[#082C6C] cursor-pointer"
+                />
+                <span className="text-xs font-semibold text-slate-600">Beni Hatırla (Kullanıcı adımı hatırla)</span>
+              </label>
+            </div>
+
             <button
               type="submit"
-              className="w-full py-3.5 rounded-xl bg-[#082C6C] hover:bg-[#163E87] text-white text-sm font-bold uppercase tracking-wider shadow-lg shadow-[#082C6C]/30 transition-all cursor-pointer active:scale-98 flex items-center justify-center gap-2"
+              disabled={isLoggingIn}
+              className="w-full py-3.5 rounded-xl bg-[#082C6C] hover:bg-[#163E87] text-white text-sm font-bold uppercase tracking-wider shadow-lg shadow-[#082C6C]/30 transition-all cursor-pointer active:scale-98 flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <Lock className="w-4 h-4" />
-              <span>Giriş Yap</span>
+              {isLoggingIn ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Doğrulanıyor...</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>Giriş Yap</span>
+                </>
+              )}
             </button>
           </form>
 
@@ -2892,8 +2990,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                         showToast('Gelen müşteri talepleri yenilendi!');
                       }
                     } catch (e) {
-                      const local = JSON.parse(localStorage.getItem('irem_contact_leads') || '[]');
-                      setContactLeads(local);
+                      showToast('Talepler güncellenirken hata oluştu.');
                     }
                   }}
                   className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1 cursor-pointer"
@@ -4166,6 +4263,19 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
                     const res = await triggerDeploy(commitMessageInput, activeToken, (progress) => {
                       setDeployProgress(progress);
+                    }, {
+                      githubRepo: activeRepo,
+                      githubBranch: activeBranch,
+                      emailConfig,
+                      newsletterSubject,
+                      newsletterBadge,
+                      newsletterTitle,
+                      newsletterSubtitle,
+                      newsletterBody,
+                      newsletterCtaText,
+                      newsletterCtaUrl,
+                      newsletterBanner,
+                      newsletterOfferBox
                     });
 
                     setIsDeployingInAdmin(false);

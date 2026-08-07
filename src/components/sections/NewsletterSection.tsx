@@ -35,20 +35,8 @@ export const NewsletterSection: React.FC = () => {
         setMessage(data.error || 'Abonelik kaydı oluşturulamadı.');
       }
     } catch (err) {
-      // Fallback local save if server offline
-      try {
-        const localSubs = JSON.parse(localStorage.getItem('irem_newsletter_subscribers') || '[]');
-        if (!localSubs.includes(email.trim().toLowerCase())) {
-          localSubs.push(email.trim().toLowerCase());
-          localStorage.setItem('irem_newsletter_subscribers', JSON.stringify(localSubs));
-        }
-        setStatus('success');
-        setMessage('Bültenimize kaydınız başarıyla alındı! Teşekkür ederiz.');
-        setEmail('');
-      } catch (e) {
-        setStatus('error');
-        setMessage('Bir bağlantı hatası oluştu, lütfen tekrar deneyin.');
-      }
+      setStatus('error');
+      setMessage('Bir bağlantı hatası oluştu, lütfen tekrar deneyin.');
     }
   };
 

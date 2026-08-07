@@ -238,6 +238,7 @@ interface ImageContextType {
   isDirty: boolean;
   setIsDirty: (dirty: boolean) => void;
   markDirty: () => void;
+  getCurrentAdminState: (additionalState?: Record<string, any>) => Record<string, any>;
   saveAllChanges: (additionalState?: Record<string, any>) => Promise<{ success: boolean; message: string }>;
   discardUnsavedChanges: () => Promise<void>;
 
@@ -399,7 +400,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [themeConfig]);
 
-  // Clear legacy LocalStorage keys so they never interfere
+  // Clear legacy LocalStorage keys so they never interfere with server settings
   useEffect(() => {
     try {
       [
@@ -411,7 +412,12 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         'irem_comfort_collection_items_v1',
         'irem_comfort_craftsmanship_v1',
         'irem_comfort_faq_v1',
-        'irem_comfort_about_slides_v1'
+        'irem_comfort_about_slides_v1',
+        'irem_admin_session',
+        'ic_cms_admin_settings_v2d',
+        'ic_cms_config_center_v6',
+        'irem_contact_leads',
+        'irem_newsletter_subscribers'
       ].forEach(k => localStorage.removeItem(k));
     } catch (e) {}
   }, []);
@@ -818,8 +824,8 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsDirty(true);
   };
 
-  const saveAllChanges = async (additionalState?: Record<string, any>): Promise<{ success: boolean; message: string }> => {
-    const currentStateObj = {
+  const getCurrentAdminState = useCallback((additionalState?: Record<string, any>) => {
+    return {
       images,
       heroConfig,
       fairConfig,
@@ -835,6 +841,24 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       sectionOrder,
       ...(additionalState || {})
     };
+  }, [
+    images,
+    heroConfig,
+    fairConfig,
+    contactData,
+    announcements,
+    collectionItems,
+    craftsmanshipSteps,
+    faqItems,
+    aboutSlides,
+    systemConfig,
+    seoConfig,
+    themeConfig,
+    sectionOrder
+  ]);
+
+  const saveAllChanges = async (additionalState?: Record<string, any>): Promise<{ success: boolean; message: string }> => {
+    const currentStateObj = getCurrentAdminState(additionalState);
 
     // Immutable Deep Merge with last saved baseline settings
     const mergedPayload = deepMerge(lastSavedSettingsRef.current || {}, currentStateObj);
@@ -885,7 +909,8 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const triggerDeploy = async (
     commitMessage?: string,
     customToken?: string,
-    onProgress?: (progress: DeploymentProgress) => void
+    onProgress?: (progress: DeploymentProgress) => void,
+    additionalState?: Record<string, any>
   ): Promise<{ success: boolean; message: string; logs?: string[]; durationString?: string; error?: string }> => {
     const deployTime = new Date().toISOString();
     updateSystemConfig({ isDeploying: true, lastDeployedAt: deployTime });
@@ -893,6 +918,9 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const tokenToSend = customToken || localStorage.getItem('irem_github_token') || undefined;
     const repoToSend = systemConfig.githubRepo || localStorage.getItem('irem_github_repo') || undefined;
     const branchToSend = systemConfig.githubBranch || localStorage.getItem('irem_github_branch') || undefined;
+
+    // Build complete current Admin state payload
+    const freshStatePayload = getCurrentAdminState(additionalState);
 
     try {
       const response = await fetch('/api/deploy-github', {
@@ -902,7 +930,8 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           githubToken: tokenToSend,
           githubRepo: repoToSend,
           githubBranch: branchToSend,
-          commitMessage: commitMessage || "Site güncellendi ve yayınlandı"
+          commitMessage: commitMessage || "Site güncellendi ve yayınlandı",
+          settings: freshStatePayload
         })
       });
 
@@ -937,6 +966,8 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
               if (dep.status === 'READY') {
                 clearInterval(pollInterval);
+                setIsDirty(false);
+                lastSavedSettingsRef.current = freshStatePayload;
                 updateSystemConfig({ isDeploying: false, lastDeployedAt: new Date().toISOString() });
                 resolve({
                   success: true,
@@ -1024,6 +1055,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         isDirty,
         setIsDirty,
         markDirty,
+        getCurrentAdminState,
         saveAllChanges,
         discardUnsavedChanges,
         triggerDeploy,

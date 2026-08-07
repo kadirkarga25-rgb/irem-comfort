@@ -39,20 +39,10 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
 
       const data = await response.json();
 
-      // Store in localStorage as backup
-      const existingLeads = JSON.parse(localStorage.getItem('irem_contact_leads') || '[]');
-      existingLeads.unshift({
-        ...formData,
-        id: `LEAD-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-      });
-      localStorage.setItem('irem_contact_leads', JSON.stringify(existingLeads));
-
       setIsSubmitting(false);
       setIsSubmitted(true);
     } catch (err) {
       console.error('Contact submit error:', err);
-      // Local fallback success
       setIsSubmitting(false);
       setIsSubmitted(true);
     }

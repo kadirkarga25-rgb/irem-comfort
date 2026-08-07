@@ -4,6 +4,8 @@
     "isDeploying": false,
     "lastDeployedAt": "2026-08-07T09:01:49.432Z",
     "deployingMessage": "Website update is in progress.\nThe new version will be available in about 1 minute.",
+    "lastDeployedAt": "2026-08-05T07:06:22.589Z",
+    "deployingMessage": "Sitemizin tamamlanmasına çok az kaldı, beklediğiniz için teşekkürler.",
     "githubRepo": "kadirkarga25-rgb/irem-comfort",
     "githubBranch": "main",
     "stage1Text": "Sitemizin güncellenmesi tamamlanıyor, beklediğiniz için teşekkürler.",

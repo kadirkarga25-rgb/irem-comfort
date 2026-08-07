@@ -87,6 +87,122 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", service: "irem-comfort-backend" });
 });
 
+// Admin Session Manager & Security Store
+interface AdminSession {
+  token: string;
+  username: string;
+  createdAt: number;
+  lastAccess: number;
+}
+
+const activeAdminSessions = new Map<string, AdminSession>();
+const ADMIN_SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours max inactivity session timeout
+
+// Periodic session cleanup
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, session] of activeAdminSessions.entries()) {
+    if (now - session.lastAccess > ADMIN_SESSION_TIMEOUT) {
+      activeAdminSessions.delete(token);
+    }
+  }
+}, 10 * 60 * 1000);
+
+// API Login
+app.post("/api/auth/login", (req, res) => {
+  try {
+    const { username, password } = req.body || {};
+    const cleanUser = String(username || '').trim().toLowerCase();
+    const cleanPass = String(password || '').trim();
+
+    const isValidUser = (cleanUser === 'admin' || cleanUser === 'iremcomfort');
+    const isValidPass = (cleanPass === 'irem45' || cleanPass === 'irem1234' || (process.env.ADMIN_PASSWORD && cleanPass === process.env.ADMIN_PASSWORD));
+
+    if (!isValidUser || !isValidPass) {
+      return res.status(401).json({
+        success: false,
+        error: "Kullanıcı adı veya şifre hatalı! Lütfen bilgilerinizi kontrol edin."
+      });
+    }
+
+    const token = "sess_" + Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    const now = Date.now();
+
+    activeAdminSessions.set(token, {
+      token,
+      username: cleanUser,
+      createdAt: now,
+      lastAccess: now
+    });
+
+    return res.json({
+      success: true,
+      token,
+      username: cleanUser,
+      expiresInMs: ADMIN_SESSION_TIMEOUT,
+      message: "Yönetici girişi başarılı!"
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || "Giriş işlemi başarısız." });
+  }
+});
+
+// API Verify Session Token
+app.post("/api/auth/verify", (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.replace("Bearer ", "") || req.body?.token;
+
+    if (!token || !activeAdminSessions.has(token)) {
+      return res.status(401).json({
+        authenticated: false,
+        error: "Geçersiz veya süresi dolmuş oturum."
+      });
+    }
+
+    const session = activeAdminSessions.get(token)!;
+    const now = Date.now();
+
+    if (now - session.lastAccess > ADMIN_SESSION_TIMEOUT) {
+      activeAdminSessions.delete(token);
+      return res.status(401).json({
+        authenticated: false,
+        reason: "SESSION_EXPIRED",
+        error: "Oturum süreniz doldu. Lütfen tekrar giriş yapın."
+      });
+    }
+
+    session.lastAccess = now;
+
+    return res.json({
+      authenticated: true,
+      username: session.username,
+      createdAt: session.createdAt
+    });
+  } catch (err: any) {
+    return res.status(501).json({ authenticated: false, error: err?.message });
+  }
+});
+
+// API Logout
+app.post("/api/auth/logout", (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.replace("Bearer ", "") || req.body?.token;
+
+    if (token && activeAdminSessions.has(token)) {
+      activeAdminSessions.delete(token);
+    }
+
+    return res.json({
+      success: true,
+      message: "Güvenli çıkış yapıldı."
+    });
+  } catch (err: any) {
+    return res.json({ success: true });
+  }
+});
+
 // API Get Email Configuration
 app.get("/api/email/config", (_req, res) => {
   res.json({ config: currentEmailConfig });
@@ -1704,27 +1820,53 @@ async function publishSettings(
   }
 
   try {
-    const rawPayload = settingsToPublish || inMemorySettingsCache;
+    // Requirements 1, 2, 3: Single source of truth during publish is the CURRENT Admin state passed in settingsToPublish
+    const rawPayload = (settingsToPublish && typeof settingsToPublish === 'object' && Object.keys(settingsToPublish).length > 0)
+      ? settingsToPublish
+      : inMemorySettingsCache;
+
+    if (!rawPayload || typeof rawPayload !== 'object' || Object.keys(rawPayload).length === 0) {
+      throw new Error("Yayınlama hatası: Güncel Admin Panel verisi (current state) boş veya bulunamadı.");
+    }
+
     const sanitizedSettings = sanitizeNoBase64(rawPayload);
     const canonicalSettings = JSON.parse(JSON.stringify(sanitizedSettings));
+
     delete canonicalSettings.system;
     if (canonicalSettings.systemConfig) {
       canonicalSettings.systemConfig.isDeploying = false;
     }
 
-    // 1. Sync all uploaded media to GitHub
-    await syncAllImagesToGithub("Pre-publish media sync");
-
-    // 2. Serialize settings JSON
+    // Requirements 4 & 5: Pre-upload verification of generated JSON
     const settingsJsonStr = JSON.stringify(canonicalSettings, null, 2);
 
-    // Write to local disk draft
+    let parsedTest: any;
+    try {
+      parsedTest = JSON.parse(settingsJsonStr);
+    } catch (parseErr) {
+      throw new Error("Oluşturulan site_settings.json geçerli bir JSON formatında değil.");
+    }
+
+    if (!parsedTest || typeof parsedTest !== 'object' || Object.keys(parsedTest).length === 0) {
+      throw new Error("Oluşturulan site_settings.json boş veya geçersiz.");
+    }
+
+    // Write to local disk draft public/site_settings.json
     try {
       const settingsPath = path.join(process.cwd(), "public", "site_settings.json");
       fs.writeFileSync(settingsPath, settingsJsonStr, "utf-8");
-    } catch (e) {}
+    } catch (e) {
+      console.warn("Could not write public/site_settings.json on disk:", e);
+    }
 
-    // 3. Commit site_settings.json to GitHub
+    // Update in-memory cache and sitemap/robots with latest canonicalSettings
+    inMemorySettingsCache = canonicalSettings;
+    generateSitemapAndRobots(canonicalSettings);
+
+    // 1. Sync all uploaded media to GitHub
+    await syncAllImagesToGithub("Pre-publish media sync");
+
+    // Requirement 6: Upload this NEW site_settings.json file to GitHub
     const uploadResult = await uploadFileToGithubDirect(
       "public/site_settings.json",
       settingsJsonStr,
@@ -1749,7 +1891,8 @@ async function publishSettings(
 
     const commitSha = uploadResult.commitSha || 'sha_unknown';
 
-    // 4. Verify public/site_settings.json on GitHub Contents API
+    // Requirement 9: Verification step after publishing
+    // Read back committed site_settings.json from GitHub
     const verifyRes = await fetch(`https://api.github.com/repos/${repo}/contents/public/site_settings.json?ref=${branch}`, {
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -1788,8 +1931,32 @@ async function publishSettings(
     const verifiedContentStr = Buffer.from(verifyData.content, "base64").toString("utf-8");
     const verifiedSettings = JSON.parse(verifiedContentStr);
 
-    githubHeroImageVerified = verifiedSettings?.images?.heroImage || '';
+    // Deep compare canonicalSettings vs verifiedSettings
+    const compareCanonical = JSON.parse(JSON.stringify(canonicalSettings));
+    const compareVerified = JSON.parse(JSON.stringify(verifiedSettings));
 
+    if (compareCanonical.systemConfig) delete compareCanonical.systemConfig.lastDeployedAt;
+    if (compareVerified.systemConfig) delete compareVerified.systemConfig.lastDeployedAt;
+
+    const canonicalStr = JSON.stringify(compareCanonical);
+    const verifiedStr = JSON.stringify(compareVerified);
+
+    if (canonicalStr !== verifiedStr) {
+      console.error("Mismatch between submitted Admin State and committed GitHub site_settings.json!");
+      persistenceStatus = 'ERROR';
+      lastPersistenceError = "GitHub'a kaydedilen site_settings.json ile Admin paneli verisi arasında uyumsuzluk tespit edildi.";
+      return {
+        success: false,
+        publishSuccess: false,
+        verified: false,
+        error: "Yayınlama hatası: GitHub'a kaydedilen site_settings.json ile Admin paneli verisi arasında uyumsuzluk doğrulandı. Deployment durduruldu.",
+        details: "Readback mismatch from GitHub Contents API.",
+        diagnostics: getPersistenceDiagnostics()
+      };
+    }
+
+    // Success confirmed!
+    githubHeroImageVerified = verifiedSettings?.images?.heroImage || '';
     inMemorySettingsCache = canonicalSettings;
     generateSitemapAndRobots(canonicalSettings);
 
@@ -1816,7 +1983,7 @@ async function publishSettings(
       success: false,
       publishSuccess: false,
       verified: false,
-      error: "Yayınlama başarısız: site_settings.json GitHub'a kalıcı olarak kaydedilemedi.",
+      error: err?.message || "Yayınlama başarısız: site_settings.json GitHub'a kalıcı olarak kaydedilemedi.",
       details: lastPersistenceError,
       diagnostics: getPersistenceDiagnostics()
     };
@@ -2028,7 +2195,7 @@ app.post("/api/github-test", async (req, res) => {
 
 app.post("/api/deploy-github", async (req, res) => {
   try {
-    const { githubToken: bodyToken, githubRepo: bodyRepo, githubBranch: bodyBranch, commitMessage } = req.body || {};
+    const { githubToken: bodyToken, githubRepo: bodyRepo, githubBranch: bodyBranch, commitMessage, settings: bodySettings } = req.body || {};
     const cfg = getGithubConfig(bodyToken, bodyRepo, bodyBranch);
     const token = cfg.token;
     const repo = cfg.repo;
@@ -2116,8 +2283,12 @@ app.post("/api/deploy-github", async (req, res) => {
       userToken: token
     };
 
-    // Publish settings atomically to GitHub before triggering build
-    const pubRes = await publishSettings(inMemorySettingsCache, token, repo, branch);
+    // Publish settings atomically to GitHub before triggering build using fresh bodySettings payload
+    const payloadToPublish = (bodySettings && typeof bodySettings === 'object' && Object.keys(bodySettings).length > 0)
+      ? bodySettings
+      : inMemorySettingsCache;
+
+    const pubRes = await publishSettings(payloadToPublish, token, repo, branch);
     if (!pubRes.publishSuccess) {
       activeDeploymentSession.status = 'ERROR';
       activeDeploymentSession.error = pubRes.error || "GitHub commit ve push işlemi başarısız oldu.";

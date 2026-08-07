@@ -30,25 +30,11 @@ const DEFAULT_SETTINGS: AdminSettingsConfig = {
   humanTransferMessage: 'Konu hakkında uzman müşteri temsilcimizle görüşmek ister misiniz? Size hemen canlı destek sağlayabiliriz.'
 };
 
-const STORAGE_KEY = 'ic_cms_admin_settings_v2d';
-
 export class AdminSettingsService {
   private settings: AdminSettingsConfig;
 
   constructor() {
-    this.settings = this.loadSettings();
-  }
-
-  private loadSettings(): AdminSettingsConfig {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
-      }
-    } catch {
-      // Fallback to default
-    }
-    return DEFAULT_SETTINGS;
+    this.settings = { ...DEFAULT_SETTINGS };
   }
 
   public getSettings(): AdminSettingsConfig {
@@ -57,22 +43,12 @@ export class AdminSettingsService {
 
   public updateSettings(newSettings: Partial<AdminSettingsConfig>): AdminSettingsConfig {
     this.settings = { ...this.settings, ...newSettings };
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.settings));
-    } catch {
-      // Memory fallback
-    }
-    return this.settings;
+    return { ...this.settings };
   }
 
   public resetToDefaults(): AdminSettingsConfig {
     this.settings = { ...DEFAULT_SETTINGS };
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // Memory fallback
-    }
-    return this.settings;
+    return { ...this.settings };
   }
 }
 
