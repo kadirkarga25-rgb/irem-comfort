@@ -9,10 +9,10 @@
     "sitemapXml": ""
   },
   "systemConfig": {
-    "isMaintenanceMode": false,
+    "isMaintenanceMode": true,
     "autoMaintenanceOnDeploy": true,
     "maxWaitTimeSeconds": 120,
-    "isDeploying": false,
+    "isDeploying": true,
     "lastDeployedAt": "2026-08-07T07:24:03.878Z",
     "maintenanceTitle": "Website Maintenance",
     "maintenanceMessage": "Sitemiz sizler için güncellenmekte ve iyileştirilmektedir. Lütfen 2-5 dakika içerisinde tekrar deneyiniz.",
