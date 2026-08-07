@@ -244,6 +244,9 @@ interface ImageContextType {
 
   isManagerOpen: boolean;
   setIsManagerOpen: (open: boolean) => void;
+
+  // Single Source of Truth Initial Loading Gate
+  isSettingsLoaded: boolean;
 }
 
 export const DEFAULT_THEME_CONFIG: ThemeConfig = {
@@ -384,6 +387,9 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [sectionOrder, setSectionOrder] = useState<SectionOrderItem[]>(DEFAULT_SECTION_ORDER);
   const [isManagerOpen, setIsManagerOpen] = useState(false);
 
+  // Single Source of Truth Loading Gate
+  const [isSettingsLoaded, setIsSettingsLoaded] = useState(false);
+
   // Dirty State & Deep Merge Save Ref
   const [isDirty, setIsDirty] = useState(false);
   const markDirty = useCallback(() => setIsDirty(true), []);
@@ -424,12 +430,16 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Real-time synchronization using server settings endpoint
   useEffect(() => {
+    let isMounted = true;
     const fetchSettings = () => {
-      if (isDirty) return; // Prevent overwriting user's unsaved changes during polling
+      if (isDirty) {
+        if (isMounted) setIsSettingsLoaded(true);
+        return;
+      }
       fetch('/api/settings')
         .then(res => res.json())
         .then(data => {
-          if (data?.success && data?.settings) {
+          if (data?.success && data?.settings && isMounted) {
             const s = data.settings;
             lastSavedSettingsRef.current = s;
             if (s.images) setImages(s.images);
@@ -447,12 +457,22 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             if (s.sectionOrder && Array.isArray(s.sectionOrder)) setSectionOrder(s.sectionOrder);
           }
         })
-        .catch(() => {});
+        .catch(err => {
+          console.warn("Initial settings fetch error:", err);
+        })
+        .finally(() => {
+          if (isMounted) {
+            setIsSettingsLoaded(true);
+          }
+        });
     };
 
     fetchSettings();
     const interval = setInterval(fetchSettings, 5000);
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [isDirty]);
 
   // Save specific section to backend server & local file
@@ -1060,7 +1080,8 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         discardUnsavedChanges,
         triggerDeploy,
         isManagerOpen,
-        setIsManagerOpen
+        setIsManagerOpen,
+        isSettingsLoaded
       }}
     >
       {children}
