@@ -1,32 +1,15 @@
 {
-  "seoConfig": {
-    "metaTitle": "İrem Comfort — Bayan Hakiki Deri Terlik & Sandalet | Manisa İmalatı",
-    "metaDescription": "2020'den beri Manisa Ayakkabıcılar Sitesi'nde imal edilen %100 hakiki deri bayan ortopedik terlik ve sandalet modelleri.",
-    "metaKeywords": "irem comfort, hakiki deri terlik, bayan terlik, ortopedik sandalet, manisa ayakkabı, imalat",
-    "ogImage": "/uploads/logo/irem-comfort-logo.jpg",
-    "canonicalUrl": "https://iremcomfort.com",
-    "robotsTxt": "User-agent: *\nAllow: /\nSitemap: https://iremcomfort.com/sitemap.xml",
-    "sitemapXml": ""
-  },
   "systemConfig": {
     "maxWaitTimeSeconds": 120,
     "isDeploying": false,
-<<<<<<< HEAD
-    "lastDeployedAt": "2026-08-07T08:06:51.819Z",
-=======
-    "lastDeployedAt": "2026-08-05T07:06:22.589Z",
->>>>>>> 19a121b (Bütün Fotograflar Eklendi.)
-    "deployingMessage": "Sitemizin tamamlanmasına çok az kaldı, beklediğiniz için teşekkürler.",
+    "lastDeployedAt": "2026-08-07T09:01:49.432Z",
+    "deployingMessage": "Website update is in progress.\nThe new version will be available in about 1 minute.",
     "githubRepo": "kadirkarga25-rgb/irem-comfort",
     "githubBranch": "main",
-    "stage1Text": "Sitemizin tamamlanmasına çok az kaldı, beklediğiniz için teşekkürler.",
-    "stage2Text": "Sitemiz tamamlandı, beklediğiniz için teşekkürler.",
+    "stage1Text": "Sitemizin güncellenmesi tamamlanıyor, beklediğiniz için teşekkürler.",
+    "stage2Text": "Sitemiz güncellendi, hoş geldiniz!",
     "deploymentVideo": "",
-<<<<<<< HEAD
-    "enableDeploymentIntro": true,
-=======
     "enableDeploymentIntro": false,
->>>>>>> 19a121b (Bütün Fotograflar Eklendi.)
     "videoVolume": 0.8,
     "loopVideo": false,
     "autoplayVideo": true,
@@ -34,91 +17,6 @@
     "skipButton": true,
     "fadeDuration": 800,
     "minLoadingTime": 3,
-    "deploymentRevision": "v1.0.0",
-    "isMaintenanceMode": false,
-    "autoMaintenanceOnDeploy": true,
-    "maintenanceTitle": "Website Maintenance",
-    "maintenanceMessage": "Sitemiz sizler için güncellenmekte ve iyileştirilmektedir. Lütfen 2-5 dakika içerisinde tekrar deneyiniz.",
-    "enableLaunchIntro": true,
-    "introVideoUrl": ""
-  },
-  "heroConfig": {
-    "badgeText": "Kuruluş 2020 • Manisa Ayakkabıcılar Sitesi İmalatı",
-    "title": "Bayan Comfort Deri Sandalet & Terlik.",
-    "description": "%100 Hakiki deri saya, ortopedik kavisli anatomik taban ve Manisa atölyemizin usta el işçiliği. Gün boyu adımlarınıza hafiflik ve zarif konfor katan yeni sezon modellerimizi keşfedin.",
-    "primaryBtnText": "Koleksiyonu Keşfet",
-    "secondaryBtnText": "Atölyemiz",
-    "signatureModelTitle": "Çift Tokalı Hakiki Deri Terlik",
-    "signatureModelSub": "Yumuşak Dana Derisi Saya • Anatomik Yumuşak Konfor Taban"
-  },
-  "images": {
-    "heroImage": "/uploads/hero/hero_1785930350459_g819p.jpg",
-    "aboutImage": "/uploads/gallery/banner-1785919037841.png",
-    "craftsmanshipImages": {
-      "01": "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&q=80&w=1000",
-      "02": "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=1000",
-      "03": "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&q=80&w=1000",
-      "04": "https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&q=80&w=1000"
-    },
-    "collectionImages": {
-      "cift-tokali-comfort-terlik": {
-        "image": "https://images.unsplash.com/photo-1603808033176-9d134e6f2c74?auto=format&fit=crop&q=80&w=1200",
-        "secondaryImage": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=1200"
-      },
-      "ortopedik-sabo-terlik": {
-        "image": "https://images.unsplash.com/photo-1560343090-f0409e92791a?auto=format&fit=crop&q=80&w=1200",
-        "secondaryImage": "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&q=80&w=1200"
-      },
-      "capraz-bant-sandalet": {
-        "image": "https://images.unsplash.com/photo-1535043934128-cf0b28d52f95?auto=format&fit=crop&q=80&w=1200",
-        "secondaryImage": "https://images.unsplash.com/photo-1603808033176-9d134e6f2c74?auto=format&fit=crop&q=80&w=1200"
-      },
-      "mantar-taban-comfort-terlik": {
-        "image": "https://images.unsplash.com/photo-1608256246200-53e635b5b65f?auto=format&fit=crop&q=80&w=1200",
-        "secondaryImage": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=1200"
-      },
-      "dolgu-topuk-sandalet": {
-        "image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=1200",
-        "secondaryImage": "https://images.unsplash.com/photo-1535043934128-cf0b28d52f95?auto=format&fit=crop&q=80&w=1200"
-      },
-      "cirt-cirtli-genis-terlik": {
-        "image": "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&q=80&w=1200",
-        "secondaryImage": "https://images.unsplash.com/photo-1560343090-f0409e92791a?auto=format&fit=crop&q=80&w=1200"
-      }
-    }
-  },
-  "aboutSlides": [
-    {
-      "id": "slide-1",
-      "image": "/uploads/gallery/banner-1785919037841.png",
-      "badge": "İREM COMFORT • MANİSA",
-      "title": "Hakiki Deri.",
-      "subtitle": "Doğal Konfor.",
-      "alt": "İrem Comfort Hakiki Deri Bayan Sandalet Model"
-    },
-    {
-      "id": "slide-2",
-      "image": "/uploads/gallery/banner-1785919037841.png",
-      "badge": "%100 HAKİKİ SAYA",
-      "title": "%100 Hakiki Deri",
-      "subtitle": "Nefes Alan Yumuşak Dana ve Kuzu Derisi",
-      "alt": "Manisa Atölyesi Hakiki Deri Doku Yakın Çekim"
-    },
-    {
-      "id": "slide-3",
-      "image": "/uploads/gallery/banner-1785919037841.png",
-      "badge": "MANİSA ATÖLYESİ",
-      "title": "Manisa'da Üretiliyor",
-      "subtitle": "Usta Ellerin Geleneksel Dikiş Zanaatı",
-      "alt": "Manisa Ayakkabıcılar Sitesi Deri Zanaatkarlığı"
-    },
-    {
-      "id": "slide-4",
-      "image": "/uploads/gallery/banner-1785919037841.png",
-      "badge": "ORTOPEDİK TABAN",
-      "title": "Anatomik Konfor",
-      "subtitle": "Ayak Kavisini Destekleyen Esnek Taban Structure",
-      "alt": "Anatomik Ortopedik Taban Mimarisi Yakın Çekim"
-    }
-  ]
+    "deploymentRevision": "v1.0.0"
+  }
 }
