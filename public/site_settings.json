@@ -9,11 +9,11 @@
     "sitemapXml": ""
   },
   "systemConfig": {
-    "isMaintenanceMode": true,
+    "isMaintenanceMode": false,
     "autoMaintenanceOnDeploy": true,
     "maxWaitTimeSeconds": 120,
-    "isDeploying": true,
-    "lastDeployedAt": "2026-08-07T07:24:01.421Z",
+    "isDeploying": false,
+    "lastDeployedAt": "2026-08-07T07:24:03.878Z",
     "maintenanceTitle": "Website Maintenance",
     "maintenanceMessage": "Sitemiz sizler için güncellenmekte ve iyileştirilmektedir. Lütfen 2-5 dakika içerisinde tekrar deneyiniz.",
     "deployingMessage": "Sitemizin tamamlanmasına çok az kaldı, beklediğiniz için teşekkürler.",
@@ -34,7 +34,7 @@
     "signatureModelSub": "Yumuşak Dana Derisi Saya • Anatomik Yumuşak Konfor Taban"
   },
   "images": {
-    "heroImage": "/uploads/hero/hero_1785930350459_g819p.jpg",
+    "heroImage": "/uploads/gallery/Ads_z_tasar_m.png",
     "aboutImage": "/uploads/gallery/banner-1785919037841.png",
     "craftsmanshipImages": {
       "01": "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&q=80&w=1000",
@@ -72,7 +72,7 @@
   "aboutSlides": [
     {
       "id": "slide-1",
-      "image": "/uploads/gallery/banner-1785919037841.png",
+      "image": "/uploads/gallery/12__1_.png",
       "badge": "İREM COMFORT • MANİSA",
       "title": "Hakiki Deri.",
       "subtitle": "Doğal Konfor.",
@@ -80,7 +80,7 @@
     },
     {
       "id": "slide-2",
-      "image": "/uploads/gallery/banner-1785919037841.png",
+      "image": "/uploads/gallery/12__4_.png",
       "badge": "%100 HAKİKİ SAYA",
       "title": "%100 Hakiki Deri",
       "subtitle": "Nefes Alan Yumuşak Dana ve Kuzu Derisi",
@@ -88,7 +88,7 @@
     },
     {
       "id": "slide-3",
-      "image": "/uploads/gallery/banner-1785919037841.png",
+      "image": "/uploads/gallery/12__2_.png",
       "badge": "MANİSA ATÖLYESİ",
       "title": "Manisa'da Üretiliyor",
       "subtitle": "Usta Ellerin Geleneksel Dikiş Zanaatı",
@@ -96,7 +96,7 @@
     },
     {
       "id": "slide-4",
-      "image": "/uploads/gallery/banner-1785919037841.png",
+      "image": "/uploads/gallery/12__3_.png",
       "badge": "ORTOPEDİK TABAN",
       "title": "Anatomik Konfor",
       "subtitle": "Ayak Kavisini Destekleyen Esnek Taban Structure",
