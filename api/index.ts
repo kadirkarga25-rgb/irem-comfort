@@ -2079,13 +2079,11 @@ app.post("/api/deploy-github", async (req, res) => {
     }
 
     const deployTime = new Date().toISOString();
-    const autoMaint = inMemorySettingsCache.systemConfig?.autoMaintenanceOnDeploy !== false;
 
-    // Enable Maintenance Mode during deployment
+    // Enable Deploying state
     inMemorySettingsCache.systemConfig = {
       ...(inMemorySettingsCache.systemConfig || {}),
       isDeploying: true,
-      isMaintenanceMode: autoMaint ? true : Boolean(inMemorySettingsCache.systemConfig?.isMaintenanceMode),
       lastDeployedAt: deployTime,
       githubRepo: repo,
       githubBranch: branch
@@ -2223,7 +2221,6 @@ app.get("/api/deploy-status", async (_req, res) => {
       inMemorySettingsCache.systemConfig = {
         ...(inMemorySettingsCache.systemConfig || {}),
         isDeploying: false,
-        isMaintenanceMode: false,
         lastDeployedAt: new Date().toISOString()
       };
       saveSettingsToFile(inMemorySettingsCache, session.userToken, session.repo, session.branch, true);
@@ -2248,8 +2245,7 @@ app.get("/api/deploy-status", async (_req, res) => {
       
       inMemorySettingsCache.systemConfig = {
         ...(inMemorySettingsCache.systemConfig || {}),
-        isDeploying: false,
-        isMaintenanceMode: false
+        isDeploying: false
       };
       saveSettingsToFile(inMemorySettingsCache, session.userToken, session.repo, session.branch, true);
 

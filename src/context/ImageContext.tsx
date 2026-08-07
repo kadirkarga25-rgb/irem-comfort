@@ -207,7 +207,7 @@ interface ImageContextType {
   moveAboutSlide: (id: string, direction: 'up' | 'down') => void;
   resetAboutSlides: () => void;
 
-  // System, Maintenance Mode & Deploy Store
+  // System & Deploy Store
   systemConfig: SystemConfig;
   updateSystemConfig: (newConfig: Partial<SystemConfig>) => void;
   triggerDeploy: (

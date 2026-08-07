@@ -296,22 +296,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     };
   }, []);
 
-  const confirmMaintenanceExit = (action: () => void) => {
+  const handleSiteExit = (action: () => void) => {
     // Fire background GitHub media & settings sync
     syncAllMediaToGithub(true);
-
-    if (systemConfig.isMaintenanceMode) {
-      const confirmExit = window.confirm(
-        "🛠️ BAKIM MODU HALEN AÇIK!\n\n" +
-        "Sitede bakım modu aktif durumda. Adminden çıktığınızda ziyaretçiler site kapalı bakım ekranını görmeye devam edecektir.\n\n" +
-        "Bakım modunu KAPATMADAN çıkmak istiyor musunuz?"
-      );
-      if (confirmExit) {
-        action();
-      }
-    } else {
-      action();
-    }
+    action();
   };
 
   const [successToast, setSuccessToast] = useState<string | null>(null);
@@ -915,7 +903,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
           {/* Return to Main Site Button */}
           <div className="mt-8 text-center pt-4 border-t border-slate-100">
             <button
-              onClick={() => confirmMaintenanceExit(onReturnToSite)}
+              onClick={() => handleSiteExit(onReturnToSite)}
               className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-[#082C6C] transition-colors cursor-pointer"
             >
               <Home className="w-4 h-4" />
@@ -976,7 +964,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
           </button>
 
           <button
-            onClick={() => confirmMaintenanceExit(onReturnToSite)}
+            onClick={() => handleSiteExit(onReturnToSite)}
             className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <ExternalLink className="w-3.5 h-3.5" />
@@ -984,7 +972,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
           </button>
 
           <button
-            onClick={() => confirmMaintenanceExit(handleLogout)}
+            onClick={() => handleSiteExit(handleLogout)}
             className="px-3.5 py-2 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
@@ -1320,27 +1308,21 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
             }`}
           >
             <Server className="w-4 h-4 text-purple-400" />
-            <span>🚀 Deploy / Yayınla & Bakım Modu</span>
-            {(systemConfig.isMaintenanceMode || systemConfig.isDeploying) && (
+            <span>🚀 Deploy & GitHub Yayınlama</span>
+            {systemConfig.isDeploying && (
               <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
             )}
           </button>
         </div>
 
-        {/* Top Warning Banner if Maintenance Mode or Deploying is Active */}
-        {(systemConfig.isMaintenanceMode || systemConfig.isDeploying) && (
-          <div className={`p-4 rounded-2xl text-xs font-bold flex flex-wrap items-center justify-between gap-4 shadow-lg border ${
-            systemConfig.isMaintenanceMode 
-              ? 'bg-amber-500/10 border-amber-500 text-amber-900' 
-              : 'bg-blue-500/10 border-blue-500 text-blue-900'
-          }`}>
+        {/* Top Warning Banner if Deploying is Active */}
+        {systemConfig.isDeploying && (
+          <div className="p-4 rounded-2xl text-xs font-bold flex flex-wrap items-center justify-between gap-4 shadow-lg border bg-blue-500/10 border-blue-500 text-blue-900">
             <div className="flex items-center gap-2.5">
-              <span className="text-xl">{systemConfig.isMaintenanceMode ? '🛠️' : '🔄'}</span>
+              <span className="text-xl">🔄</span>
               <div>
                 <span className="block font-extrabold uppercase">
-                  {systemConfig.isMaintenanceMode 
-                    ? 'SİTE BAKIM MODUNDA! Müşteriler bakım ekranını görmektedir.' 
-                    : 'SİTEDE YÜKLEME / DEPLOY YAPILIYOR! Müşteriler 1 dakikalık sayacı görmektedir.'}
+                  SİTEDE YÜKLEME / DEPLOY YAPILIYOR! Müşteriler karşılama / yükleme ekranını görmektedir.
                 </span>
                 <span className="text-[11px] font-normal text-slate-600">
                   Yönetici panelinde değişiklik yapmaya ve ayarları düzenlemeye devam edebilirsiniz.
@@ -1350,8 +1332,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
             <button
               onClick={() => {
-                updateSystemConfig({ isMaintenanceMode: false, isDeploying: false });
-                showToast('Bakım ve Deploy durumları sıfırlandı, site tekrar canlıda!');
+                updateSystemConfig({ isDeploying: false });
+                showToast('Deploy durumu sıfırlandı, site tekrar canlıda!');
               }}
               className="px-4 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 text-xs font-bold transition-all shadow cursor-pointer active:scale-95"
             >
@@ -3667,7 +3649,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
         {/* Tab: SEO & SITEMAP */}
         {activeTab === 'seo' && <SeoAdminTab />}
 
-        {/* Tab 10: SYSTEM, MAINTENANCE MODE & GITHUB DEPLOY */}
+        {/* Tab 10: SYSTEM & GITHUB DEPLOY */}
         {activeTab === 'system' && (
           <div className="space-y-6">
             
@@ -3678,158 +3660,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                   <Server className="w-5 h-5 text-purple-300" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg text-white font-serif-luxury">Sistem Ayarları, Bakım Modu & GitHub/Vercel Deploy</h3>
+                  <h3 className="font-bold text-lg text-white font-serif-luxury">Sistem Ayarları & GitHub/Vercel Deploy</h3>
                   <p className="text-xs text-slate-300 font-light">
-                    Sitenizi bakıma alabilir, yapılan tüm görselleri ve ayarları doğrudan GitHub repository'nize aktararak Vercel üzerinde otomatik yayınlayabilirsiniz.
+                    Yapılan tüm görselleri ve ayarları doğrudan GitHub repository'nize aktararak Vercel üzerinde otomatik yayınlayabilirsiniz.
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Section 1: Maintenance Mode (Bakım Modu) & Deploy Safeguards */}
-            <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-6">
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">🛠️</span>
-                    <h4 className="font-bold text-[#111111] text-base">Bakım Modu Ayarları (Maintenance Mode)</h4>
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    Sitenin ziyaretçilere açık/kapalı olma durumunu, otomatik bakım modu davranışını ve bekleme süresini buradan yapılandırabilirsiniz.
-                  </p>
-                </div>
-
-                {/* Maintenance Mode Status Indicator & Manual Toggle */}
-                <div className="flex items-center gap-3 bg-slate-50 p-2.5 px-4 rounded-xl border border-slate-200">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-700">Maintenance Mode:</span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold font-mono flex items-center gap-1.5 ${
-                      systemConfig.isMaintenanceMode 
-                        ? 'bg-rose-100 text-rose-700 border border-rose-300' 
-                        : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                    }`}>
-                      {systemConfig.isMaintenanceMode ? '🔴 Enabled' : '🟢 Disabled'}
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nextState = !systemConfig.isMaintenanceMode;
-                      updateSystemConfig({ isMaintenanceMode: nextState });
-                      showToast(nextState ? 'Bakım modu etkinleştirildi!' : 'Bakım modu devre dışı bırakıldı!');
-                    }}
-                    className="p-1 rounded-full cursor-pointer transition-transform active:scale-95"
-                  >
-                    {systemConfig.isMaintenanceMode ? (
-                      <ToggleRight className="w-9 h-9 text-rose-600" />
-                    ) : (
-                      <ToggleLeft className="w-9 h-9 text-slate-400" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                {/* Auto Maintenance During Deploy */}
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-800 block">Auto Maintenance During Deploy</label>
-                    <span className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded ${
-                      systemConfig.autoMaintenanceOnDeploy !== false
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-slate-200 text-slate-600'
-                    }`}>
-                      {systemConfig.autoMaintenanceOnDeploy !== false ? '☑ Enabled' : '☐ Disabled'}
-                    </span>
-                  </div>
-                  
-                  <label className="flex items-center gap-3 cursor-pointer select-none pt-1">
-                    <input
-                      type="checkbox"
-                      checked={systemConfig.autoMaintenanceOnDeploy !== false}
-                      onChange={(e) => {
-                        updateSystemConfig({ autoMaintenanceOnDeploy: e.target.checked });
-                        showToast(e.target.checked ? 'Deploy sırasında otomatik bakım modu etkinleştirildi.' : 'Deploy sırasında otomatik bakım modu devre dışı bırakıldı.');
-                      }}
-                      className="w-4 h-4 text-[#082C6C] rounded border-slate-300 focus:ring-[#082C6C] cursor-pointer"
-                    />
-                    <span className="text-xs text-slate-700 font-medium">
-                      Yayınlama (Deploy) başlatıldığında siteyi otomatik olarak bakım moduna al
-                    </span>
-                  </label>
-                  <p className="text-[11px] text-slate-500 pt-0.5">
-                    * Vercel yayınlaması tamamlandığında (READY durumuna ulaştığında) bakım modu otomatik olarak kapatılır.
-                  </p>
-                </div>
-
-                {/* Maximum Wait Time */}
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
-                  <label className="text-xs font-bold text-slate-800 block">Maximum Wait Time (Maksimum Bekleme Süresi)</label>
-                  <div className="flex items-center gap-3">
-                    <select
-                      value={systemConfig.maxWaitTimeSeconds || 120}
-                      onChange={(e) => {
-                        const val = Number(e.target.value);
-                        updateSystemConfig({ maxWaitTimeSeconds: val });
-                        showToast(`Maksimum bekleme süresi ${val} saniye olarak güncellendi.`);
-                      }}
-                      className="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-300 bg-white focus:border-[#082C6C] focus:outline-none cursor-pointer"
-                    >
-                      <option value={60}>60 seconds (1 dk)</option>
-                      <option value={90}>90 seconds (1.5 dk)</option>
-                      <option value={120}>120 seconds (2 dk - Varsayılan)</option>
-                      <option value={180}>180 seconds (3 dk)</option>
-                      <option value={240}>240 seconds (4 dk)</option>
-                      <option value={300}>300 seconds (5 dk)</option>
-                    </select>
-                    <span className="text-xs font-mono font-bold text-slate-700 bg-slate-200/80 px-3 py-2 rounded-xl border border-slate-300/60">
-                      ⏱️ {systemConfig.maxWaitTimeSeconds || 120} seconds
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 pt-0.5">
-                    * Vercel veya GitHub API durumuna erişilemediğinde, site en fazla bu süre kadar bakım modunda kalır ve ardından otomatik canlıya geçer. Site asla süresiz bakımda kalmaz.
-                  </p>
-                </div>
-
-                {/* Visitor Maintenance Message */}
-                <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-xs font-bold text-slate-700 block">Ziyaretçilere Gösterilecek Bakım Mesajı</label>
-                  <input
-                    type="text"
-                    value={systemConfig.maintenanceMessage}
-                    onChange={(e) => updateSystemConfig({ maintenanceMessage: e.target.value })}
-                    placeholder="Sitede bakım çalışması yapılmaktadır..."
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-medium"
-                  />
-                </div>
-              </div>
-
-              {/* Force Disable Maintenance Action */}
-              <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-slate-100">
-                <div className="text-xs text-slate-500">
-                  <span className="font-bold text-slate-700">Güvenlik Önlemi:</span> Herhangi bir takılma durumunda siteyi derhal yayına almak için aşağıdaki butonu kullanabilirsiniz.
-                </div>
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    updateSystemConfig({ isMaintenanceMode: false, isDeploying: false });
-                    try {
-                      await fetch('/api/maintenance/disable', { method: 'POST' });
-                    } catch (e) {}
-                    showToast('Bakım modu zorla kapatıldı ve site canlıya alındı!');
-                  }}
-                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer active:scale-98"
-                >
-                  <PowerOff className="w-4 h-4" />
-                  <span>Force Disable Maintenance</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Section 1.5: Launch Sequence & Intro Video Settings */}
+            {/* Section 1: Launch Sequence & Intro Video Settings */}
             <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-6">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">

@@ -147,7 +147,7 @@ function MainAppContent() {
 
   // Initialize Lenis Smooth Scroll
   useEffect(() => {
-    if (isAdminView || isResetView || isRemoteView || isSurveyView || isNotFoundView || systemConfig.isMaintenanceMode || systemConfig.isDeploying) return;
+    if (isAdminView || isResetView || isRemoteView || isSurveyView || isNotFoundView || systemConfig.isDeploying) return;
 
     const lenis = new Lenis({
       duration: 1.2,
@@ -213,11 +213,11 @@ function MainAppContent() {
       lenis.destroy();
       lenisRef.current = null;
     };
-  }, [isAdminView, isResetView, isRemoteView, isSurveyView, isNotFoundView, systemConfig.isMaintenanceMode, systemConfig.isDeploying, isFairModalOpen, legalModalDoc, sectionOrder]);
+  }, [isAdminView, isResetView, isRemoteView, isSurveyView, isNotFoundView, systemConfig.isDeploying, isFairModalOpen, legalModalDoc, sectionOrder]);
 
   // Secondary Intersection Observer backup for static positions
   useEffect(() => {
-    if (isAdminView || isNotFoundView || systemConfig.isMaintenanceMode || systemConfig.isDeploying) return;
+    if (isAdminView || isNotFoundView || systemConfig.isDeploying) return;
 
     const activeSectionIds = (sectionOrder || []).filter(s => s.enabled !== false).map(s => s.id);
     
@@ -240,7 +240,7 @@ function MainAppContent() {
     });
 
     return () => observer.disconnect();
-  }, [isAdminView, isNotFoundView, systemConfig.isMaintenanceMode, systemConfig.isDeploying, sectionOrder]);
+  }, [isAdminView, isNotFoundView, systemConfig.isDeploying, sectionOrder]);
 
 
   const scrollToSection = (sectionId: string) => {

@@ -15,7 +15,6 @@ export interface SystemCoreConfig {
   };
   cms: {
     siteName: string;
-    maintenanceMode: boolean;
     language: string;
     timeZone: string;
   };
@@ -69,7 +68,6 @@ export class ConfigCenter {
       },
       cms: {
         siteName: 'İrem Comfort - %100 Hakiki Deri Terlik & Sabo',
-        maintenanceMode: false,
         language: 'tr-TR',
         timeZone: 'Europe/Istanbul'
       },
