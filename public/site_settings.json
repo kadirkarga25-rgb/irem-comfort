@@ -9,11 +9,11 @@
     "sitemapXml": ""
   },
   "systemConfig": {
-    "isMaintenanceMode": true,
+    "isMaintenanceMode": false,
     "autoMaintenanceOnDeploy": true,
     "maxWaitTimeSeconds": 120,
-    "isDeploying": true,
-    "lastDeployedAt": "2026-08-07T07:26:33.096Z",
+    "isDeploying": false,
+    "lastDeployedAt": "2026-08-07T07:29:36.687Z",
     "maintenanceTitle": "Website Maintenance",
     "maintenanceMessage": "Sitemiz sizler için güncellenmekte ve iyileştirilmektedir. Lütfen 2-5 dakika içerisinde tekrar deneyiniz.",
     "deployingMessage": "Sitemizin tamamlanmasına çok az kaldı, beklediğiniz için teşekkürler.",
@@ -101,6 +101,56 @@
       "title": "Anatomik Konfor",
       "subtitle": "Ayak Kavisini Destekleyen Esnek Taban Structure",
       "alt": "Anatomik Ortopedik Taban Mimarisi Yakın Çekim"
+    }
+  ],
+  "sectionOrder": [
+    {
+      "id": "hero",
+      "title": "Hero (Ana Karşılama)",
+      "subtitle": "Slogan, butonlar ve öne çıkan hakiki deri terlik görseli",
+      "enabled": true
+    },
+    {
+      "id": "about",
+      "title": "Hakkımızda & Hikayemiz",
+      "subtitle": "Manisa imalatı, 1993'ten beri miras ve slayt galeri",
+      "enabled": true
+    },
+    {
+      "id": "collection",
+      "title": "Koleksiyon & Ürünlerimiz",
+      "subtitle": "Sandalet ve terlik ürün kartları, kategori filtreleri",
+      "enabled": true
+    },
+    {
+      "id": "craftsmanship",
+      "title": "Zanaat & Atölye Süreci",
+      "subtitle": "Elde kesim, saya dikim, ortopedik montaj adımları",
+      "enabled": true
+    },
+    {
+      "id": "why-us",
+      "title": "Neden İrem Comfort",
+      "subtitle": "Anatomik taban, %100 hakiki saya, toptan avantajlar",
+      "enabled": true
+    },
+    {
+      "id": "contact",
+      "title": "İletişim & Konum",
+      "subtitle": "WhatsApp, showroom adresi, harita ve mesaj formu",
+      "enabled": true
+    },
+    {
+      "id": "faq",
+      "title": "Sıkça Sorulan Sorular (SSS)",
+      "subtitle": "Toptan sipariş, kalıp, kargo ve deri bakımı rehberi",
+      "enabled": true
+    },
+    {
+      "id": "newsletter",
+      "title": "E-Bülten & Kataloğ",
+      "subtitle": "E-posta e-bülten kayıt alanı ve dijital katalog indirme",
+      "enabled": true
     }
   ]
 }
