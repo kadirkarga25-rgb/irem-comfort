@@ -490,12 +490,18 @@ export function RemoteManagementPage({ onReturnToSite }: RemoteManagementPagePro
                         }}
                         className="p-3.5 bg-[#111111] hover:bg-[#181818] border border-white/10 hover:border-[#C8A96E]/40 rounded-2xl flex items-center gap-3.5 transition-all cursor-pointer group"
                       >
-                        <img
-                          src={p.url}
-                          alt={p.name}
-                          className="w-14 h-14 object-contain bg-[#1A1A1A] rounded-xl border border-white/5 shrink-0"
-                          onError={(e: any) => e.target.style.opacity = 0.3}
-                        />
+                        {p.url ? (
+                          <img
+                            src={p.url}
+                            alt={p.name}
+                            className="w-14 h-14 object-contain bg-[#1A1A1A] rounded-xl border border-white/5 shrink-0"
+                            onError={(e: any) => e.target.style.opacity = 0.3}
+                          />
+                        ) : (
+                          <div className="w-14 h-14 bg-[#1A1A1A] rounded-xl border border-white/5 shrink-0 flex items-center justify-center text-[10px] text-slate-500">
+                            Yok
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0">
                           <h4 className="font-semibold text-white text-sm truncate">
                             {p.name?.replace(/-/g, ' ')}
@@ -682,11 +688,17 @@ export function RemoteManagementPage({ onReturnToSite }: RemoteManagementPagePro
               </button>
             </div>
 
-            <img
-              src={editProduct.url}
-              alt={editProduct.name}
-              className="w-full h-36 object-contain bg-[#1A1A1A] rounded-2xl p-2 border border-white/5"
-            />
+            {editProduct.url ? (
+              <img
+                src={editProduct.url}
+                alt={editProduct.name}
+                className="w-full h-36 object-contain bg-[#1A1A1A] rounded-2xl p-2 border border-white/5"
+              />
+            ) : (
+              <div className="w-full h-36 bg-[#1A1A1A] rounded-2xl border border-white/5 flex items-center justify-center text-xs text-slate-500">
+                Görsel Yok
+              </div>
+            )}
 
             <div className="space-y-1">
               <label className="block text-xs font-semibold text-slate-300">

@@ -174,28 +174,36 @@ export const AboutSection: React.FC = () => {
                   className="absolute inset-0 cursor-grab active:cursor-grabbing"
                 >
                   {/* Ken Burns Scale Effect (1.0 to 1.08 over 5s) */}
-                  <motion.img
-                    src={slides[safeIndex]?.image}
-                    alt={slides[safeIndex]?.alt || ''}
-                    loading={safeIndex === 0 ? "eager" : "lazy"}
-                    initial={{ scale: 1.0 }}
-                    animate={{ scale: 1.08 }}
-                    transition={{ duration: 5, ease: "linear" }}
-                    className="w-full h-full object-cover pointer-events-none"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      if (target.src.includes('/public/uploads/')) {
-                        const parts = target.src.split('/public/uploads/');
-                        if (parts[1]) {
-                          target.src = '/uploads/' + parts[1];
-                          return;
+                  {slides[safeIndex]?.image ? (
+                    <motion.img
+                      src={slides[safeIndex]?.image}
+                      alt={slides[safeIndex]?.alt || ''}
+                      loading={safeIndex === 0 ? "eager" : "lazy"}
+                      initial={{ scale: 1.0 }}
+                      animate={{ scale: 1.08 }}
+                      transition={{ duration: 5, ease: "linear" }}
+                      className="w-full h-full object-cover pointer-events-none"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        if (target.src.includes('/public/uploads/')) {
+                          const parts = target.src.split('/public/uploads/');
+                          if (parts[1]) {
+                            target.src = '/uploads/' + parts[1];
+                            return;
+                          }
                         }
-                      }
-                      if (!target.src.includes('irem-comfort-logo')) {
-                        target.src = '/uploads/logo/irem-comfort-logo.jpg';
-                      }
-                    }}
-                  />
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-[#062050] via-[#0A2D6F] to-[#030F26] flex items-center justify-center p-6 text-center text-white">
+                      <div className="space-y-2">
+                        <span className="text-xs font-bold uppercase tracking-widest text-[#D4AF37] bg-[#D4AF37]/10 px-3 py-1 rounded-full border border-[#D4AF37]/20">
+                          {slides[safeIndex]?.badge || 'İrem Comfort'}
+                        </span>
+                        <h4 className="text-lg font-serif font-bold">{slides[safeIndex]?.title}</h4>
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Bottom Dark Gradient Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/10 pointer-events-none" />

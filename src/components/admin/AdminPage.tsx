@@ -22,6 +22,7 @@ import { BackupAdminTab } from './BackupAdminTab';
 import { AiTrainingAdminTab } from './AiTrainingAdminTab';
 import { InfrastructureAdminTab } from './InfrastructureAdminTab';
 import { ConversationLogsAdminTab } from './ConversationLogsAdminTab';
+import { FirstTimeSetupModal } from './FirstTimeSetupModal';
 import { EMAIL_TEMPLATES, renderEmailHtml } from '../../utils/emailTemplates';
 import { 
   Lock, Key, User, LogOut, ExternalLink, Image as ImageIcon, 
@@ -31,8 +32,9 @@ import {
   Mail, Server, AtSign, Save, MailCheck, CheckCircle2, Shield,
   Users, Download, Copy, Trash2, Plus, Search, Phone, HelpCircle,
   GitBranch, Globe, FileImage, Video, RefreshCw, PowerOff, Palette, BarChart3, Activity,
-  Layout, Database, GraduationCap
+  Layout, Database, GraduationCap, ChevronLeft, ChevronRight, Menu, X, Smartphone, BellRing, BellOff, Volume2
 } from 'lucide-react';
+import { pwaNotificationService } from '../../services/pwaNotificationService';
 
 
 const TARGET_SPECS_MAP: Record<string, CropTargetSpecs> = {
@@ -183,6 +185,43 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
   // Admin Panel Tabs
   const [activeTab, setActiveTab] = useState<'overview' | 'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'page_builder' | 'presets' | 'leads' | 'newsletter' | 'email' | 'system' | 'media' | 'deployment_exp' | 'seo' | 'appearance' | 'crm' | 'analytics' | 'security' | 'ai_arch' | 'live_monitor' | 'backup' | 'ai_training' | 'infrastructure' | 'conv_logs'>('overview');
+
+  // Sidebar Layout States
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
+  const [sidebarSearch, setSidebarSearch] = useState<string>('');
+
+  const getActiveTabTitle = (tab: string) => {
+    switch (tab) {
+      case 'overview': return 'Control Center (Dashboard)';
+      case 'page_builder': return 'CMS Sayfa Oluşturucu';
+      case 'fair': return 'Fuar & Etkinlik Modülü';
+      case 'appearance': return 'Görünüm, Tema & Sıralama';
+      case 'general': return 'Ana Sayfa & Hakkımızda';
+      case 'collection': return 'Koleksiyon Ürünleri';
+      case 'craftsmanship': return 'Atölye & Zanaat';
+      case 'presets': return 'Hazır Görseller';
+      case 'media': return 'Medya Kütüphanesi';
+      case 'leads': return 'Müşteri Talepleri';
+      case 'crm': return 'Müşteriler & CRM Portalı';
+      case 'newsletter': return 'Haber Bülteni & Şablonlar';
+      case 'faq': return 'Sıkça Sorulan Sorular';
+      case 'contact': return 'İletişim & Duyuru Bandı';
+      case 'system': return 'Deploy & GitHub Yayınlama';
+      case 'email': return 'E-Posta & SMTP Ayarları';
+      case 'seo': return 'SEO, Robots & Sitemap';
+      case 'analytics': return 'Analiz & Performans';
+      case 'security': return 'Güvenlik Merkezi';
+      case 'deployment_exp': return 'Deployment Deneyimi (Video)';
+      case 'backup': return 'Yedekleme & Geri Yükleme';
+      case 'ai_arch': return 'AI Altyapısı';
+      case 'live_monitor': return 'Canlı Monitör & Destek';
+      case 'ai_training': return 'AI Eğitim Merkezi';
+      case 'infrastructure': return 'Enterprise Altyapı';
+      case 'conv_logs': return 'Sohbet Günlükleri & AI Beta';
+      default: return 'Yönetim Paneli';
+    }
+  };
 
   const [githubRepoInput, setGithubRepoInput] = useState<string>(() => systemConfig.githubRepo || localStorage.getItem('irem_github_repo') || 'kadirkarga25-rgb/irem-comfort');
   const [githubBranchInput, setGithubBranchInput] = useState<string>(() => systemConfig.githubBranch || localStorage.getItem('irem_github_branch') || 'main');
@@ -436,6 +475,53 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
   // Announcement Ticker Input State
   const [newAnnouncementText, setNewAnnouncementText] = useState('');
+
+  // PWA Install & Push Notification States
+  const [pwaDeferredPrompt, setPwaDeferredPrompt] = useState<any>(null);
+  const [canInstallPwa, setCanInstallPwa] = useState(false);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>(
+    pwaNotificationService.getPermissionState()
+  );
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setPwaDeferredPrompt(e);
+      setCanInstallPwa(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallPwa = async () => {
+    if (pwaDeferredPrompt) {
+      pwaDeferredPrompt.prompt();
+      const choiceResult = await pwaDeferredPrompt.userChoice;
+      if (choiceResult.outcome === 'accepted') {
+        showToast('📱 İrem Comfort Admin PWA uygulaması yüklendi!');
+        setCanInstallPwa(false);
+      }
+      setPwaDeferredPrompt(null);
+    } else {
+      showToast('📱 Uygulamayı yüklemek için mobil tarayıcınızın "Ana Ekrana Ekle" veya "Uygulamayı Yükle" seçeneğini kullanabilirsiniz.');
+    }
+  };
+
+  const handleEnableNotifications = async () => {
+    const granted = await pwaNotificationService.requestPermission();
+    setNotifPermission(pwaNotificationService.getPermissionState());
+    if (granted) {
+      showToast(' Arka plan bildirimleri ve sesli uyarısı başarıyla aktif edildi!');
+    } else {
+      showToast('⚠️ Bildirim izni reddedildi.');
+    }
+  };
+
+  const handleTestNotification = () => {
+    pwaNotificationService.testNotification();
+    showToast(' Test bildirimi ve sesli uyarı gönderildi!');
+  };
 
   // Function to apply default values for selected email template
   const applyTemplateDefaults = (tplId: string) => {
@@ -1070,8 +1156,83 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   }
 
   // IF AUTHENTICATED: SHOW FULL ADMIN DASHBOARD
+  const SIDEBAR_NAV_GROUPS: {
+    groupTitle: string;
+    items: {
+      id: string;
+      label: string;
+      icon: any;
+      badgeColor?: string;
+      hasPulse?: boolean;
+      countBadge?: number;
+      isDeployingBadge?: boolean;
+    }[];
+  }[] = [
+    {
+      groupTitle: 'YÖNETİM & SİTE',
+      items: [
+        { id: 'overview', label: 'Control Center (Dashboard)', icon: Activity, badgeColor: 'text-emerald-400' },
+        { id: 'page_builder', label: 'Sayfa Oluşturucu (CMS)', icon: Layout, badgeColor: 'text-amber-400' },
+        { id: 'fair', label: 'Fuar & Etkinlik Modülü', icon: Calendar, hasPulse: true },
+        { id: 'appearance', label: 'Görünüm, Tema & Sıralama', icon: Palette, badgeColor: 'text-[#D4AF37]' },
+      ]
+    },
+    {
+      groupTitle: 'GÖRSEL & İÇERİK',
+      items: [
+        { id: 'general', label: 'Ana Sayfa & Hakkımızda', icon: Sliders },
+        { id: 'collection', label: `Koleksiyon Ürünleri (${COLLECTION_ITEMS.length})`, icon: Layers },
+        { id: 'craftsmanship', label: 'Atölye & Zanaat', icon: Sparkles },
+        { id: 'presets', label: 'Hazır Görseller', icon: Eye },
+        { id: 'media', label: 'Medya Kütüphanesi', icon: FileImage, badgeColor: 'text-amber-400' },
+      ]
+    },
+    {
+      groupTitle: 'MÜŞTERİ & İLETİŞİM',
+      items: [
+        { id: 'leads', label: 'Müşteri Talepleri', icon: MessageSquare, countBadge: contactLeads.length, badgeColor: 'text-emerald-400' },
+        { id: 'crm', label: 'Müşteriler & CRM', icon: Users, badgeColor: 'text-emerald-400' },
+        { id: 'newsletter', label: 'Haber Bülteni', icon: Users, countBadge: subscribers.length, badgeColor: 'text-blue-400' },
+        { id: 'faq', label: 'Sıkça Sorulan Sorular', icon: HelpCircle, badgeColor: 'text-amber-400' },
+        { id: 'contact', label: 'İletişim & Duyuru Bandı', icon: Phone, badgeColor: 'text-emerald-400' },
+      ]
+    },
+    {
+      groupTitle: 'SİSTEM & AYARLAR',
+      items: [
+        { id: 'system', label: 'Deploy & GitHub Yayınlama', icon: Server, badgeColor: 'text-[#D4AF37]', isDeployingBadge: systemConfig.isDeploying },
+        { id: 'email', label: 'E-Posta & SMTP Ayarları', icon: Mail, badgeColor: 'text-amber-500' },
+        { id: 'seo', label: 'SEO, Robots & Sitemap', icon: Globe, badgeColor: 'text-emerald-400' },
+        { id: 'analytics', label: 'Analiz & Performans', icon: BarChart3, badgeColor: 'text-amber-400' },
+        { id: 'security', label: 'Güvenlik Merkezi', icon: ShieldCheck, badgeColor: 'text-[#D4AF37]' },
+        { id: 'deployment_exp', label: 'Deployment Deneyimi (Video)', icon: Video, badgeColor: 'text-[#D4AF37]' },
+        { id: 'backup', label: 'Yedekleme & Geri Yükleme', icon: Database, badgeColor: 'text-indigo-400' },
+      ]
+    },
+    {
+      groupTitle: 'AI & OTOMASYON',
+      items: [
+        { id: 'ai_arch', label: 'AI Altyapısı', icon: Sparkles, badgeColor: 'text-indigo-400' },
+        { id: 'live_monitor', label: 'Canlı Monitör & Destek', icon: Activity, badgeColor: 'text-emerald-400' },
+        { id: 'ai_training', label: 'AI Eğitim Merkezi', icon: GraduationCap, badgeColor: 'text-[#D4AF37]' },
+        { id: 'infrastructure', label: 'Enterprise Altyapı', icon: Server, badgeColor: 'text-emerald-400' },
+        { id: 'conv_logs', label: 'Sohbet Günlükleri & AI Beta', icon: MessageSquare, badgeColor: 'text-amber-400' },
+      ]
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-100 text-[#111111] font-sans flex flex-col">
+    <div className="min-h-screen bg-slate-100 text-[#111111] font-sans flex flex-col md:flex-row">
+      {/* Mandatory Onboarding Wizard Modal if not completed */}
+      {!systemConfig.isOnboardingCompleted && (
+        <FirstTimeSetupModal 
+          sessionToken={sessionToken} 
+          onCompleted={() => {
+            updateSystemConfig({ isOnboardingCompleted: true });
+          }} 
+        />
+      )}
+
       {/* Fair Modal Preview Overlay */}
       <FairModal
         isOpen={isPreviewFairOpen}
@@ -1087,393 +1248,332 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
         className="hidden"
       />
 
-      {/* Admin Top Header */}
-      <header className="bg-[#082C6C] text-white py-4 px-6 shadow-md flex flex-wrap items-center justify-between gap-4 sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-amber-300">
-            <ImageIcon className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold font-serif-luxury tracking-wide flex items-center gap-2 flex-wrap">
-              <span>İrem Comfort Admin</span>
-              <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-extrabold px-2 py-0.5 rounded border border-emerald-400/30 uppercase tracking-widest">
-                Yetkili Oturumu
-              </span>
-              {isDirty && (
-                <span className="bg-amber-500/30 text-amber-300 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-amber-400/50 uppercase tracking-wider flex items-center gap-1.5 animate-pulse shadow-sm">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                  Kaydedilmemiş Değişiklikler
-                </span>
-              )}
-            </h1>
-            <p className="text-xs text-white/70 font-light">
-              Görsel, Ürün, Fotoğraf ve Fuar Yönetim Merkezi
-            </p>
-          </div>
+      {/* Mobile Top Navigation Header */}
+      <div className="md:hidden bg-[#062050] text-white p-3.5 flex items-center justify-between sticky top-0 z-50 border-b border-white/10 shadow-md">
+        <div className="flex items-center gap-2.5">
+          <button 
+            onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white cursor-pointer"
+          >
+            {isMobileSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+          <span className="font-serif font-bold text-sm text-white truncate">İrem Comfort Admin</span>
         </div>
+        <div className="flex items-center gap-1.5">
+          {notifPermission === 'granted' ? (
+            <button
+              onClick={handleTestNotification}
+              className="p-2 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-xs font-bold cursor-pointer flex items-center gap-1"
+              title="Test Bildirimi Gönder"
+            >
+              <BellRing className="w-4 h-4 text-emerald-400" />
+            </button>
+          ) : (
+            <button
+              onClick={handleEnableNotifications}
+              className="px-2 py-1.5 rounded-lg bg-amber-400 text-slate-950 text-xs font-bold cursor-pointer flex items-center gap-1"
+              title="Arka Plan Bildirim İzni Ver"
+            >
+              <BellOff className="w-3.5 h-3.5" />
+              <span>İzin Ver</span>
+            </button>
+          )}
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={handleInstallPwa}
+            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-amber-300 text-xs font-bold cursor-pointer"
+            title="Mobil PWA Uygulamasını Yükle"
+          >
+            <Smartphone className="w-4 h-4" />
+          </button>
+
+          {isDirty && (
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" title="Kaydedilmemiş değişiklikler var" />
+          )}
           <button
             onClick={() => syncAllMediaToGithub(false)}
             disabled={isSyncingGithub}
-            className="px-3.5 py-2 rounded-xl bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 hover:bg-amber-300 transition-all cursor-pointer shadow-sm disabled:opacity-50"
-            title="Sistemdeki tüm görselleri ve ayarları GitHub deposuna aktarır"
+            className="p-2 bg-amber-400 text-slate-950 font-bold rounded-lg text-xs cursor-pointer"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSyncingGithub ? 'animate-spin' : ''}`} />
-            <span>{isSyncingGithub ? 'GitHub\'a Aktarılıyor...' : 'GitHub\'a Yükle'}</span>
-          </button>
-
-          <button
-            onClick={() => handleSiteExit(onReturnToSite)}
-            className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span>Siteyi Canlı İncele</span>
-          </button>
-
-          <button
-            onClick={() => handleSiteExit(handleLogout)}
-            className="px-3.5 py-2 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Çıkış Yap</span>
+            <RefreshCw className={`w-4 h-4 ${isSyncingGithub ? 'animate-spin' : ''}`} />
           </button>
         </div>
-      </header>
+      </div>
 
-      {/* Toast Notification */}
-      {successToast && (
-        <div className="bg-emerald-600 text-white text-xs font-semibold px-4 py-2.5 flex items-center gap-2 justify-center shadow-md animate-fade-in">
-          <Check className="w-4 h-4" />
-          <span>{successToast}</span>
-        </div>
+      {/* Mobile Sidebar Backdrop Overlay */}
+      {isMobileSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-xs"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
       )}
 
-      {/* Main Container */}
-      <main className="max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex-1 space-y-6">
-        
-        {/* Navigation Tabs */}
-        <div className="bg-white rounded-2xl p-2 shadow-sm border border-slate-200 flex flex-wrap items-center gap-2">
-          
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'overview'
-                ? 'bg-[#082C6C] text-white shadow font-bold'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Activity className="w-4 h-4 text-emerald-400" />
-            <span>⚡ Control Center (Dashboard)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('page_builder')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'page_builder'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Layout className="w-4 h-4 text-amber-400" />
-            <span>🧩 Sayfa Oluşturucu (CMS 2.0)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('fair')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'fair'
-                ? 'bg-amber-500 text-slate-900 font-bold shadow-md'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Calendar className="w-4 h-4" />
-            <span>🎪 Fuar & Etkinlik Modülü</span>
-            {fairConfig.enabled && (
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+      {/* Left Collapsible Navigation Sidebar */}
+      <aside 
+        className={`
+          fixed md:sticky top-0 z-40 h-screen bg-[#062050] text-white flex flex-col transition-all duration-300 border-r border-white/10 shadow-xl shrink-0
+          ${isMobileSidebarOpen ? 'translate-x-0 w-72' : '-translate-x-full md:translate-x-0'}
+          ${isSidebarCollapsed ? 'md:w-20' : 'md:w-72'}
+        `}
+      >
+        {/* Sidebar Header Brand */}
+        <div className="p-4 border-b border-white/10 flex items-center justify-between gap-2 shrink-0">
+          <div className={`flex items-center gap-3 overflow-hidden ${isSidebarCollapsed ? 'justify-center w-full' : ''}`}>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#D4AF37] to-amber-200 p-0.5 shrink-0 shadow-lg flex items-center justify-center">
+              <div className="w-full h-full bg-[#062050] rounded-[10px] flex items-center justify-center text-[#D4AF37]">
+                <ImageIcon className="w-4 h-4" />
+              </div>
+            </div>
+            {!isSidebarCollapsed && (
+              <div className="truncate">
+                <h1 className="text-sm font-serif font-bold text-white leading-tight truncate">İrem Comfort</h1>
+                <p className="text-[10px] text-amber-300 font-medium">Yönetim Paneli</p>
+              </div>
             )}
-          </button>
+          </div>
 
           <button
-            onClick={() => setActiveTab('appearance')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'appearance'
-                ? 'bg-amber-500 text-slate-900 font-bold shadow-md'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="hidden md:flex p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+            title={isSidebarCollapsed ? "Menüyü Genişlet" : "Menüyü Daralt"}
           >
-            <Palette className="w-4 h-4 text-purple-700" />
-            <span>🎨 Görünüm, Tema & Sıralama</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('general')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'general'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Sliders className="w-4 h-4" />
-            <span>Ana Sayfa & Hakkımızda</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('collection')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'collection'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Layers className="w-4 h-4" />
-            <span>Koleksiyon Ürünleri ({COLLECTION_ITEMS.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('craftsmanship')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'craftsmanship'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>Atölye & Zanaat</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('presets')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'presets'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Eye className="w-4 h-4" />
-            <span>Hazır Görseller</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('faq')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'faq'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <HelpCircle className="w-4 h-4 text-amber-400" />
-            <span>Sıkça Sorulan Sorular (SSS)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('contact')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'contact'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-
-            <Phone className="w-4 h-4 text-emerald-400" />
-            <span>İletişim & Duyuru Bandı</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('leads')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'leads'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <MessageSquare className="w-4 h-4 text-emerald-500" />
-            <span>Gelen Müşteri Talepleri ({contactLeads.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('newsletter')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'newsletter'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Users className="w-4 h-4 text-blue-400" />
-            <span>📧 Haber Bülteni & Şablonlar ({subscribers.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('email')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'email'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Mail className="w-4 h-4 text-amber-500" />
-            <span>E-Posta & SMTP Ayarları</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('media')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'media'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <FileImage className="w-4 h-4 text-amber-400" />
-            <span>🖼️ Medya Kütüphanesi</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('deployment_exp')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'deployment_exp'
-                ? 'bg-amber-500 text-slate-950 font-bold shadow-md'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Video className="w-4 h-4 text-indigo-600" />
-            <span>🎬 Deployment Deneyimi (Video)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('seo')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'seo'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Globe className="w-4 h-4 text-emerald-400" />
-            <span>🌐 SEO, Robots & Sitemap</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('crm')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'crm'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Users className="w-4 h-4 text-emerald-400" />
-            <span>👥 Müşteriler & CRM Portalı</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'analytics'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <BarChart3 className="w-4 h-4 text-amber-400" />
-            <span>📊 Analiz & Performans</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('security')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'security'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <ShieldCheck className="w-4 h-4 text-purple-400" />
-            <span>🛡️ Güvenlik Merkezi</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('ai_arch')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'ai_arch'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Sparkles className="w-4 h-4 text-indigo-400" />
-            <span>🤖 AI Altyapısı (Vol 2)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('live_monitor')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'live_monitor'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Activity className="w-4 h-4 text-emerald-400" />
-            <span>⚡ Canlı Monitör & Destek (Vol 2D)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('ai_training')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'ai_training'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <GraduationCap className="w-4 h-4 text-purple-400" />
-            <span>🎓 AI Eğitim Merkezi (Vol 5)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('infrastructure')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'infrastructure'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Server className="w-4 h-4 text-emerald-400" />
-            <span>🏗️ Enterprise Altyapı (Vol 6)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('conv_logs')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'conv_logs'
-                ? 'bg-[#082C6C] text-white shadow font-bold ring-2 ring-amber-400'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <MessageSquare className="w-4 h-4 text-amber-400" />
-            <span>💬 Sohbet Günlükleri & AI Beta (Vol 6.1)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('backup')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'backup'
-                ? 'bg-[#082C6C] text-white shadow'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Database className="w-4 h-4 text-indigo-400" />
-            <span>💾 Yedekleme & Geri Yükleme</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('system')}
-            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'system'
-                ? 'bg-purple-700 text-white shadow ring-2 ring-purple-300'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Server className="w-4 h-4 text-purple-400" />
-            <span>🚀 Deploy & GitHub Yayınlama</span>
-            {systemConfig.isDeploying && (
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
-            )}
+            {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
         </div>
+
+        {/* Sidebar Search Bar */}
+        {!isSidebarCollapsed && (
+          <div className="p-3 border-b border-white/10 shrink-0">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={sidebarSearch}
+                onChange={(e) => setSidebarSearch(e.target.value)}
+                placeholder="Menüde ara..."
+                className="w-full bg-white/10 border border-white/10 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#D4AF37] transition-all"
+              />
+              {sidebarSearch && (
+                <button 
+                  onClick={() => setSidebarSearch('')} 
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs cursor-pointer"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Navigation Menu Groups (Scrollable) */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-4 scrollbar-thin scrollbar-thumb-white/20">
+          {SIDEBAR_NAV_GROUPS.map((group, groupIdx) => {
+            const filteredItems = sidebarSearch
+              ? group.items.filter(item => item.label.toLowerCase().includes(sidebarSearch.toLowerCase()))
+              : group.items;
+
+            if (filteredItems.length === 0) return null;
+
+            return (
+              <div key={groupIdx} className="space-y-1">
+                {!isSidebarCollapsed && (
+                  <h3 className="px-3 text-[10px] font-extrabold tracking-wider uppercase text-amber-300/80 mb-1">
+                    {group.groupTitle}
+                  </h3>
+                )}
+
+                <div className="space-y-0.5">
+                  {filteredItems.map((item) => {
+                    const IconComponent = item.icon;
+                    const isActive = activeTab === item.id;
+
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setActiveTab(item.id as any);
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        title={isSidebarCollapsed ? item.label : undefined}
+                        className={`
+                          w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer relative group
+                          ${isActive 
+                            ? 'bg-gradient-to-r from-[#D4AF37] to-amber-300 text-[#062050] font-extrabold shadow-lg scale-[1.01]' 
+                            : 'text-slate-200 hover:bg-white/10 hover:text-white'
+                          }
+                          ${isSidebarCollapsed ? 'justify-center px-2' : ''}
+                        `}
+                      >
+                        <IconComponent className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#062050]' : (item.badgeColor || 'text-slate-300')}`} />
+
+                        {!isSidebarCollapsed && (
+                          <span className="truncate flex-1 text-left">{item.label}</span>
+                        )}
+
+                        {item.hasPulse && fairConfig.enabled && (
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                        )}
+
+                        {item.countBadge !== undefined && item.countBadge > 0 && (
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            isActive ? 'bg-[#062050] text-[#D4AF37]' : 'bg-amber-400/20 text-amber-300 border border-amber-400/30'
+                          }`}>
+                            {item.countBadge}
+                          </span>
+                        )}
+
+                        {item.isDeployingBadge && (
+                          <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Sidebar Footer */}
+        <div className="p-3 border-t border-white/10 bg-black/20 shrink-0">
+          {!isSidebarCollapsed ? (
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <div className="w-8 h-8 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 text-xs font-bold">
+                  Y
+                </div>
+                <div className="truncate">
+                  <span className="text-xs font-bold text-white block truncate">Yönetici</span>
+                  <span className="text-[10px] text-emerald-400 block font-mono">Aktif Oturum</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => handleSiteExit(handleLogout)}
+                className="p-2 rounded-lg bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white transition-all cursor-pointer"
+                title="Çıkış Yap"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => handleSiteExit(handleLogout)}
+              className="w-full p-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white transition-all flex items-center justify-center cursor-pointer"
+              title="Çıkış Yap"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </aside>
+
+      {/* Main Right Area */}
+      <div className="flex-1 min-w-0 flex flex-col">
+
+        {/* Top Desktop Bar */}
+        <header className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-30 shadow-xs flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className="hidden md:flex p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+              title="Menüyü Aç/Kapat"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">İrem Comfort Admin</span>
+                <span className="text-slate-300">•</span>
+                <span className="text-xs font-bold text-[#082C6C] bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100">
+                  {getActiveTabTitle(activeTab)}
+                </span>
+              </div>
+              <h2 className="text-lg font-bold text-slate-900 font-serif mt-0.5">
+                {getActiveTabTitle(activeTab)}
+              </h2>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* PWA & Notification Controls */}
+            {notifPermission === 'granted' ? (
+              <button
+                onClick={handleTestNotification}
+                className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Arka plan bildirim testi ve sesli uyarı çalıştır"
+              >
+                <BellRing className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                <span>Bildirimler Aktif (Test)</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleEnableNotifications}
+                className="px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm animate-pulse"
+                title="Canlı destek talepleri için arka plan bildirim izni ver"
+              >
+                <BellOff className="w-3.5 h-3.5" />
+                <span>🔔 Bildirim İzni Ver</span>
+              </button>
+            )}
+
+            <button
+              onClick={handleInstallPwa}
+              className="px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Uygulamayı mobil cihazınıza veya bilgisayara PWA olarak kurun"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-indigo-600" />
+              <span>PWA Yükle</span>
+            </button>
+
+            {isDirty && (
+              <div className="bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl text-amber-800 text-xs font-bold flex items-center gap-2 animate-pulse">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                <span>Kaydedilmemiş Değişiklikler Var</span>
+              </div>
+            )}
+
+            <button
+              onClick={() => syncAllMediaToGithub(false)}
+              disabled={isSyncingGithub}
+              className="px-4 py-2 rounded-xl bg-[#062050] hover:bg-[#0A2D6F] text-amber-300 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-sm disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncingGithub ? 'animate-spin' : ''}`} />
+              <span>{isSyncingGithub ? 'GitHub\'a Aktarılıyor...' : 'GitHub\'a Yükle'}</span>
+            </button>
+
+            <button
+              onClick={() => handleSiteExit(onReturnToSite)}
+              className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border border-slate-200"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Siteyi İncele</span>
+            </button>
+
+            <button
+              onClick={() => handleSiteExit(handleLogout)}
+              className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border border-rose-200"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Çıkış</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Toast Notification */}
+        {successToast && (
+          <div className="bg-emerald-600 text-white text-xs font-semibold px-4 py-2.5 flex items-center gap-2 justify-center shadow-md animate-fade-in">
+            <Check className="w-4 h-4" />
+            <span>{successToast}</span>
+          </div>
+        )}
+
+        {/* Main Content Body */}
+        <main className="p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 flex-1 space-y-6 max-w-7xl w-full mx-auto">
+        
+
 
         {/* Top Warning Banner if Deploying is Active */}
         {systemConfig.isDeploying && (
@@ -1901,8 +2001,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 items-center">
-                <div className="sm:col-span-1 h-44 rounded-xl overflow-hidden border border-slate-200 relative group bg-slate-50">
-                  <img src={images.heroImage} alt="Hero Preview" className="w-full h-full object-cover" />
+                <div className="sm:col-span-1 h-44 rounded-xl overflow-hidden border border-slate-200 relative group bg-slate-50 flex items-center justify-center">
+                  {images.heroImage ? (
+                    <img src={images.heroImage} alt="Hero Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-medium p-2 text-center">Hero Görseli Yok</div>
+                  )}
                 </div>
 
                 <div className="sm:col-span-2 space-y-3">
@@ -1948,8 +2052,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 items-center">
-                <div className="sm:col-span-1 h-44 rounded-xl overflow-hidden border border-slate-200 relative group bg-slate-50">
-                  <img src={images.aboutImage} alt="About Preview" className="w-full h-full object-cover" />
+                <div className="sm:col-span-1 h-44 rounded-xl overflow-hidden border border-slate-200 relative group bg-slate-50 flex items-center justify-center">
+                  {images.aboutImage ? (
+                    <img src={images.aboutImage} alt="About Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-medium p-2 text-center">Atölye Görseli Yok</div>
+                  )}
                 </div>
 
                 <div className="sm:col-span-2 space-y-3">
@@ -2089,13 +2197,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-start">
                       {/* Image Preview & Upload Button */}
                       <div className="sm:col-span-4 space-y-2">
-                        <div className="h-36 rounded-xl overflow-hidden border border-slate-300 relative bg-slate-900 group shadow-sm">
-                          <img
-                            src={slide.image}
-                            alt={slide.alt || slide.title}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-2.5">
+                        <div className="h-36 rounded-xl overflow-hidden border border-slate-300 relative bg-slate-900 group shadow-sm flex items-center justify-center">
+                          {slide.image ? (
+                            <img
+                              src={slide.image}
+                              alt={slide.alt || slide.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="text-slate-400 text-xs font-medium p-2 text-center">Görsel Yok</div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-2.5 pointer-events-none">
                             <span className="text-[10px] font-semibold text-white/90 truncate">
                               {slide.title}
                             </span>
@@ -2554,8 +2666,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                             <span className="text-[10px] font-mono text-amber-900 bg-amber-100 px-2 py-0.5 rounded font-bold">1000x1000 px</span>
                           </div>
                           <div className="flex gap-4 items-center">
-                            <div className="w-24 h-24 rounded-lg overflow-hidden border border-slate-300 shrink-0 bg-white shadow-xs">
-                              <img src={currentImgs.image} alt={item.name} className="w-full h-full object-cover" />
+                            <div className="w-24 h-24 rounded-lg overflow-hidden border border-slate-300 shrink-0 bg-slate-100 flex items-center justify-center shadow-xs">
+                              {currentImgs.image ? (
+                                <img src={currentImgs.image} alt={item.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="text-[10px] text-slate-400 font-medium text-center p-1">Görsel Yok</span>
+                              )}
                             </div>
                             <div className="flex-1 space-y-2">
                               <input
@@ -2584,8 +2700,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                             <span className="text-[10px] font-mono text-amber-900 bg-amber-100 px-2 py-0.5 rounded font-bold">1000x1000 px</span>
                           </div>
                           <div className="flex gap-4 items-center">
-                            <div className="w-24 h-24 rounded-lg overflow-hidden border border-slate-300 shrink-0 bg-white shadow-xs">
-                              <img src={currentImgs.secondaryImage || currentImgs.image} alt={item.name} className="w-full h-full object-cover" />
+                            <div className="w-24 h-24 rounded-lg overflow-hidden border border-slate-300 shrink-0 bg-slate-100 flex items-center justify-center shadow-xs">
+                              {(currentImgs.secondaryImage || currentImgs.image) ? (
+                                <img src={currentImgs.secondaryImage || currentImgs.image} alt={item.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="text-[10px] text-slate-400 font-medium text-center p-1">Görsel Yok</span>
+                              )}
                             </div>
                             <div className="flex-1 space-y-2">
                               <input
@@ -2678,8 +2798,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                     </div>
 
                     <div className="flex gap-4 items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
-                      <div className="w-24 h-24 rounded-lg overflow-hidden border border-slate-300 shrink-0 bg-white">
-                        <img src={currentImg} alt={step.title} className="w-full h-full object-cover" />
+                      <div className="w-24 h-24 rounded-lg overflow-hidden border border-slate-300 shrink-0 bg-slate-100 flex items-center justify-center">
+                        {currentImg ? (
+                          <img src={currentImg} alt={step.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-[10px] text-slate-400 font-medium text-center p-1">Görsel Yok</span>
+                        )}
                       </div>
 
                       <div className="flex-1 space-y-2">
@@ -4349,6 +4473,59 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
         </div>
 
       </main>
+      </div>
+
+      {/* Mobile Bottom Navigation Bar (PWA Mobile Experience) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#062050] border-t border-white/10 z-50 px-2 py-1.5 flex items-center justify-around text-white shadow-2xl backdrop-blur-md">
+        <button
+          onClick={() => setActiveTab('overview')}
+          className={`flex flex-col items-center gap-1 p-1.5 rounded-xl text-[10px] font-bold cursor-pointer transition-colors ${
+            activeTab === 'overview' ? 'text-[#D4AF37] bg-white/10' : 'text-slate-300'
+          }`}
+        >
+          <Home className="w-4 h-4" />
+          <span>Özet</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('live_monitor')}
+          className={`flex flex-col items-center gap-1 p-1.5 rounded-xl text-[10px] font-bold cursor-pointer transition-colors relative ${
+            activeTab === 'live_monitor' ? 'text-[#D4AF37] bg-white/10' : 'text-slate-300'
+          }`}
+        >
+          <Activity className="w-4 h-4 text-emerald-400" />
+          <span>Canlı Destek</span>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 absolute top-1 right-2 animate-ping" />
+        </button>
+
+        <button
+          onClick={() => setActiveTab('crm')}
+          className={`flex flex-col items-center gap-1 p-1.5 rounded-xl text-[10px] font-bold cursor-pointer transition-colors ${
+            activeTab === 'crm' ? 'text-[#D4AF37] bg-white/10' : 'text-slate-300'
+          }`}
+        >
+          <Users className="w-4 h-4 text-amber-300" />
+          <span>Toptan CRM</span>
+        </button>
+
+        <button
+          onClick={notifPermission === 'granted' ? handleTestNotification : handleEnableNotifications}
+          className={`flex flex-col items-center gap-1 p-1.5 rounded-xl text-[10px] font-bold cursor-pointer transition-colors ${
+            notifPermission === 'granted' ? 'text-emerald-400 bg-emerald-950/60' : 'text-amber-300 bg-amber-500/20'
+          }`}
+        >
+          <BellRing className="w-4 h-4" />
+          <span>{notifPermission === 'granted' ? 'Test Bildirim' : 'İzin Ver'}</span>
+        </button>
+
+        <button
+          onClick={() => setIsMobileSidebarOpen(true)}
+          className="flex flex-col items-center gap-1 p-1.5 rounded-xl text-[10px] font-bold text-slate-300 cursor-pointer"
+        >
+          <Menu className="w-4 h-4" />
+          <span>Tüm Menü</span>
+        </button>
+      </div>
 
       {/* Image Selection Modal (System Media & Computer Files) */}
       <ImageSelectModal

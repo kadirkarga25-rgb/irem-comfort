@@ -244,11 +244,17 @@ export const FloatingAssistant: React.FC = () => {
                         {msg.smartProductCards.map((card, idx) => (
                           <div key={idx} className="p-3 bg-white rounded-xl border border-slate-200 shadow-sm space-y-2 hover:border-[#082C6C]/40 transition-colors">
                             <div className="flex items-start gap-2.5">
-                              <img
-                                src={card.product.image}
-                                alt={card.product.name}
-                                className="w-14 h-14 object-cover rounded-lg border border-slate-100 shrink-0"
-                              />
+                              {card.product.image ? (
+                                <img
+                                  src={card.product.image}
+                                  alt={card.product.name}
+                                  className="w-14 h-14 object-cover rounded-lg border border-slate-100 shrink-0"
+                                />
+                              ) : (
+                                <div className="w-14 h-14 bg-[#062050] text-[#D4AF37] font-bold text-[9px] rounded-lg border border-slate-200 shrink-0 flex items-center justify-center p-1 text-center">
+                                  İrem Comfort
+                                </div>
+                              )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between gap-1 mb-1">
                                   <span className="font-bold text-[12px] text-slate-900 truncate block">{card.product.name}</span>
@@ -326,11 +332,17 @@ export const FloatingAssistant: React.FC = () => {
                     {!msg.smartProductCards && msg.matchedProduct && (
                       <div className="mt-2.5 p-2.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5 text-slate-900">
                         <div className="flex items-center gap-2">
-                          <img
-                            src={msg.matchedProduct.image}
-                            alt={msg.matchedProduct.name}
-                            className="w-10 h-10 object-cover rounded-lg border border-slate-200"
-                          />
+                          {msg.matchedProduct.image ? (
+                            <img
+                              src={msg.matchedProduct.image}
+                              alt={msg.matchedProduct.name}
+                              className="w-10 h-10 object-cover rounded-lg border border-slate-200"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 bg-[#062050] text-[#D4AF37] font-bold text-[8px] rounded-lg border border-slate-200 shrink-0 flex items-center justify-center p-1 text-center">
+                              İrem
+                            </div>
+                          )}
                           <div>
                             <span className="font-bold text-[11px] block">{msg.matchedProduct.name}</span>
                             <span className="text-[10px] text-slate-500 block">{msg.matchedProduct.category}</span>

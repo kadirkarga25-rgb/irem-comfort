@@ -8,52 +8,11 @@ import {
 } from 'lucide-react';
 
 export const CrmAdminTab: React.FC = () => {
-  const [customers, setCustomers] = useState<CustomerProfile[]>(() => [
-    {
-      id: 'CUST-101',
-      fullName: 'Ahmet Yılmaz',
-      companyName: 'Ege Moda Ayakkabı Mağazası',
-      email: 'ahmet@egemoda.com',
-      phone: '0532 111 22 33',
-      city: 'İzmir',
-      customerType: 'wholesale',
-      status: 'active',
-      totalOrdersOrInquiries: 4,
-      tags: ['Toptan Bayi', 'Ege Bölgesi', 'Sürekli Müşteri'],
-      notes: [
-        { id: 'n1', createdAt: '2026-08-01T10:30:00Z', author: 'Admin', text: '36-40 numara arası standart 5 seri bayan terlik siparişi verdi.' }
-      ],
-      inquiriesHistory: [
-        { id: 'ih1', date: '2026-08-01', type: 'Toptan Sipariş', message: 'Yaz sezonu için 5 seri çift tokalı taba modeli istiyoruz.', channel: 'whatsapp' }
-      ],
-      createdAt: '2026-05-10T14:00:00Z',
-      lastContactedAt: '2026-08-01T10:30:00Z'
-    },
-    {
-      id: 'CUST-102',
-      fullName: 'Fatma Şahin',
-      companyName: 'Sağlık Medikal & Sabo Klas',
-      email: 'fatma@saboklas.com',
-      phone: '0544 987 65 43',
-      city: 'Manisa',
-      customerType: 'wholesale',
-      status: 'prospect',
-      totalOrdersOrInquiries: 2,
-      tags: ['Ortopedik Sabo', 'Hastane Tedarik'],
-      notes: [
-        { id: 'n2', createdAt: '2026-08-03T11:00:00Z', author: 'Admin', text: 'Beyaz sabo terlik modelleri için numune talep etti.' }
-      ],
-      inquiriesHistory: [
-        { id: 'ih2', date: '2026-08-03', type: 'Numune Talebi', message: 'Sabo terlik beyaz renk numunelerini Manisa içine ulaştırabilir misiniz?', channel: 'website' }
-      ],
-      createdAt: '2026-07-20T09:15:00Z',
-      lastContactedAt: '2026-08-03T11:00:00Z'
-    }
-  ]);
+  const [customers, setCustomers] = useState<CustomerProfile[]>([]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerProfile | null>(customers[0]);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerProfile | null>(null);
   const [newNoteText, setNewNoteText] = useState('');
   const [newTagInput, setNewTagInput] = useState('');
 
@@ -87,11 +46,10 @@ export const CrmAdminTab: React.FC = () => {
             };
           });
 
-          setCustomers(prev => {
-            const existingIds = new Set(prev.map(c => c.id));
-            const fresh = convertedLeads.filter(c => !existingIds.has(c.id));
-            return [...prev, ...fresh];
-          });
+          setCustomers(convertedLeads);
+          if (convertedLeads.length > 0) {
+            setSelectedCustomer(convertedLeads[0]);
+          }
         }
       })
       .catch(() => {});

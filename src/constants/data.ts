@@ -35,8 +35,8 @@ export const COLLECTION_ITEMS: CollectionItem[] = [
     category: 'Bayan Comfort Terlik',
     tagline: 'Gün boyu yumuşak adımlar için %100 hakiki deri saya ve esnek taban',
     description: 'İrem Comfort un en çok tercih edilen klasiği. Ayarlanabilir metal kemer tokaları sayesinde her ayak tipine mükemmel uyum sağlar. Hakiki deri iç ve dış kaplaması terlemeyi önler, anatomik taban desteğiyle gün boyu konfor sunar.',
-    image: 'https://images.unsplash.com/photo-1603808033176-9d134e6f2c74?auto=format&fit=crop&q=80&w=1200',
-    secondaryImage: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=1200',
+    image: '',
+    secondaryImage: '',
     materials: ['%100 Hakiki Yumuşak Dana Derisi', 'Anatomik Poliüretan Taban', 'Hakiki Deri İç Astar'],
     dimensions: 'Numara Aralığı: 36 - 41 | Taban Yüksekliği: 3.5 cm',
     leatherGrades: ['Yumuşak Hakiki Nappa', 'Anilin Hakiki Deri'],
@@ -61,8 +61,8 @@ export const COLLECTION_ITEMS: CollectionItem[] = [
     category: 'Sabo & Ortopedik Terlik',
     tagline: 'Sağlık çalışanları ve ayakta çalışan kadınlar için özel konfor',
     description: 'Uzun saatler ayakta kalan kadınlar için özel olarak geliştirilmiş ortopedik sabo modeli. Lamine hakiki deri saya üzerindeki özel hava delikleri sirkülasyon sağlar. Özel pedli dolgulu tabanı topuk ve bel yükünü hafifletir.',
-    image: 'https://images.unsplash.com/photo-1560343090-f0409e92791a?auto=format&fit=crop&q=80&w=1200',
-    secondaryImage: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&q=80&w=1200',
+    image: '',
+    secondaryImage: '',
     materials: ['Perfore Hakiki Deri', 'Ortopedik Jel Pedli Taban', 'Kaymaz Taban Kaplaması'],
     dimensions: 'Numara Aralığı: 36 - 41 | Topuk Yüksekliği: 4.5 cm',
     leatherGrades: ['Perfore Hava Delikli Deri'],
@@ -86,8 +86,8 @@ export const COLLECTION_ITEMS: CollectionItem[] = [
     category: 'Bayan Comfort Sandalet',
     tagline: 'Yazın sıcak günlerinde hem şıklık hem anatomik konfor',
     description: 'Yumuşacık çapraz deri bantları ve bilekten cırtlı/tokalı kilit mekanizması ile ayağı güvenle sarar. Ayak tabanının doğal yapısını destekleyen hafif esnek tabanı sayesinde uzun yürüyüşlerde yorgunluk hissettirmez.',
-    image: 'https://images.unsplash.com/photo-1535043934128-cf0b28d52f95?auto=format&fit=crop&q=80&w=1200',
-    secondaryImage: 'https://images.unsplash.com/photo-1603808033176-9d134e6f2c74?auto=format&fit=crop&q=80&w=1200',
+    image: '',
+    secondaryImage: '',
     materials: ['Süper Yumuşak Dana Derisi', 'Anatomik Esnek Taban', 'Deri Kaplı Soft Tabanlık'],
     dimensions: 'Numara Aralığı: 36 - 40 | Taban Yüksekliği: 3 cm',
     leatherGrades: ['Nappa Yumuşak Deri'],
@@ -111,8 +111,8 @@ export const COLLECTION_ITEMS: CollectionItem[] = [
     category: 'Mantar Taban Terlik',
     tagline: 'Doğal mantar esnekliği ve süet dokusunun eşsiz uyumu',
     description: 'Doğal mantar ve kauçuk karışımı özel tabanlık, giyildikçe ayağınızın formunu alarak kişiselleştirilmiş bir konfor sunar. Üst saya hakiki deriden üretilmiş olup iç tabanlığı hakiki süet deri ile kaplanmıştır.',
-    image: 'https://images.unsplash.com/photo-1608256246200-53e635b5b65f?auto=format&fit=crop&q=80&w=1200',
-    secondaryImage: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=1200',
+    image: '',
+    secondaryImage: '',
     materials: ['Hakiki Deri Saya', 'Doğal Mantar-Lateks Taban', 'Hakiki Süet İç Astar'],
     dimensions: 'Numara Aralığı: 36 - 41 | Taban Yüksekliği: 2.5 cm',
     leatherGrades: ['Hakiki Deri & Süet Astar'],
@@ -136,8 +136,8 @@ export const COLLECTION_ITEMS: CollectionItem[] = [
     category: 'Bayan Comfort Sandalet',
     tagline: 'Yükseklik ve zarafet arayanlar için dengeli dolgu taban',
     description: 'Ayağı yormayan ideal eğime sahip dolgu topuklu özel tasarım. Ön bantlarındaki yumuşatılmış deri kaplama parmak sürtünmelerini engeller. Hem günlük elbiselerle hem şık kombinlerle rahatça kullanılabilir.',
-    image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=1200',
-    secondaryImage: 'https://images.unsplash.com/photo-1535043934128-cf0b28d52f95?auto=format&fit=crop&q=80&w=1200',
+    image: '',
+    secondaryImage: '',
     materials: ['Hakiki Deri Saya', 'Hafif Poliüretan Dolgu Taban', 'Soft Pedli Tabanlık'],
     dimensions: 'Numara Aralığı: 36 - 40 | Topuk Yüksekliği: 6 cm (Ön Platform: 2 cm)',
     leatherGrades: ['Nappa & Anilin Deri'],
@@ -160,8 +160,8 @@ export const COLLECTION_ITEMS: CollectionItem[] = [
     category: 'Bayan Comfort Terlik',
     tagline: 'Ödemli veya taraklı ayaklar için kolayca genişleyen hakiki deri',
     description: 'Ayağında tarak, ödem veya hassasiyet bulunan kadınlar için özel olarak tasarlanmıştır. Geniş cırt bantları sayesinde ayağın şişliğine göre milimetrik olarak ayarlanabilir. İçi ekstra yumuşak jel dolguludur.',
-    image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&q=80&w=1200',
-    secondaryImage: 'https://images.unsplash.com/photo-1560343090-f0409e92791a?auto=format&fit=crop&q=80&w=1200',
+    image: '',
+    secondaryImage: '',
     materials: ['Geniş Esnek Hakiki Deri', 'Jel Dolgulu Anatomik Taban', 'Cırt Cırtlı Bant'],
     dimensions: 'Numara Aralığı: 36 - 41 | Taban Yüksekliği: 3.5 cm',
     leatherGrades: ['Yumuşak Hakiki Deri'],
@@ -191,7 +191,7 @@ export const CRAFTSMANSHIP_STEPS: CraftsmanshipStep[] = [
       'Ayak yapısına hızla esneyip uyum sağlayan yumuşak doku',
       'Yırtılma ve dikiş mukavemet testlerinden geçmiş hakiki deriler'
     ],
-    image: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&q=80&w=1000',
+    image: '',
     iconName: 'ShieldCheck'
   },
   {
@@ -205,7 +205,7 @@ export const CRAFTSMANSHIP_STEPS: CraftsmanshipStep[] = [
       'Ayarlanabilir kemer ve tokalı montaj detayları',
       'Her numaraya özel anatomik saya kalıp uyumu'
     ],
-    image: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=1000',
+    image: '',
     iconName: 'Sparkles'
   },
   {
@@ -219,7 +219,7 @@ export const CRAFTSMANSHIP_STEPS: CraftsmanshipStep[] = [
       'Darbe ve sarsıntıları emen esnek poliüretan alt taban',
       'Kaymaz alt taban deseni'
     ],
-    image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&q=80&w=1000',
+    image: '',
     iconName: 'Cpu'
   },
   {
@@ -233,7 +233,7 @@ export const CRAFTSMANSHIP_STEPS: CraftsmanshipStep[] = [
       'Doğal deri bakım spreyi ile parlaklık verme',
       '%100 Yerli İmalat ve Üretici Güvencesi'
     ],
-    image: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&q=80&w=1000',
+    image: '',
     iconName: 'Award'
   }
 ];

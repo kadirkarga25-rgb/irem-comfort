@@ -92,6 +92,7 @@ export interface SystemConfig {
   fadeDuration?: number; // milliseconds
   minLoadingTime?: number; // seconds
   deploymentRevision?: string;
+  isOnboardingCompleted?: boolean;
 }
 
 export interface SeoConfig {

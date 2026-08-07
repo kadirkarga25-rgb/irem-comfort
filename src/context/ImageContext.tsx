@@ -60,8 +60,8 @@ export interface AppImages {
   collectionImages: Record<string, { image: string; secondaryImage?: string }>; // item id -> images
 }
 
-const DEFAULT_HERO_IMAGE = 'https://images.unsplash.com/photo-1603808033176-9d134e6f2c74?auto=format&fit=crop&q=80&w=1200';
-const DEFAULT_ABOUT_IMAGE = 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&q=80&w=1200';
+const DEFAULT_HERO_IMAGE = '';
+const DEFAULT_ABOUT_IMAGE = '';
 
 export const DEFAULT_HERO_CONFIG: HeroConfig = {
   badgeText: 'Kuruluş 1993 • Manisa Ayakkabıcılar Sitesi İmalatı',
@@ -81,7 +81,7 @@ export const DEFAULT_FAIR_CONFIG: FairConfig = {
   startDate: '2026-08-20',
   endDate: '2026-08-23',
   description: 'İrem Comfort olarak 2026-2027 Sezonu Erkek & Kadın Hakiki Deri Terlik, Sandalet ve Ortopedik Comfort koleksiyonumuzu sergiliyoruz. Tüm iş ortaklarımızı standımıza bekleriz.',
-  posterUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&q=80&w=1200',
+  posterUrl: '',
   qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://iremcomfort.com/fuar-stanti',
   badgeText: 'RESMİ FUAR DAVETİ',
   whatsappContact: '905330297125'
@@ -90,7 +90,7 @@ export const DEFAULT_FAIR_CONFIG: FairConfig = {
 export const DEFAULT_ABOUT_SLIDES: AboutSlide[] = [
   {
     id: 'slide-1',
-    image: 'https://images.unsplash.com/photo-1603808033176-9d134e6f2c74?auto=format&fit=crop&q=80&w=1200',
+    image: '',
     badge: 'İREM COMFORT • MANİSA',
     title: 'Hakiki Deri.',
     subtitle: 'Doğal Konfor.',
@@ -98,7 +98,7 @@ export const DEFAULT_ABOUT_SLIDES: AboutSlide[] = [
   },
   {
     id: 'slide-2',
-    image: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&q=80&w=1200',
+    image: '',
     badge: '%100 HAKİKİ SAYA',
     title: '%100 Hakiki Deri',
     subtitle: 'Nefes Alan Yumuşak Dana ve Kuzu Derisi',
@@ -106,7 +106,7 @@ export const DEFAULT_ABOUT_SLIDES: AboutSlide[] = [
   },
   {
     id: 'slide-3',
-    image: 'https://images.unsplash.com/photo-1531819177115-428566ccfb50?auto=format&fit=crop&q=80&w=1200',
+    image: '',
     badge: 'MANİSA ATÖLYESİ',
     title: "Manisa'da Üretiliyor",
     subtitle: 'Usta Ellerin Geleneksel Dikiş Zanaatı',
@@ -114,7 +114,7 @@ export const DEFAULT_ABOUT_SLIDES: AboutSlide[] = [
   },
   {
     id: 'slide-4',
-    image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=1200',
+    image: '',
     badge: 'ORTOPEDİK TABAN',
     title: 'Anatomik Konfor',
     subtitle: 'Ayak Kavisini Destekleyen Esnek Taban Structure',
@@ -244,6 +244,9 @@ interface ImageContextType {
 
   isManagerOpen: boolean;
   setIsManagerOpen: (open: boolean) => void;
+
+  // Single Source of Truth Initial Loading Gate
+  isSettingsLoaded: boolean;
 }
 
 export const DEFAULT_THEME_CONFIG: ThemeConfig = {
@@ -342,7 +345,8 @@ export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
   skipButton: true,
   fadeDuration: 800,
   minLoadingTime: 3,
-  deploymentRevision: "v1.0.0"
+  deploymentRevision: "v1.0.0",
+  isOnboardingCompleted: false
 };
 
 export const DEFAULT_SEO_CONFIG: SeoConfig = {
@@ -384,6 +388,9 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [sectionOrder, setSectionOrder] = useState<SectionOrderItem[]>(DEFAULT_SECTION_ORDER);
   const [isManagerOpen, setIsManagerOpen] = useState(false);
 
+  // Single Source of Truth Loading Gate
+  const [isSettingsLoaded, setIsSettingsLoaded] = useState(false);
+
   // Dirty State & Deep Merge Save Ref
   const [isDirty, setIsDirty] = useState(false);
   const markDirty = useCallback(() => setIsDirty(true), []);
@@ -424,12 +431,16 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Real-time synchronization using server settings endpoint
   useEffect(() => {
+    let isMounted = true;
     const fetchSettings = () => {
-      if (isDirty) return; // Prevent overwriting user's unsaved changes during polling
+      if (isDirty) {
+        if (isMounted) setIsSettingsLoaded(true);
+        return;
+      }
       fetch('/api/settings')
         .then(res => res.json())
         .then(data => {
-          if (data?.success && data?.settings) {
+          if (data?.success && data?.settings && isMounted) {
             const s = data.settings;
             lastSavedSettingsRef.current = s;
             if (s.images) setImages(s.images);
@@ -447,12 +458,22 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             if (s.sectionOrder && Array.isArray(s.sectionOrder)) setSectionOrder(s.sectionOrder);
           }
         })
-        .catch(() => {});
+        .catch(err => {
+          console.warn("Initial settings fetch error:", err);
+        })
+        .finally(() => {
+          if (isMounted) {
+            setIsSettingsLoaded(true);
+          }
+        });
     };
 
     fetchSettings();
     const interval = setInterval(fetchSettings, 5000);
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [isDirty]);
 
   // Save specific section to backend server & local file
@@ -1060,7 +1081,8 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         discardUnsavedChanges,
         triggerDeploy,
         isManagerOpen,
-        setIsManagerOpen
+        setIsManagerOpen,
+        isSettingsLoaded
       }}
     >
       {children}

@@ -130,26 +130,40 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1, delay: 0.4 }}
-              className="relative rounded-3xl overflow-hidden shadow-2xl shadow-[#0A2D6F]/15 border border-[#0A2D6F]/10 group"
+              className="relative rounded-3xl overflow-hidden shadow-2xl shadow-[#0A2D6F]/15 border border-[#0A2D6F]/10 group min-h-[480px] bg-gradient-to-br from-[#062050] to-[#0A2D6F] flex items-center justify-center"
             >
-              <img
-                src={images.heroImage}
-                alt="İrem Comfort Çift Tokalı Hakiki Deri Bayan Terlik"
-                className="w-full h-[480px] sm:h-[580px] object-cover object-center transform group-hover:scale-105 transition-transform duration-1000 ease-out"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  if (target.src.includes('/public/uploads/')) {
-                    const parts = target.src.split('/public/uploads/');
-                    if (parts[1]) {
-                      target.src = '/uploads/' + parts[1];
-                      return;
+              {images.heroImage ? (
+                <img
+                  src={images.heroImage}
+                  alt="İrem Comfort Çift Tokalı Hakiki Deri Bayan Terlik"
+                  className="w-full h-[480px] sm:h-[580px] object-cover object-center transform group-hover:scale-105 transition-transform duration-1000 ease-out"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    if (target.src.includes('/public/uploads/')) {
+                      const parts = target.src.split('/public/uploads/');
+                      if (parts[1]) {
+                        target.src = '/uploads/' + parts[1];
+                        return;
+                      }
                     }
-                  }
-                  if (!target.src.includes('irem-comfort-logo')) {
-                    target.src = '/uploads/logo/irem-comfort-logo.jpg';
-                  }
-                }}
-              />
+                  }}
+                />
+              ) : (
+                <div className="p-8 text-center text-white space-y-4 max-w-sm">
+                  <div className="w-16 h-16 rounded-2xl bg-white/10 border border-[#D4AF37]/40 flex items-center justify-center mx-auto text-[#D4AF37]">
+                    <Sparkles className="w-8 h-8 animate-pulse" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold tracking-widest uppercase text-[#D4AF37] bg-[#D4AF37]/10 px-3 py-1 rounded-full border border-[#D4AF37]/20">
+                      Fotoğraf Bekleniyor
+                    </span>
+                    <h4 className="text-lg font-serif font-bold mt-2">Kendi Fotoğraflarınızı Ekleyin</h4>
+                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                      Lütfen Yönetim Paneline (Admin) giriş yaparak kendi hakiki deri terlik ve sandalet ürün görsellerinizi yükleyin.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Glassmorphic Overlay Floating Badge */}
               <div className="absolute bottom-6 left-6 right-6 p-5 rounded-2xl glass-card border border-white/40 shadow-lg space-y-1">

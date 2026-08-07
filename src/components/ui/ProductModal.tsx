@@ -109,25 +109,31 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             
             {/* Left Column: Fixed Product Main Image & Thumbnails directly below */}
             <div className="lg:col-span-5 bg-[#F8F8F8] p-3 sm:p-6 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-[#0A2D6F]/10 overflow-hidden shrink-0 max-h-[32vh] sm:max-h-[38vh] lg:max-h-none h-auto lg:h-full">
-              <div className="relative rounded-xl sm:rounded-2xl overflow-hidden flex-1 min-h-[140px] sm:min-h-[220px] bg-white border border-[#0A2D6F]/10 shadow-inner">
-                <img
-                  src={modalImages[activeImageIndex]}
-                  alt={item.name}
-                  className="w-full h-full object-cover object-center transition-all duration-300"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    if (target.src.includes('/public/uploads/')) {
-                      const parts = target.src.split('/public/uploads/');
-                      if (parts[1]) {
-                        target.src = '/uploads/' + parts[1];
-                        return;
+              <div className="relative rounded-xl sm:rounded-2xl overflow-hidden flex-1 min-h-[140px] sm:min-h-[220px] bg-gradient-to-br from-[#062050] to-[#0A2D6F] border border-[#0A2D6F]/10 shadow-inner flex items-center justify-center">
+                {modalImages[activeImageIndex] ? (
+                  <img
+                    src={modalImages[activeImageIndex]}
+                    alt={item.name}
+                    className="w-full h-full object-cover object-center transition-all duration-300"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      if (target.src.includes('/public/uploads/')) {
+                        const parts = target.src.split('/public/uploads/');
+                        if (parts[1]) {
+                          target.src = '/uploads/' + parts[1];
+                          return;
+                        }
                       }
-                    }
-                    if (!target.src.includes('irem-comfort-logo')) {
-                      target.src = '/uploads/logo/irem-comfort-logo.jpg';
-                    }
-                  }}
-                />
+                    }}
+                  />
+                ) : (
+                  <div className="p-4 text-center text-white space-y-2">
+                    <span className="text-[10px] font-bold tracking-widest uppercase text-[#D4AF37] block">
+                      Ürün Görseli Bekleniyor
+                    </span>
+                    <p className="text-xs text-slate-300 font-medium">{item.name}</p>
+                  </div>
+                )}
                 
                 <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#0A2D6F] text-white text-[9px] sm:text-[10px] font-bold tracking-widest uppercase shadow-sm">
                   {item.category}
@@ -135,36 +141,25 @@ export const ProductModal: React.FC<ProductModalProps> = ({
               </div>
 
               {/* Thumbnails Directly Under Main Image */}
-              <div className="flex items-center gap-2 pt-2 sm:pt-3 overflow-x-auto shrink-0 scrollbar-none">
-                {modalImages.map((img, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setActiveImageIndex(idx)}
-                    className={`relative w-12 h-12 sm:w-18 sm:h-18 rounded-lg sm:rounded-xl overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${
-                      activeImageIndex === idx ? 'border-[#0A2D6F] scale-102 shadow-md ring-2 ring-[#0A2D6F]/20' : 'border-slate-200 opacity-60 hover:opacity-100'
-                    }`}
-                  >
-                    <img 
-                      src={img} 
-                      alt="Küçük Görsel" 
-                      className="w-full h-full object-cover" 
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        if (target.src.includes('/public/uploads/')) {
-                          const parts = target.src.split('/public/uploads/');
-                          if (parts[1]) {
-                            target.src = '/uploads/' + parts[1];
-                            return;
-                          }
-                        }
-                        if (!target.src.includes('irem-comfort-logo')) {
-                          target.src = '/uploads/logo/irem-comfort-logo.jpg';
-                        }
-                      }}
-                    />
-                  </button>
-                ))}
-              </div>
+              {modalImages.filter(Boolean).length > 0 && (
+                <div className="flex items-center gap-2 pt-2 sm:pt-3 overflow-x-auto shrink-0 scrollbar-none">
+                  {modalImages.filter(Boolean).map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveImageIndex(idx)}
+                      className={`relative w-12 h-12 sm:w-18 sm:h-18 rounded-lg sm:rounded-xl overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${
+                        activeImageIndex === idx ? 'border-[#0A2D6F] scale-102 shadow-md ring-2 ring-[#0A2D6F]/20' : 'border-slate-200 opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      <img 
+                        src={img} 
+                        alt="Küçük Görsel" 
+                        className="w-full h-full object-cover" 
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Right Column: Independently Scrollable Text Details & Pinned Bottom Action Buttons */}

@@ -110,25 +110,32 @@ export const CraftsmanshipSection: React.FC = () => {
                 className="bg-white rounded-3xl p-6 sm:p-10 border border-[#0A2D6F]/10 shadow-2xl space-y-8"
               >
                 {/* Step Image */}
-                <div className="relative h-64 sm:h-80 rounded-2xl overflow-hidden shadow-md">
-                  <img
-                    src={images.craftsmanshipImages[activeStep.number] || activeStep.image}
-                    alt={activeStep.title}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      if (target.src.includes('/public/uploads/')) {
-                        const parts = target.src.split('/public/uploads/');
-                        if (parts[1]) {
-                          target.src = '/uploads/' + parts[1];
-                          return;
+                <div className="relative h-64 sm:h-80 rounded-2xl overflow-hidden shadow-md bg-gradient-to-br from-[#062050] to-[#0A2D6F] flex items-center justify-center">
+                  {(images.craftsmanshipImages[activeStep.number] || activeStep.image) ? (
+                    <img
+                      src={images.craftsmanshipImages[activeStep.number] || activeStep.image}
+                      alt={activeStep.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        if (target.src.includes('/public/uploads/')) {
+                          const parts = target.src.split('/public/uploads/');
+                          if (parts[1]) {
+                            target.src = '/uploads/' + parts[1];
+                            return;
+                          }
                         }
-                      }
-                      if (!target.src.includes('irem-comfort-logo')) {
-                        target.src = '/uploads/logo/irem-comfort-logo.jpg';
-                      }
-                    }}
-                  />
+                      }}
+                    />
+                  ) : (
+                    <div className="p-6 text-center text-white space-y-2">
+                      <span className="text-xs font-bold uppercase tracking-widest text-[#D4AF37] block">
+                        Manisa Atölye Üretimi
+                      </span>
+                      <h4 className="text-lg font-serif font-bold">{activeStep.title}</h4>
+                      <p className="text-xs text-slate-300">Görsel Bekleniyor</p>
+                    </div>
+                  )}
                   <div className="absolute top-4 right-4 px-4 py-1.5 rounded-full bg-[#0A2D6F] text-white text-xs font-bold tracking-widest uppercase">
                     Aşama {activeStep.number} / 04
                   </div>

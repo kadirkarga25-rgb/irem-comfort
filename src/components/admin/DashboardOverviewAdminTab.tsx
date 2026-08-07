@@ -13,21 +13,49 @@ import {
 import { useAppImages } from '../../context/ImageContext';
 import { crmService } from '../../services/crmService';
 import { adminSettingsService } from '../../services/adminSettings';
+import { conversationLogger } from '../../services/ai/conversationLogger';
 
 export const DashboardOverviewAdminTab: React.FC = () => {
   const { systemConfig, updateSystemConfig, triggerDeploy } = useAppImages();
   const settings = adminSettingsService.getSettings();
   const crmRecord = crmService.getActiveRecord();
 
-  const [visitorCount, setVisitorCount] = useState<number>(1482);
-  const [activeConversations, setActiveConversations] = useState<number>(3);
-  const [newsletterSubscribers, setNewsletterSubscribers] = useState<number>(184);
+  const [activeSessionCount, setActiveSessionCount] = useState<number>(1);
+  const [activeConversations, setActiveConversations] = useState<number>(0);
+  const [totalLeadsCount, setTotalLeadsCount] = useState<number>(0);
 
-  // Auto-refresh visitor simulation
+  // Load real metrics from system
   useEffect(() => {
-    const interval = setInterval(() => {
-      setVisitorCount(prev => prev + Math.floor(Math.random() * 2));
-    }, 5000);
+    const fetchRealMetrics = async () => {
+      // Get real conversation sessions
+      const sessions = conversationLogger.getAllSessions();
+      const activeConvs = sessions.filter(s => s.status === 'ai_active' || s.status === 'admin_joined' || s.status === 'live_support_requested').length;
+      setActiveConversations(activeConvs);
+
+      // Active sessions count (at least 1 for the current active visitor)
+      setActiveSessionCount(sessions.length > 0 ? sessions.length : 1);
+
+      // Fetch real contact leads count
+      try {
+        const res = await fetch('/api/contact/leads');
+        const data = await res.json();
+        if (data.leads && Array.isArray(data.leads)) {
+          setTotalLeadsCount(data.leads.length);
+        }
+      } catch (err) {
+        // Fallback to localStorage if offline
+        const local = localStorage.getItem('irem_contact_leads');
+        if (local) {
+          try {
+            const parsed = JSON.parse(local);
+            setTotalLeadsCount(parsed.length);
+          } catch (e) {}
+        }
+      }
+    };
+
+    fetchRealMetrics();
+    const interval = setInterval(fetchRealMetrics, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -41,7 +69,7 @@ export const DashboardOverviewAdminTab: React.FC = () => {
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               SİSTEM AKTİF - V3 KONTROL MERKEZİ
             </span>
-            <span className="text-xs text-slate-400 font-mono">Build #3.0.4-ENTERPRISE</span>
+            <span className="text-xs text-slate-400 font-mono">Enterprise Build</span>
           </div>
           <h2 className="text-xl font-extrabold tracking-tight">İrem Comfort Enterprise Kontrol Paneli</h2>
           <p className="text-xs text-slate-300 font-medium max-w-xl">
@@ -73,7 +101,7 @@ export const DashboardOverviewAdminTab: React.FC = () => {
             <span className="text-lg font-extrabold text-emerald-600">
               Canlı Yayında
             </span>
-            <span className="text-[10px] font-bold text-slate-400">0.4s Tepki Süresi</span>
+            <span className="text-[10px] font-bold text-slate-400">Aktif Sunucu</span>
           </div>
           <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
             <div className="h-full bg-emerald-500 w-full" />
@@ -83,48 +111,48 @@ export const DashboardOverviewAdminTab: React.FC = () => {
         {/* Live Visitor Count */}
         <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Anlık Ziyaretçi</span>
+            <span className="text-xs font-bold uppercase tracking-wider">Anlık Ziyaretçi Oturumu</span>
             <Users className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-slate-900">{visitorCount}</span>
+            <span className="text-2xl font-extrabold text-slate-900">{activeSessionCount}</span>
             <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5">
-              <ArrowUpRight className="w-3 h-3" /> +12% bu hafta
+              <CheckCircle2 className="w-3 h-3" /> Gerçek Zamanlı
             </span>
           </div>
-          <p className="text-[10px] text-slate-500">Aktif oturumlar ve canlı sayfa gezintileri</p>
+          <p className="text-[10px] text-slate-500">Aktif oturum ve sayfa gezintisi</p>
         </div>
 
         {/* Current AI Conversations */}
         <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold uppercase tracking-wider">AI Sohbetleri</span>
+            <span className="text-xs font-bold uppercase tracking-wider">Aktif AI Sohbetleri</span>
             <MessageSquare className="w-4 h-4 text-indigo-600" />
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl font-extrabold text-slate-900">{activeConversations}</span>
             <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
-              %98 Yanıt Skoru
+              Canlı Oturum
             </span>
           </div>
-          <p className="text-[10px] text-slate-500">Otopilottaki aktif müşteri danışmaları</p>
+          <p className="text-[10px] text-slate-500">Aktif müşteri danışma sayısı</p>
         </div>
 
         {/* Human Support Requests */}
         <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Temsilci Talepleri</span>
+            <span className="text-xs font-bold uppercase tracking-wider">Gelen Talepler</span>
             <Radio className="w-4 h-4 text-amber-600" />
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl font-extrabold text-slate-900">
-              {crmRecord.supportStatus === 'human_requested' ? '1 (Bekliyor)' : '0 Bekleyen'}
+              {totalLeadsCount} Kayıt
             </span>
             <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-              Canlı Takip
+              CRM Kayıtlı
             </span>
           </div>
-          <p className="text-[10px] text-slate-500">Canlı desteğe yönlendirilen ziyaretçiler</p>
+          <p className="text-[10px] text-slate-500">Gelen iletişim ve sipariş talepleri</p>
         </div>
       </div>
 

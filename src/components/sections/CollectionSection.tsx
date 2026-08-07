@@ -100,25 +100,34 @@ export const CollectionSection: React.FC<CollectionSectionProps> = ({
                 className="group relative bg-[#F8F8F8] rounded-3xl overflow-hidden border border-[#0A2D6F]/10 hover:border-[#0A2D6F]/30 transition-all duration-500 hover:shadow-2xl cursor-pointer flex flex-col justify-between"
               >
                 {/* Product Image Showcase */}
-                <div className="relative h-80 sm:h-96 w-full overflow-hidden bg-white">
-                  <img
-                    src={images.collectionImages[item.id]?.image || item.image}
-                    alt={item.name}
-                    className="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-700 ease-out"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      if (target.src.includes('/public/uploads/')) {
-                        const parts = target.src.split('/public/uploads/');
-                        if (parts[1]) {
-                          target.src = '/uploads/' + parts[1];
-                          return;
+                <div className="relative h-80 sm:h-96 w-full overflow-hidden bg-gradient-to-br from-[#062050] to-[#0A2D6F] flex items-center justify-center">
+                  {(images.collectionImages[item.id]?.image || item.image) ? (
+                    <img
+                      src={images.collectionImages[item.id]?.image || item.image}
+                      alt={item.name}
+                      className="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-700 ease-out"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        if (target.src.includes('/public/uploads/')) {
+                          const parts = target.src.split('/public/uploads/');
+                          if (parts[1]) {
+                            target.src = '/uploads/' + parts[1];
+                            return;
+                          }
                         }
-                      }
-                      if (!target.src.includes('irem-comfort-logo')) {
-                        target.src = '/uploads/logo/irem-comfort-logo.jpg';
-                      }
-                    }}
-                  />
+                      }}
+                    />
+                  ) : (
+                    <div className="p-6 text-center text-white space-y-2">
+                      <div className="w-12 h-12 rounded-xl bg-white/10 border border-[#D4AF37]/30 flex items-center justify-center mx-auto text-[#D4AF37]">
+                        <Sparkles className="w-6 h-6" />
+                      </div>
+                      <span className="text-[10px] font-bold tracking-widest uppercase text-[#D4AF37] block">
+                        Fotoğraf Ekleyin
+                      </span>
+                      <p className="text-xs text-slate-300 font-medium">Görsel Bekleniyor</p>
+                    </div>
+                  )}
                   
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 

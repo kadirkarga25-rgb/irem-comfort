@@ -108,6 +108,8 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000);
 
+let customAdminPassword = "";
+
 // API Login
 app.post("/api/auth/login", (req, res) => {
   try {
@@ -115,8 +117,15 @@ app.post("/api/auth/login", (req, res) => {
     const cleanUser = String(username || '').trim().toLowerCase();
     const cleanPass = String(password || '').trim();
 
+    const storedPass = inMemorySettingsCache?.adminPassword || customAdminPassword;
+
     const isValidUser = (cleanUser === 'admin' || cleanUser === 'iremcomfort');
-    const isValidPass = (cleanPass === 'irem45' || cleanPass === 'irem1234' || (process.env.ADMIN_PASSWORD && cleanPass === process.env.ADMIN_PASSWORD));
+    const isValidPass = (
+      (storedPass && cleanPass === storedPass) ||
+      cleanPass === 'irem45' || 
+      cleanPass === 'irem1234' || 
+      (process.env.ADMIN_PASSWORD && cleanPass === process.env.ADMIN_PASSWORD)
+    );
 
     if (!isValidUser || !isValidPass) {
       return res.status(401).json({
@@ -144,6 +153,36 @@ app.post("/api/auth/login", (req, res) => {
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err?.message || "Giriş işlemi başarısız." });
+  }
+});
+
+// API Change Password
+app.post("/api/auth/change-password", (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.replace("Bearer ", "") || req.body?.token;
+
+    if (!token || !activeAdminSessions.has(token)) {
+      return res.status(401).json({ success: false, error: "Yetkisiz işlem. Oturum bulunamadı." });
+    }
+
+    const { newPassword } = req.body || {};
+    if (!newPassword || String(newPassword).trim().length < 4) {
+      return res.status(400).json({ success: false, error: "Yeni şifre en az 4 karakter olmalıdır." });
+    }
+
+    const cleanNewPass = String(newPassword).trim();
+    customAdminPassword = cleanNewPass;
+    if (inMemorySettingsCache) {
+      inMemorySettingsCache.adminPassword = cleanNewPass;
+    }
+
+    return res.json({
+      success: true,
+      message: "Yönetici şifreniz başarıyla değiştirildi ve kaydedildi!"
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || "Şifre değiştirme işlemi başarısız." });
   }
 });
 
