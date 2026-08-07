@@ -4,6 +4,7 @@ import { CollectionItem } from '../../types';
 import { CONTACT_DATA } from '../../constants/data';
 import { X, Check, ShieldCheck, Layers, Palette, ArrowRight } from 'lucide-react';
 import { useAppImages } from '../../context/ImageContext';
+import { useConversation } from '../../context/ConversationContext';
 
 interface ProductModalProps {
   item: CollectionItem | null;
@@ -17,10 +18,18 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   onInquire
 }) => {
   const { images: storeImages, contactData } = useAppImages();
+  const { setActiveProduct } = useConversation();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const modalOverlayRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Synchronize active product in Visitor Session Memory
+  useEffect(() => {
+    if (item) {
+      setActiveProduct(item);
+    }
+  }, [item, setActiveProduct]);
 
   // Lock background body & html scroll strictly when modal is open
   useEffect(() => {

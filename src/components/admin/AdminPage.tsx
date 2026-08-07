@@ -10,6 +10,17 @@ import { FaqAdminTab } from './FaqAdminTab';
 import { MediaLibraryAdminTab } from './MediaLibraryAdminTab';
 import { SeoAdminTab } from './SeoAdminTab';
 import { AppearanceAdminTab } from './AppearanceAdminTab';
+import { CrmAdminTab } from './CrmAdminTab';
+import { AnalyticsAdminTab } from './AnalyticsAdminTab';
+import { SecurityAdminTab } from './SecurityAdminTab';
+import { AiArchitectureAdminTab } from './AiArchitectureAdminTab';
+import { LiveMonitorAdminTab } from './LiveMonitorAdminTab';
+import { DashboardOverviewAdminTab } from './DashboardOverviewAdminTab';
+import { PageBuilderAdminTab } from './PageBuilderAdminTab';
+import { BackupAdminTab } from './BackupAdminTab';
+import { AiTrainingAdminTab } from './AiTrainingAdminTab';
+import { InfrastructureAdminTab } from './InfrastructureAdminTab';
+import { ConversationLogsAdminTab } from './ConversationLogsAdminTab';
 import { EMAIL_TEMPLATES, renderEmailHtml } from '../../utils/emailTemplates';
 import { 
   Lock, Key, User, LogOut, ExternalLink, Image as ImageIcon, 
@@ -18,7 +29,8 @@ import {
   QrCode, ToggleLeft, ToggleRight, Send, MessageSquare, Crop, Info,
   Mail, Server, AtSign, Save, MailCheck, CheckCircle2, Shield,
   Users, Download, Copy, Trash2, Plus, Search, Phone, HelpCircle,
-  GitBranch, Globe, FileImage, Video, RefreshCw, PowerOff, Palette
+  GitBranch, Globe, FileImage, Video, RefreshCw, PowerOff, Palette, BarChart3, Activity,
+  Layout, Database, GraduationCap
 } from 'lucide-react';
 
 
@@ -131,13 +143,71 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Admin Panel Tabs
-  const [activeTab, setActiveTab] = useState<'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'presets' | 'leads' | 'newsletter' | 'email' | 'system' | 'media' | 'seo' | 'appearance'>('fair');
+  const [activeTab, setActiveTab] = useState<'overview' | 'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'page_builder' | 'presets' | 'leads' | 'newsletter' | 'email' | 'system' | 'media' | 'seo' | 'appearance' | 'crm' | 'analytics' | 'security' | 'ai_arch' | 'live_monitor' | 'backup' | 'ai_training' | 'infrastructure' | 'conv_logs'>('overview');
 
   const [githubRepoInput, setGithubRepoInput] = useState<string>(() => systemConfig.githubRepo || localStorage.getItem('irem_github_repo') || 'kadirkarga25-rgb/irem-comfort');
   const [githubBranchInput, setGithubBranchInput] = useState<string>(() => systemConfig.githubBranch || localStorage.getItem('irem_github_branch') || 'main');
   const [githubTokenInput, setGithubTokenInput] = useState<string>(() => localStorage.getItem('irem_github_token') || '');
   const [isTestingGithub, setIsTestingGithub] = useState(false);
   const [githubTestResult, setGithubTestResult] = useState<{ success: boolean; message: string; details?: string[] } | null>(null);
+
+  const [persistenceDiagnostics, setPersistenceDiagnostics] = useState<{
+    source: string;
+    lastCommitSha: string;
+    lastPublishedAt: string;
+    currentHeroImage: string;
+    githubHeroImage: string;
+    status: string;
+    lastError: string | null;
+    repo: string;
+    branch: string;
+  } | null>(null);
+
+  const [isPublishingDirect, setIsPublishingDirect] = useState(false);
+
+  const fetchDiagnostics = async () => {
+    try {
+      const res = await fetch('/api/settings/diagnostics');
+      const data = await res.json();
+      if (data?.success && data?.diagnostics) {
+        setPersistenceDiagnostics(data.diagnostics);
+      }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    fetchDiagnostics();
+    const interval = setInterval(fetchDiagnostics, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handlePublishSettingsDirect = async () => {
+    setIsPublishingDirect(true);
+    try {
+      const res = await fetch('/api/publish-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: githubTokenInput || localStorage.getItem('irem_github_token'),
+          repo: githubRepoInput || localStorage.getItem('irem_github_repo'),
+          branch: githubBranchInput || localStorage.getItem('irem_github_branch')
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast("✓ Site ayarları kalıcı olarak GitHub'a yayınlandı ve doğrulandı!");
+        if (data.diagnostics) {
+          setPersistenceDiagnostics(data.diagnostics);
+        }
+      } else {
+        showToast("❌ Yayınlama hatası: " + (data.error || "Bilinmeyen hata"));
+      }
+    } catch (err: any) {
+      showToast("❌ Yayınlama isteği iletilemedi.");
+    } finally {
+      setIsPublishingDirect(false);
+    }
+  };
 
   const [commitMessageInput, setCommitMessageInput] = useState<string>('Site ayarları ve görseller güncellendi');
   const [isDeployingInAdmin, setIsDeployingInAdmin] = useState(false);
@@ -937,6 +1007,30 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
         <div className="bg-white rounded-2xl p-2 shadow-sm border border-slate-200 flex flex-wrap items-center gap-2">
           
           <button
+            onClick={() => setActiveTab('overview')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'overview'
+                ? 'bg-[#082C6C] text-white shadow font-bold'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Activity className="w-4 h-4 text-emerald-400" />
+            <span>⚡ Control Center (Dashboard)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('page_builder')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'page_builder'
+                ? 'bg-[#082C6C] text-white shadow'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Layout className="w-4 h-4 text-amber-400" />
+            <span>🧩 Sayfa Oluşturucu (CMS 2.0)</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('fair')}
             className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'fair'
@@ -1094,6 +1188,114 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
           >
             <Globe className="w-4 h-4 text-emerald-400" />
             <span>🌐 SEO, Robots & Sitemap</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('crm')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'crm'
+                ? 'bg-[#082C6C] text-white shadow'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Users className="w-4 h-4 text-emerald-400" />
+            <span>👥 Müşteriler & CRM Portalı</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'analytics'
+                ? 'bg-[#082C6C] text-white shadow'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4 text-amber-400" />
+            <span>📊 Analiz & Performans</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('security')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'security'
+                ? 'bg-[#082C6C] text-white shadow'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4 text-purple-400" />
+            <span>🛡️ Güvenlik Merkezi</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('ai_arch')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'ai_arch'
+                ? 'bg-[#082C6C] text-white shadow'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-indigo-400" />
+            <span>🤖 AI Altyapısı (Vol 2)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('live_monitor')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'live_monitor'
+                ? 'bg-[#082C6C] text-white shadow'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Activity className="w-4 h-4 text-emerald-400" />
+            <span>⚡ Canlı Monitör & Destek (Vol 2D)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('ai_training')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'ai_training'
+                ? 'bg-[#082C6C] text-white shadow'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <GraduationCap className="w-4 h-4 text-purple-400" />
+            <span>🎓 AI Eğitim Merkezi (Vol 5)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('infrastructure')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'infrastructure'
+                ? 'bg-[#082C6C] text-white shadow'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Server className="w-4 h-4 text-emerald-400" />
+            <span>🏗️ Enterprise Altyapı (Vol 6)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('conv_logs')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'conv_logs'
+                ? 'bg-[#082C6C] text-white shadow font-bold ring-2 ring-amber-400'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4 text-amber-400" />
+            <span>💬 Sohbet Günlükleri & AI Beta (Vol 6.1)</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('backup')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'backup'
+                ? 'bg-[#082C6C] text-white shadow'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Database className="w-4 h-4 text-indigo-400" />
+            <span>💾 Yedekleme & Geri Yükleme</span>
           </button>
 
           <button
@@ -3702,9 +3904,90 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
               </div>
             </div>
 
-            {/* Section 2: GitHub Settings & Vercel Deploy */}
+            {/* Section 2: Persistence Diagnostics & GitHub Settings */}
             <div className="space-y-6">
               
+              {/* PERSISTENCE DIAGNOSTICS CARD */}
+              <div className="p-6 rounded-2xl bg-[#031533] text-white space-y-4 border border-blue-900/60 shadow-xl">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Database className="w-5 h-5 text-amber-400" />
+                    <div>
+                      <h4 className="font-extrabold text-white text-base">Site Ayarları Kalıcılık Teşhisi (Persistence Diagnostics)</h4>
+                      <p className="text-xs text-blue-200">GitHub Single Source of Truth & Canlı Doğrulama Durumu</p>
+                    </div>
+                  </div>
+
+                  {persistenceDiagnostics && (
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold font-mono border flex items-center gap-1.5 ${
+                      persistenceDiagnostics.status === 'SYNCHRONIZED' 
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
+                        : persistenceDiagnostics.status === 'UNSAVED' 
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                        : 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                    }`}>
+                      {persistenceDiagnostics.status === 'SYNCHRONIZED' && '🟢 GitHub İle Senkronize'}
+                      {persistenceDiagnostics.status === 'UNSAVED' && '🟡 Yayınlanmamış Taslak Değişiklik Var'}
+                      {persistenceDiagnostics.status === 'ERROR' && '🔴 Senkronizasyon Hatası'}
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-mono">
+                  <div className="p-3 bg-white/5 rounded-xl border border-white/10 space-y-1">
+                    <span className="text-blue-300 text-[10px] uppercase font-sans font-bold block">Veri Kaynağı (Source)</span>
+                    <span className="text-white font-bold block">{persistenceDiagnostics?.source || 'Yükleniyor...'}</span>
+                  </div>
+
+                  <div className="p-3 bg-white/5 rounded-xl border border-white/10 space-y-1">
+                    <span className="text-blue-300 text-[10px] uppercase font-sans font-bold block">Son Commit SHA</span>
+                    <span className="text-amber-300 font-bold block truncate">{persistenceDiagnostics?.lastCommitSha?.slice(0, 8) || 'Bilinmiyor'}</span>
+                  </div>
+
+                  <div className="p-3 bg-white/5 rounded-xl border border-white/10 space-y-1">
+                    <span className="text-blue-300 text-[10px] uppercase font-sans font-bold block">Son Yayınlanma Zamanı</span>
+                    <span className="text-white font-bold block truncate font-sans">
+                      {persistenceDiagnostics?.lastPublishedAt ? new Date(persistenceDiagnostics.lastPublishedAt).toLocaleTimeString('tr-TR') : 'Yayınlanmadı'}
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-white/5 rounded-xl border border-white/10 space-y-1">
+                    <span className="text-blue-300 text-[10px] uppercase font-sans font-bold block">Depo (Repo / Branch)</span>
+                    <span className="text-emerald-300 font-bold block truncate">{persistenceDiagnostics?.repo || 'irem-comfort'}</span>
+                  </div>
+                </div>
+
+                {/* Verification Check */}
+                <div className="p-3 bg-slate-900/80 rounded-xl border border-white/10 text-xs font-mono space-y-1">
+                  <div className="flex items-center justify-between text-slate-300 font-bold">
+                    <span>Hero Görsel Doğrulaması:</span>
+                    <span className="text-emerald-400">
+                      {persistenceDiagnostics?.githubHeroImage && persistenceDiagnostics?.currentHeroImage === persistenceDiagnostics?.githubHeroImage
+                        ? '✓ Canlı GitHub & Bellek Birebir Aynı'
+                        : '⚠️ Taslak Görsel GitHub Onayı Bekliyor'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 truncate">
+                    Mevcut: {persistenceDiagnostics?.currentHeroImage || 'Yok'}
+                  </p>
+                  <p className="text-[11px] text-emerald-400/80 truncate">
+                    GitHub: {persistenceDiagnostics?.githubHeroImage || 'Henüz doğrulanmadı'}
+                  </p>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    disabled={isPublishingDirect}
+                    onClick={handlePublishSettingsDirect}
+                    className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>{isPublishingDirect ? 'GitHub Onayı Alınıyor...' : "Değişiklikleri Doğrudan GitHub'a Onayla & Yayınla"}</span>
+                  </button>
+                </div>
+              </div>
+
               {/* GitHub Settings Card */}
               <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-6">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -3980,6 +4263,39 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
           </div>
         )}
+
+        {/* Overview Tab */}
+        {activeTab === 'overview' && <DashboardOverviewAdminTab />}
+
+        {/* Page Builder Tab */}
+        {activeTab === 'page_builder' && <PageBuilderAdminTab />}
+
+        {/* CRM Tab */}
+        {activeTab === 'crm' && <CrmAdminTab />}
+
+        {/* Analytics Tab */}
+        {activeTab === 'analytics' && <AnalyticsAdminTab />}
+
+        {/* Security Tab */}
+        {activeTab === 'security' && <SecurityAdminTab />}
+
+        {/* AI Architecture Tab */}
+        {activeTab === 'ai_arch' && <AiArchitectureAdminTab />}
+
+        {/* Live Monitor Tab */}
+        {activeTab === 'live_monitor' && <LiveMonitorAdminTab />}
+
+        {/* AI Training Center Tab */}
+        {activeTab === 'ai_training' && <AiTrainingAdminTab />}
+
+        {/* Infrastructure Tab */}
+        {activeTab === 'infrastructure' && <InfrastructureAdminTab />}
+
+        {/* Conversation Logs & AI Review Tab (Vol 6.1) */}
+        {activeTab === 'conv_logs' && <ConversationLogsAdminTab />}
+
+        {/* Backup Tab */}
+        {activeTab === 'backup' && <BackupAdminTab />}
 
         {/* Reset All Button */}
         <div className="pt-4 flex justify-end">

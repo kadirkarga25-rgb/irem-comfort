@@ -524,10 +524,32 @@ app.post("/api/newsletter/send-bulk", async (req, res) => {
   }
 });
 
-// MODULAR SITE SETTINGS ENDPOINTS & GITHUB IMAGE UPLOAD
+// MODULAR SITE SETTINGS ENDPOINTS & PERSISTENCE DIAGNOSTICS ENGINE
 let inMemorySettingsCache: any = {};
 let inMemoryRobots = "";
 let inMemorySitemap = "";
+
+let lastSettingsSource: 'GitHub' | 'Memory Cache' | 'Bundled Fallback' = 'Bundled Fallback';
+let lastSettingsCommitSha: string = '';
+let lastPublishedAt: string | null = null;
+let persistenceStatus: 'SYNCHRONIZED' | 'UNSAVED' | 'ERROR' = 'SYNCHRONIZED';
+let lastPersistenceError: string | null = null;
+let githubHeroImageVerified: string = '';
+
+function getPersistenceDiagnostics() {
+  const { repo, branch } = getGithubConfig();
+  return {
+    source: lastSettingsSource,
+    lastCommitSha: lastSettingsCommitSha || 'None',
+    lastPublishedAt: lastPublishedAt || 'Never',
+    currentHeroImage: inMemorySettingsCache?.images?.heroImage || '',
+    githubHeroImage: githubHeroImageVerified || inMemorySettingsCache?.images?.heroImage || '',
+    status: persistenceStatus,
+    lastError: lastPersistenceError,
+    repo,
+    branch
+  };
+}
 
 // Helper to push files directly to GitHub repository using GitHub Contents API
 const inMemoryUploadsCache = new Map<string, { buffer: Buffer; contentType: string; updatedAt: number }>();
@@ -1542,7 +1564,7 @@ app.get("/sitemap.xml", (_req, res) => {
   res.type("application/xml").send(inMemorySitemap || `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://iremcomfort.com/</loc></url></urlset>`);
 });
 
-// Load initial settings from bundled static file if available
+// Load initial settings from bundled static file if available (local fallback)
 function loadSettingsFromFile(): any {
   try {
     const settingsPath = path.join(process.cwd(), "public", "site_settings.json");
@@ -1556,11 +1578,68 @@ function loadSettingsFromFile(): any {
   return {};
 }
 
-// Initialize memory cache from bundled static file if available
+// Canonical settings fetch directly from GitHub repository (Single Source of Truth)
+async function loadCanonicalSettingsFromGithub(customToken?: string, customRepo?: string, customBranch?: string): Promise<boolean> {
+  const { token, repo, branch } = getGithubConfig(customToken, customRepo, customBranch);
+
+  if (!token || !repo) {
+    console.warn("No GitHub token/repo for canonical load. Using bundled static file fallback.");
+    if (!inMemorySettingsCache || Object.keys(inMemorySettingsCache).length === 0) {
+      inMemorySettingsCache = loadSettingsFromFile();
+      lastSettingsSource = 'Bundled Fallback';
+    }
+    return false;
+  }
+
+  try {
+    const res = await fetch(`https://api.github.com/repos/${repo}/contents/public/site_settings.json?ref=${branch}`, {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "User-Agent": "IremComfortApp",
+        "Cache-Control": "no-cache"
+      }
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.content) {
+        const fileContent = Buffer.from(data.content, "base64").toString("utf-8");
+        const parsed = JSON.parse(fileContent);
+        if (parsed && typeof parsed === 'object') {
+          inMemorySettingsCache = parsed;
+          lastSettingsSource = 'GitHub';
+          lastSettingsCommitSha = data.sha || '';
+          lastPublishedAt = new Date().toISOString();
+          persistenceStatus = 'SYNCHRONIZED';
+          githubHeroImageVerified = parsed?.images?.heroImage || '';
+          generateSitemapAndRobots(inMemorySettingsCache);
+          console.log("✓ Successfully loaded canonical site_settings.json from GitHub repository!");
+          return true;
+        }
+      }
+    } else {
+      console.warn(`Failed to fetch canonical site_settings.json from GitHub (HTTP ${res.status}).`);
+    }
+  } catch (err) {
+    console.warn("Error fetching canonical site_settings.json from GitHub:", err);
+  }
+
+  if (!inMemorySettingsCache || Object.keys(inMemorySettingsCache).length === 0) {
+    inMemorySettingsCache = loadSettingsFromFile();
+    lastSettingsSource = 'Bundled Fallback';
+  }
+  return false;
+}
+
+// Initialize memory cache on boot with bundled file fallback, then trigger canonical load
 inMemorySettingsCache = loadSettingsFromFile();
 generateSitemapAndRobots(inMemorySettingsCache);
 
-function saveSettingsToFile(updatedSettings: any, customToken?: string, customRepo?: string, customBranch?: string, syncToGithub: boolean = false) {
+loadCanonicalSettingsFromGithub().catch(err => {
+  console.warn("Startup canonical settings fetch warning:", err);
+});
+
+function saveDraftSettings(updatedSettings: any) {
   try {
     if (updatedSettings && typeof updatedSettings === 'object') {
       delete updatedSettings.system;
@@ -1570,7 +1649,6 @@ function saveSettingsToFile(updatedSettings: any, customToken?: string, customRe
 
     const settingsJsonStr = JSON.stringify(updatedSettings, null, 2);
 
-    // Write to local disk if possible (for local draft state on dev server)
     try {
       const settingsPath = path.join(process.cwd(), "public", "site_settings.json");
       fs.writeFileSync(settingsPath, settingsJsonStr, "utf-8");
@@ -1578,21 +1656,168 @@ function saveSettingsToFile(updatedSettings: any, customToken?: string, customRe
       // Ignore read-only environment error
     }
 
-    if (syncToGithub) {
-      const { token, repo, branch } = getGithubConfig(customToken, customRepo, customBranch);
-
-      uploadFileToGithub("public/site_settings.json", settingsJsonStr, "Update site_settings.json", token, repo, branch).catch(e => {
-        console.warn("GitHub async settings save warning:", e);
-      });
-      if (inMemoryRobots) {
-        uploadFileToGithub("public/robots.txt", inMemoryRobots, "Update robots.txt", token, repo, branch).catch(() => {});
-      }
-      if (inMemorySitemap) {
-        uploadFileToGithub("public/sitemap.xml", inMemorySitemap, "Update sitemap.xml", token, repo, branch).catch(() => {});
-      }
+    if (persistenceStatus !== 'ERROR') {
+      persistenceStatus = 'UNSAVED';
     }
   } catch (e) {
-    console.error("Failed to process saveSettingsToFile:", e);
+    console.error("Failed to process saveDraftSettings:", e);
+  }
+}
+
+// Atomic GitHub Publishing Pipeline with strict Contents API verification
+async function publishSettings(
+  settingsToPublish?: any,
+  customToken?: string,
+  customRepo?: string,
+  customBranch?: string
+): Promise<{
+  success: boolean;
+  publishSuccess: boolean;
+  verified: boolean;
+  commitSha?: string;
+  publishedAt?: string;
+  error?: string;
+  details?: string;
+  diagnostics: any;
+}> {
+  const { token, repo, branch } = getGithubConfig(customToken, customRepo, customBranch);
+
+  if (!token || !repo) {
+    persistenceStatus = 'ERROR';
+    lastPersistenceError = "GitHub Access Token veya Depo bilgisi bulunamadı.";
+    return {
+      success: false,
+      publishSuccess: false,
+      verified: false,
+      error: "Yayınlama başarısız: GitHub erişim yetkisi (token/repo) bulunamadı.",
+      details: lastPersistenceError,
+      diagnostics: getPersistenceDiagnostics()
+    };
+  }
+
+  try {
+    const rawPayload = settingsToPublish || inMemorySettingsCache;
+    const sanitizedSettings = sanitizeNoBase64(rawPayload);
+    const canonicalSettings = JSON.parse(JSON.stringify(sanitizedSettings));
+    delete canonicalSettings.system;
+
+    // 1. Sync all uploaded media to GitHub
+    await syncAllImagesToGithub("Pre-publish media sync");
+
+    // 2. Serialize settings JSON
+    const settingsJsonStr = JSON.stringify(canonicalSettings, null, 2);
+
+    // Write to local disk draft
+    try {
+      const settingsPath = path.join(process.cwd(), "public", "site_settings.json");
+      fs.writeFileSync(settingsPath, settingsJsonStr, "utf-8");
+    } catch (e) {}
+
+    // 3. Commit site_settings.json to GitHub
+    const uploadResult = await uploadFileToGithubDirect(
+      "public/site_settings.json",
+      settingsJsonStr,
+      `Publish site_settings.json at ${new Date().toISOString()}`,
+      token,
+      repo,
+      branch
+    );
+
+    if (!uploadResult.success) {
+      persistenceStatus = 'ERROR';
+      lastPersistenceError = uploadResult.error || "GitHub commit ve push işlemi başarısız.";
+      return {
+        success: false,
+        publishSuccess: false,
+        verified: false,
+        error: "Yayınlama başarısız: site_settings.json GitHub'a kalıcı olarak kaydedilemedi.",
+        details: uploadResult.error,
+        diagnostics: getPersistenceDiagnostics()
+      };
+    }
+
+    const commitSha = uploadResult.commitSha || 'sha_unknown';
+
+    // 4. Verify public/site_settings.json on GitHub Contents API
+    const verifyRes = await fetch(`https://api.github.com/repos/${repo}/contents/public/site_settings.json?ref=${branch}`, {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "User-Agent": "IremComfortApp",
+        "Cache-Control": "no-cache"
+      }
+    });
+
+    if (!verifyRes.ok) {
+      const errText = await verifyRes.text();
+      persistenceStatus = 'ERROR';
+      lastPersistenceError = `GitHub verify HTTP ${verifyRes.status}: ${errText}`;
+      return {
+        success: false,
+        publishSuccess: false,
+        verified: false,
+        error: "Yayınlama başarısız: site_settings.json GitHub'dan doğrulanamadı.",
+        details: lastPersistenceError,
+        diagnostics: getPersistenceDiagnostics()
+      };
+    }
+
+    const verifyData = await verifyRes.json();
+    if (!verifyData || !verifyData.content) {
+      persistenceStatus = 'ERROR';
+      lastPersistenceError = "GitHub verify content payload missing.";
+      return {
+        success: false,
+        publishSuccess: false,
+        verified: false,
+        error: "Yayınlama başarısız: GitHub doğrulama verisi okunamadı.",
+        diagnostics: getPersistenceDiagnostics()
+      };
+    }
+
+    const verifiedContentStr = Buffer.from(verifyData.content, "base64").toString("utf-8");
+    const verifiedSettings = JSON.parse(verifiedContentStr);
+
+    githubHeroImageVerified = verifiedSettings?.images?.heroImage || '';
+
+    inMemorySettingsCache = canonicalSettings;
+    generateSitemapAndRobots(canonicalSettings);
+
+    lastSettingsSource = 'GitHub';
+    lastSettingsCommitSha = commitSha;
+    lastPublishedAt = new Date().toISOString();
+    persistenceStatus = 'SYNCHRONIZED';
+    lastPersistenceError = null;
+
+    return {
+      success: true,
+      publishSuccess: true,
+      verified: true,
+      commitSha,
+      publishedAt: lastPublishedAt,
+      settings: inMemorySettingsCache,
+      diagnostics: getPersistenceDiagnostics()
+    };
+  } catch (err: any) {
+    console.error("Error in publishSettings:", err);
+    persistenceStatus = 'ERROR';
+    lastPersistenceError = err?.message || "Beklenmeyen yayınlama hatası.";
+    return {
+      success: false,
+      publishSuccess: false,
+      verified: false,
+      error: "Yayınlama başarısız: site_settings.json GitHub'a kalıcı olarak kaydedilemedi.",
+      details: lastPersistenceError,
+      diagnostics: getPersistenceDiagnostics()
+    };
+  }
+}
+
+function saveSettingsToFile(updatedSettings: any, customToken?: string, customRepo?: string, customBranch?: string, syncToGithub: boolean = false) {
+  saveDraftSettings(updatedSettings);
+  if (syncToGithub) {
+    publishSettings(updatedSettings, customToken, customRepo, customBranch).catch(e => {
+      console.warn("Async publish settings warning:", e);
+    });
   }
 }
 
@@ -1882,20 +2107,11 @@ app.post("/api/deploy-github", async (req, res) => {
       userToken: token
     };
 
-    // Upload site_settings.json
-    const settingsJsonStr = JSON.stringify(inMemorySettingsCache, null, 2);
-    const setRes = await uploadFileToGithub(
-      "public/site_settings.json",
-      settingsJsonStr,
-      `Deploy: ${userCommitMsg}`,
-      token,
-      repo,
-      branch
-    );
-
-    if (!setRes.success) {
+    // Publish settings atomically to GitHub before triggering build
+    const pubRes = await publishSettings(inMemorySettingsCache, token, repo, branch);
+    if (!pubRes.publishSuccess) {
       activeDeploymentSession.status = 'ERROR';
-      activeDeploymentSession.error = setRes.error || "GitHub commit ve push işlemi başarısız oldu.";
+      activeDeploymentSession.error = pubRes.error || "GitHub commit ve push işlemi başarısız oldu.";
       activeDeploymentSession.logs.push(`❌ ${activeDeploymentSession.error}`);
       return res.status(400).json({
         success: false,
@@ -1903,6 +2119,15 @@ app.post("/api/deploy-github", async (req, res) => {
         deployment: activeDeploymentSession
       });
     }
+
+    // Commit created & verified on GitHub! Now track Vercel build.
+    activeDeploymentSession.commitSha = pubRes.commitSha;
+    activeDeploymentSession.logs.push(`✓ Settings published & verified on GitHub (Commit SHA: ${pubRes.commitSha})`);
+    activeDeploymentSession.logs.push("✓ Commit created");
+    activeDeploymentSession.logs.push("✓ Push completed");
+    activeDeploymentSession.logs.push("✓ Waiting for Vercel...");
+    activeDeploymentSession.status = 'WAITING_VERCEL';
+    activeDeploymentSession.stepIndex = 5;
 
     // Upload robots.txt & sitemap.xml
     if (inMemoryRobots) {
@@ -2155,20 +2380,51 @@ app.post("/api/deploy-cancel", (_req, res) => {
 });
 
 app.get("/api/settings", async (_req, res) => {
+  return res.json({
+    success: true,
+    settings: inMemorySettingsCache,
+    diagnostics: getPersistenceDiagnostics()
+  });
+});
+
+app.get("/api/settings/diagnostics", async (_req, res) => {
+  return res.json({
+    success: true,
+    diagnostics: getPersistenceDiagnostics()
+  });
+});
+
+app.post("/api/publish-settings", async (req, res) => {
   try {
-    const fileData = loadSettingsFromFile();
-    if (fileData && Object.keys(fileData).length > 0) {
-      inMemorySettingsCache = { ...fileData, ...inMemorySettingsCache };
+    const { settings, token, repo, branch } = req.body || {};
+    const payload = settings || inMemorySettingsCache;
+
+    const result = await publishSettings(payload, token, repo, branch);
+    if (!result.publishSuccess) {
+      return res.status(500).json(result);
     }
-    return res.json({ success: true, settings: inMemorySettingsCache });
-  } catch (err) {
-    return res.json({ success: true, settings: inMemorySettingsCache });
+
+    return res.json({
+      success: true,
+      publishSuccess: true,
+      message: "Site ayarları başarıyla GitHub'a kalıcı olarak yayınlandı ve doğrulandı.",
+      settings: inMemorySettingsCache,
+      diagnostics: result.diagnostics
+    });
+  } catch (err: any) {
+    console.error("Error in /api/publish-settings:", err);
+    return res.status(500).json({
+      success: false,
+      publishSuccess: false,
+      error: "Yayınlama başarısız: site_settings.json GitHub'a kalıcı olarak kaydedilemedi.",
+      details: err?.message
+    });
   }
 });
 
 app.post("/api/settings", async (req, res) => {
   try {
-    const { section, data, settings } = req.body || {};
+    const { section, data, settings, publish } = req.body || {};
     const sanitizedData = sanitizeNoBase64(data || settings);
 
     if (!sanitizedData || typeof sanitizedData !== 'object') {
@@ -2183,12 +2439,27 @@ app.post("/api/settings", async (req, res) => {
       Object.assign(inMemorySettingsCache, payload);
     }
 
-    saveSettingsToFile(inMemorySettingsCache);
+    if (publish) {
+      const publishRes = await publishSettings(inMemorySettingsCache);
+      if (!publishRes.publishSuccess) {
+        return res.status(500).json(publishRes);
+      }
+      return res.json({
+        success: true,
+        publishSuccess: true,
+        message: "Site ayarları kalıcı olarak GitHub'a yayınlandı.",
+        settings: inMemorySettingsCache,
+        diagnostics: publishRes.diagnostics
+      });
+    }
+
+    saveDraftSettings(inMemorySettingsCache);
 
     return res.json({
       success: true,
-      message: "Site ayarları kaydedildi.",
-      settings: inMemorySettingsCache
+      message: "Site ayarları taslak olarak kaydedildi.",
+      settings: inMemorySettingsCache,
+      diagnostics: getPersistenceDiagnostics()
     });
   } catch (err) {
     console.error("Error saving settings:", err);

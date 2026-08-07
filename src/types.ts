@@ -13,6 +13,7 @@ export interface CollectionItem {
   colors: { name: string; hex: string }[];
   features: string[];
   isFeatured?: boolean;
+  trendyolUrl?: string;
 }
 
 export interface CraftsmanshipStep {

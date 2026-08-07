@@ -13,6 +13,8 @@ import { ContactSection } from './components/sections/ContactSection';
 import { NewsletterSection } from './components/sections/NewsletterSection';
 import { Footer } from './components/layout/Footer';
 import { ImageProvider } from './context/ImageContext';
+import { ConversationProvider } from './context/ConversationContext';
+import { FloatingAssistant } from './components/ui/FloatingAssistant';
 import { AdminPage } from './components/admin/AdminPage';
 import { FairTopBanner } from './components/ui/FairTopBanner';
 import { FairModal } from './components/ui/FairModal';
@@ -375,6 +377,9 @@ function MainAppContent() {
       <CookieConsent
         onOpenLegalDoc={(doc) => setLegalModalDoc(doc)}
       />
+
+      {/* Floating AI Sales Consultant Assistant */}
+      <FloatingAssistant />
     </div>
   );
 }
@@ -382,7 +387,9 @@ function MainAppContent() {
 export default function App() {
   return (
     <ImageProvider>
-      <MainAppContent />
+      <ConversationProvider>
+        <MainAppContent />
+      </ConversationProvider>
     </ImageProvider>
   );
 }
