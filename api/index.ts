@@ -2,7 +2,57 @@ import express from "express";
 import nodemailer from "nodemailer";
 import fs from "fs";
 import path from "path";
-import { deepMerge } from "../src/utils/deepMerge";
+
+// Self-contained deepMerge utility for serverless environment
+function deepMerge<T extends Record<string, any>>(
+  target: T,
+  source: Partial<T> | Record<string, any>
+): T {
+  if (target === null || typeof target !== 'object') {
+    if (source !== null && typeof source === 'object') {
+      return deepMerge(Array.isArray(source) ? ([] as any) : {}, source);
+    }
+    return source as T;
+  }
+
+  if (source === null || typeof source !== 'object') {
+    return Array.isArray(target) ? ([...target] as unknown as T) : ({ ...target } as T);
+  }
+
+  const result: any = Array.isArray(target) ? [...target] : { ...target };
+
+  Object.keys(source).forEach((key) => {
+    const sourceVal = source[key];
+    const targetVal = result[key];
+
+    if (sourceVal === undefined) {
+      return;
+    }
+
+    if (
+      sourceVal !== null &&
+      typeof sourceVal === 'object' &&
+      !Array.isArray(sourceVal)
+    ) {
+      if (targetVal !== null && typeof targetVal === 'object' && !Array.isArray(targetVal)) {
+        result[key] = deepMerge(targetVal, sourceVal);
+      } else {
+        result[key] = deepMerge({}, sourceVal);
+      }
+    } else if (Array.isArray(sourceVal)) {
+      result[key] = sourceVal.map((item) => {
+        if (item !== null && typeof item === 'object') {
+          return deepMerge(Array.isArray(item) ? [] : {}, item);
+        }
+        return item;
+      });
+    } else {
+      result[key] = sourceVal;
+    }
+  });
+
+  return result;
+}
 
 const app = express();
 
@@ -99,8 +149,8 @@ interface AdminSession {
 const activeAdminSessions = new Map<string, AdminSession>();
 const ADMIN_SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours max inactivity session timeout
 
-// Periodic session cleanup
-setInterval(() => {
+// Periodic session cleanup (unref'd for serverless compatibility)
+const sessionCleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [token, session] of activeAdminSessions.entries()) {
     if (now - session.lastAccess > ADMIN_SESSION_TIMEOUT) {
@@ -108,6 +158,10 @@ setInterval(() => {
     }
   }
 }, 10 * 60 * 1000);
+
+if (sessionCleanupTimer && typeof sessionCleanupTimer.unref === 'function') {
+  sessionCleanupTimer.unref();
+}
 
 let customAdminPassword = "";
 
@@ -1833,12 +1887,20 @@ async function loadCanonicalSettingsFromGithub(customToken?: string, customRepo?
 }
 
 // Initialize memory cache on boot with bundled file fallback, then trigger canonical load
-inMemorySettingsCache = loadSettingsFromFile();
-generateSitemapAndRobots(inMemorySettingsCache);
+try {
+  inMemorySettingsCache = loadSettingsFromFile();
+  generateSitemapAndRobots(inMemorySettingsCache);
+} catch (bootErr) {
+  console.warn("Initial settings load warning:", bootErr);
+}
 
-loadCanonicalSettingsFromGithub().catch(err => {
-  console.warn("Startup canonical settings fetch warning:", err);
-});
+try {
+  loadCanonicalSettingsFromGithub().catch(err => {
+    console.warn("Startup canonical settings fetch warning:", err);
+  });
+} catch (ghErr) {
+  console.warn("Startup GitHub fetch invocation error:", ghErr);
+}
 
 function saveDraftSettings(updatedSettings: any) {
   try {
@@ -2902,16 +2964,28 @@ app.all("/api/*", (req, res) => {
 
 // Vercel Serverless Function Handler
 export default function handler(req: any, res: any) {
-  if (req.url) {
-    if (!req.url.startsWith("/api/") && !req.url.startsWith("/api?")) {
-      if (req.url === "/api") {
-        req.url = "/api/";
-      } else {
-        req.url = "/api" + (req.url.startsWith("/") ? req.url : "/" + req.url);
+  try {
+    if (req.url) {
+      if (!req.url.startsWith("/api/") && !req.url.startsWith("/api?") && req.url !== "/robots.txt" && req.url !== "/sitemap.xml" && !req.url.startsWith("/uploads/")) {
+        if (req.url === "/api") {
+          req.url = "/api/";
+        } else {
+          req.url = "/api" + (req.url.startsWith("/") ? req.url : "/" + req.url);
+        }
       }
     }
+    return app(req, res);
+  } catch (err: any) {
+    console.error("Vercel Serverless Handler Error:", err);
+    if (res && !res.headersSent) {
+      res.setHeader("Content-Type", "application/json");
+      return res.status(500).json({
+        success: false,
+        error: "Sunucu içi beklenmeyen bir hata oluştu.",
+        details: err?.message || String(err)
+      });
+    }
   }
-  return app(req, res);
 }
 
 export { app };
