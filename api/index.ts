@@ -681,6 +681,24 @@ app.post("/api/newsletter/send-bulk", async (req, res) => {
 });
 
 // MODULAR SITE SETTINGS ENDPOINTS & PERSISTENCE DIAGNOSTICS ENGINE
+interface DeploymentSession {
+  id: string;
+  repo: string;
+  branch: string;
+  commitSha?: string;
+  status: 'VALIDATING' | 'UPLOADING' | 'COMMITTED' | 'WAITING_VERCEL' | 'BUILDING' | 'DEPLOYING' | 'READY' | 'ERROR';
+  stepIndex: number;
+  logs: string[];
+  startTime: number;
+  endTime?: number;
+  durationSeconds?: number;
+  durationString?: string;
+  error?: string;
+  userToken?: string;
+}
+
+let activeDeploymentSession: DeploymentSession | null = null;
+
 let inMemorySettingsCache: any = {};
 let inMemoryRobots = "";
 let inMemorySitemap = "";
@@ -693,18 +711,33 @@ let lastPersistenceError: string | null = null;
 let githubHeroImageVerified: string = '';
 
 function getPersistenceDiagnostics() {
-  const { repo, branch } = getGithubConfig();
-  return {
-    source: lastSettingsSource,
-    lastCommitSha: lastSettingsCommitSha || 'None',
-    lastPublishedAt: lastPublishedAt || 'Never',
-    currentHeroImage: inMemorySettingsCache?.images?.heroImage || '',
-    githubHeroImage: githubHeroImageVerified || inMemorySettingsCache?.images?.heroImage || '',
-    status: persistenceStatus,
-    lastError: lastPersistenceError,
-    repo,
-    branch
-  };
+  try {
+    const { repo, branch } = getGithubConfig();
+    return {
+      source: lastSettingsSource || 'Bundled Fallback',
+      lastCommitSha: lastSettingsCommitSha || 'None',
+      lastPublishedAt: lastPublishedAt || 'Never',
+      currentHeroImage: inMemorySettingsCache?.images?.heroImage || '',
+      githubHeroImage: githubHeroImageVerified || inMemorySettingsCache?.images?.heroImage || '',
+      status: persistenceStatus || 'SYNCHRONIZED',
+      lastError: lastPersistenceError,
+      repo: repo || '',
+      branch: branch || ''
+    };
+  } catch (err: any) {
+    console.error("Error generating persistence diagnostics:", err);
+    return {
+      source: lastSettingsSource || 'Bundled Fallback',
+      lastCommitSha: lastSettingsCommitSha || 'None',
+      lastPublishedAt: lastPublishedAt || 'Never',
+      currentHeroImage: '',
+      githubHeroImage: '',
+      status: 'ERROR',
+      lastError: String(err?.message || err),
+      repo: '',
+      branch: ''
+    };
+  }
 }
 
 // Helper to push files directly to GitHub repository using GitHub Contents API
@@ -1724,14 +1757,24 @@ app.get("/sitemap.xml", (_req, res) => {
 
 // Load initial settings from bundled static file if available (local fallback)
 function loadSettingsFromFile(): any {
-  try {
-    const settingsPath = path.join(process.cwd(), "public", "site_settings.json");
-    if (fs.existsSync(settingsPath)) {
-      const content = fs.readFileSync(settingsPath, "utf-8");
-      return JSON.parse(content);
+  const possiblePaths = [
+    path.join(process.cwd(), "public", "site_settings.json"),
+    path.join(process.cwd(), "dist", "public", "site_settings.json"),
+    path.resolve("public", "site_settings.json")
+  ];
+
+  for (const settingsPath of possiblePaths) {
+    try {
+      if (fs.existsSync(settingsPath)) {
+        const content = fs.readFileSync(settingsPath, "utf-8");
+        const parsed = JSON.parse(content);
+        if (parsed && typeof parsed === 'object') {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn(`Could not load site_settings.json from ${settingsPath}:`, e);
     }
-  } catch (e) {
-    console.warn("Could not load site_settings.json from bundled disk:", e);
   }
   return {};
 }
@@ -2028,24 +2071,6 @@ function saveSettingsToFile(updatedSettings: any, customToken?: string, customRe
     });
   }
 }
-
-interface DeploymentSession {
-  id: string;
-  repo: string;
-  branch: string;
-  commitSha?: string;
-  status: 'VALIDATING' | 'UPLOADING' | 'COMMITTED' | 'WAITING_VERCEL' | 'BUILDING' | 'DEPLOYING' | 'READY' | 'ERROR';
-  stepIndex: number;
-  logs: string[];
-  startTime: number;
-  endTime?: number;
-  durationSeconds?: number;
-  durationString?: string;
-  error?: string;
-  userToken?: string;
-}
-
-let activeDeploymentSession: DeploymentSession | null = null;
 
 async function checkVercelDeploymentStatus(repo: string, commitSha?: string, token?: string): Promise<'BUILDING' | 'DEPLOYING' | 'READY' | 'ERROR' | 'UNKNOWN'> {
   if (!commitSha) return 'UNKNOWN';
@@ -2564,18 +2589,39 @@ app.post(["/api/deploy-cancel", "/api/deploy-reset"], (_req, res) => {
 });
 
 app.get("/api/settings", async (_req, res) => {
-  return res.json({
-    success: true,
-    settings: inMemorySettingsCache,
-    diagnostics: getPersistenceDiagnostics()
-  });
+  try {
+    if (!inMemorySettingsCache || Object.keys(inMemorySettingsCache).length === 0) {
+      inMemorySettingsCache = loadSettingsFromFile();
+    }
+    return res.json({
+      success: true,
+      settings: inMemorySettingsCache || {},
+      diagnostics: getPersistenceDiagnostics()
+    });
+  } catch (err: any) {
+    console.error("Error in GET /api/settings:", err);
+    return res.status(500).json({
+      success: false,
+      error: "Ayarlar alınırken sunucu hatası oluştu.",
+      details: err?.message || String(err)
+    });
+  }
 });
 
 app.get("/api/settings/diagnostics", async (_req, res) => {
-  return res.json({
-    success: true,
-    diagnostics: getPersistenceDiagnostics()
-  });
+  try {
+    return res.json({
+      success: true,
+      diagnostics: getPersistenceDiagnostics()
+    });
+  } catch (err: any) {
+    console.error("Error in GET /api/settings/diagnostics:", err);
+    return res.status(500).json({
+      success: false,
+      error: "Teşhis bilgileri alınırken sunucu hatası oluştu.",
+      details: err?.message || String(err)
+    });
+  }
 });
 
 app.post("/api/publish-settings", async (req, res) => {
