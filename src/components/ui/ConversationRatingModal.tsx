@@ -32,6 +32,9 @@ export const ConversationRatingModal: React.FC<ConversationRatingModalProps> = (
   const handleRatingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     conversationLogger.rateSession(sessionId, ratingStars, feedbackNotes);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ic_assistant_rated', 'true');
+    }
     setIsSubmitted(true);
 
     setTimeout(() => {

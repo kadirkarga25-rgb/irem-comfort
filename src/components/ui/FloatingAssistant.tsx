@@ -38,6 +38,15 @@ export const FloatingAssistant: React.FC = () => {
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Check if visitor sent at least one message and if they already submitted a rating
+  const hasVisitorSentMessage = messages.some(m => m.sender === 'visitor');
+  const [hasAlreadyRated, setHasAlreadyRated] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('ic_assistant_rated') === 'true';
+    }
+    return false;
+  });
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -66,6 +75,18 @@ export const FloatingAssistant: React.FC = () => {
 
   const handleQuickAction = (payload: string) => {
     sendMessage(payload);
+  };
+
+  // Close handler adhering strictly to user evaluation rules:
+  // 1. If visitor did NOT send any message: DO NOT ask for evaluation, just close.
+  // 2. If visitor already rated before: DO NOT ask for evaluation, just close.
+  // 3. Only prompt evaluation if visitor sent a message AND hasn't rated yet.
+  const handleAttemptClose = () => {
+    if (hasVisitorSentMessage && !hasAlreadyRated) {
+      setIsRatingModalOpen(true);
+    } else {
+      closeChat();
+    }
   };
 
   return (
@@ -111,23 +132,36 @@ export const FloatingAssistant: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* 2. Floating Toggle Button */}
+      {/* 2. Premium Floating Toggle Button */}
       {!isOpen && (
         <motion.button
           onClick={toggleChat}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="relative group w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-tr from-[#082C6C] via-[#0D3B8B] to-[#124BAA] text-white shadow-2xl border-2 border-white/80 flex items-center justify-center cursor-pointer overflow-hidden z-40"
-          aria-label="Dijital Satış Danışmanı"
+          className="relative group flex items-center gap-3 px-4 py-3 sm:px-5 sm:py-3.5 rounded-full bg-gradient-to-r from-[#062050] via-[#082C6C] to-[#0A3680] text-white shadow-2xl border-2 border-[#D4AF37] cursor-pointer overflow-hidden z-40 transition-all hover:shadow-amber-500/20 active:scale-95"
+          aria-label="İrem Comfort Dijital Satış Danışmanı"
         >
-          {/* Subtle gold ring effect */}
-          <div className="absolute inset-0 rounded-full border border-amber-400/30 group-hover:border-amber-400/70 transition-colors" />
+          {/* Subtle gold outer pulse ring */}
+          <div className="absolute inset-0 rounded-full border border-amber-400/40 group-hover:border-amber-400/80 transition-colors" />
 
-          <Bot className="w-7 h-7 sm:w-8 sm:h-8 text-amber-300 drop-shadow" />
+          <div className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-amber-400/20 border border-amber-300/50 flex items-center justify-center text-amber-300 shrink-0">
+            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300 animate-pulse" />
+          </div>
+
+          <div className="text-left pr-1">
+            <span className="block text-xs sm:text-sm font-extrabold tracking-tight text-white leading-none">
+              Canlı Danışman
+            </span>
+            <span className="block text-[9px] sm:text-[10px] text-amber-300 font-medium leading-tight mt-0.5">
+              Online Asistan
+            </span>
+          </div>
+
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse ml-0.5 shrink-0" />
 
           {/* Unread badge indicator */}
           {hasUnread && (
-            <span className="absolute top-1 right-1 w-4 h-4 bg-amber-400 rounded-full border-2 border-white animate-pulse" />
+            <span className="absolute top-1 right-1 w-3.5 h-3.5 bg-amber-400 rounded-full border-2 border-white animate-pulse" />
           )}
         </motion.button>
       )}
@@ -145,34 +179,36 @@ export const FloatingAssistant: React.FC = () => {
             onTouchMove={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#082C6C] via-[#0b357f] to-[#124BAA] p-4 text-white flex items-center justify-between shrink-0 shadow-md">
+            <div className="bg-gradient-to-r from-[#062050] via-[#082C6C] to-[#0D3B8B] p-4 text-white flex items-center justify-between shrink-0 shadow-md">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center text-amber-300">
+                <div className="w-10 h-10 rounded-full bg-amber-400/20 backdrop-blur border border-amber-300/40 flex items-center justify-center text-amber-300">
                   <Bot className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
                     <h3 className="text-sm font-bold tracking-tight">İrem Comfort Danışman</h3>
                     <span className="px-1.5 py-0.5 rounded bg-amber-400/20 border border-amber-300/40 text-amber-300 font-extrabold text-[9px] tracking-widest uppercase shadow-sm">
-                      BETA
+                      CANLI
                     </span>
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
                   </div>
-                  <p className="text-[10px] text-purple-200 font-light">
-                    {crmRecord.isHumanOperatorActive ? '🟢 Canlı Müşteri Temsilcisi Bağlandı' : 'Canlı Hakiki Deri Asistanı'}
+                  <p className="text-[10px] text-amber-200/80 font-light">
+                    {crmRecord.isHumanOperatorActive ? '🟢 Canlı Müşteri Temsilcisi Bağlandı' : 'Manisa Atölye Dijital Asistanı'}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setIsRatingModalOpen(true)}
-                  className="p-1.5 bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors border border-amber-300/40 cursor-pointer"
-                  title="Sohbeti Değerlendir"
-                >
-                  <Star className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
-                  <span className="hidden sm:inline">Değerlendir</span>
-                </button>
+                {hasVisitorSentMessage && !hasAlreadyRated && (
+                  <button
+                    onClick={() => setIsRatingModalOpen(true)}
+                    className="p-1.5 bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors border border-amber-300/40 cursor-pointer"
+                    title="Sohbeti Değerlendir"
+                  >
+                    <Star className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                    <span className="hidden sm:inline">Değerlendir</span>
+                  </button>
+                )}
                 <button
                   onClick={openHumanSupportModal}
                   className="p-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors border border-white/20 cursor-pointer"
@@ -189,18 +225,12 @@ export const FloatingAssistant: React.FC = () => {
                   <Trash2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => {
-                    if (messages.length > 2) {
-                      setIsRatingModalOpen(true);
-                    } else {
-                      closeChat();
-                    }
-                  }}
-                  className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
-                  aria-label="Kapat & Değerlendir"
+                  onClick={handleAttemptClose}
+                  className="p-2 text-white hover:bg-white/20 rounded-full transition-colors cursor-pointer"
+                  aria-label="Kapat"
                   title="Kapat"
                 >
-                  <ChevronDown className="w-5 h-5" />
+                  <X className="w-5 h-5 text-amber-300" />
                 </button>
               </div>
             </div>
@@ -408,14 +438,16 @@ export const FloatingAssistant: React.FC = () => {
 
             {/* Quick Chips Bar & End Conversation Action */}
             <div className="px-3 py-2 bg-slate-100 border-t border-slate-200/80 flex items-center gap-1.5 overflow-x-auto shrink-0 scrollbar-none">
-              <button
-                type="button"
-                onClick={() => setIsRatingModalOpen(true)}
-                className="px-2.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-950 border border-amber-500 rounded-full text-[10px] font-extrabold whitespace-nowrap transition-colors cursor-pointer shrink-0 shadow-sm flex items-center gap-1"
-              >
-                <Star className="w-3 h-3 fill-slate-950" />
-                <span>Sohbeti Bitir & Değerlendir</span>
-              </button>
+              {hasVisitorSentMessage && !hasAlreadyRated && (
+                <button
+                  type="button"
+                  onClick={() => setIsRatingModalOpen(true)}
+                  className="px-2.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-950 border border-amber-500 rounded-full text-[10px] font-extrabold whitespace-nowrap transition-colors cursor-pointer shrink-0 shadow-sm flex items-center gap-1"
+                >
+                  <Star className="w-3 h-3 fill-slate-950" />
+                  <span>Sohbeti Bitir & Değerlendir</span>
+                </button>
+              )}
               {[
                 'Kargo ne zaman gelir?',
                 'Toptan sipariş şartları',
@@ -425,7 +457,7 @@ export const FloatingAssistant: React.FC = () => {
                 <button
                   key={idx}
                   onClick={() => sendMessage(prompt)}
-                  className="px-2.5 py-1 bg-white hover:bg-purple-100 hover:text-purple-900 border border-slate-200 rounded-full text-[10px] font-bold text-slate-600 whitespace-nowrap transition-colors cursor-pointer shrink-0"
+                  className="px-2.5 py-1 bg-white hover:bg-blue-50 hover:text-[#082C6C] hover:border-blue-300 border border-slate-200 rounded-full text-[10px] font-bold text-slate-600 whitespace-nowrap transition-colors cursor-pointer shrink-0 shadow-2xs"
                 >
                   {prompt}
                 </button>
@@ -439,14 +471,15 @@ export const FloatingAssistant: React.FC = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Bir soru yazın..."
-                className="flex-1 py-2 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#082C6C]"
+                className="flex-1 py-2.5 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-[#082C6C] text-slate-900"
               />
               <button
                 type="submit"
                 disabled={!input.trim()}
-                className="w-9 h-9 bg-[#082C6C] hover:bg-[#061f4d] disabled:opacity-40 text-white rounded-xl flex items-center justify-center transition-all cursor-pointer shadow-sm shrink-0"
+                className="w-10 h-10 bg-[#062050] hover:bg-[#082C6C] disabled:opacity-40 text-amber-300 rounded-xl flex items-center justify-center transition-all cursor-pointer shadow-md shrink-0 border border-amber-300/30 active:scale-95"
+                title="Mesaj Gönder"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-4 h-4 text-amber-300 fill-amber-300/20" />
               </button>
             </form>
 

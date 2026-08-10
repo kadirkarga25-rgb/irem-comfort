@@ -22,6 +22,7 @@ import { BackupAdminTab } from './BackupAdminTab';
 import { AiTrainingAdminTab } from './AiTrainingAdminTab';
 import { InfrastructureAdminTab } from './InfrastructureAdminTab';
 import { ConversationLogsAdminTab } from './ConversationLogsAdminTab';
+import { TestimonialsAdminTab } from './TestimonialsAdminTab';
 import { FirstTimeSetupModal } from './FirstTimeSetupModal';
 import { EMAIL_TEMPLATES, renderEmailHtml } from '../../utils/emailTemplates';
 import { 
@@ -32,7 +33,7 @@ import {
   Mail, Server, AtSign, Save, MailCheck, CheckCircle2, Shield,
   Users, Download, Copy, Trash2, Plus, Search, Phone, HelpCircle,
   GitBranch, Globe, FileImage, Video, RefreshCw, PowerOff, Palette, BarChart3, Activity,
-  Layout, Database, GraduationCap, ChevronLeft, ChevronRight, Menu, X, Smartphone, BellRing, BellOff, Volume2
+  Layout, Database, GraduationCap, ChevronLeft, ChevronRight, Menu, X, Smartphone, BellRing, BellOff, Volume2, Star
 } from 'lucide-react';
 import { pwaNotificationService } from '../../services/pwaNotificationService';
 
@@ -133,13 +134,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     resetAboutSlides,
     systemConfig,
     updateSystemConfig,
+    testimonials,
     triggerDeploy,
     isDirty,
     setIsDirty,
     markDirty,
     getCurrentAdminState,
     saveAllChanges,
-    discardUnsavedChanges
+    discardUnsavedChanges,
+    isSettingsLoaded
   } = useAppImages();
 
   // Authentication & Session Security State
@@ -184,7 +187,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   }, [isAuthenticated, sessionToken]);
 
   // Admin Panel Tabs
-  const [activeTab, setActiveTab] = useState<'overview' | 'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'page_builder' | 'presets' | 'leads' | 'newsletter' | 'email' | 'system' | 'media' | 'deployment_exp' | 'seo' | 'appearance' | 'crm' | 'analytics' | 'security' | 'ai_arch' | 'live_monitor' | 'backup' | 'ai_training' | 'infrastructure' | 'conv_logs'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'page_builder' | 'presets' | 'leads' | 'crm' | 'testimonials' | 'newsletter' | 'email' | 'system' | 'media' | 'deployment_exp' | 'seo' | 'appearance' | 'analytics' | 'security' | 'ai_arch' | 'live_monitor' | 'backup' | 'ai_training' | 'infrastructure' | 'conv_logs'>('overview');
 
   // Sidebar Layout States
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
@@ -204,6 +207,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
       case 'media': return 'Medya Kütüphanesi';
       case 'leads': return 'Müşteri Talepleri';
       case 'crm': return 'Müşteriler & CRM Portalı';
+      case 'testimonials': return 'Müşteri Değerlendirmeleri & Yorumlar';
       case 'newsletter': return 'Haber Bülteni & Şablonlar';
       case 'faq': return 'Sıkça Sorulan Sorular';
       case 'contact': return 'İletişim & Duyuru Bandı';
@@ -1192,6 +1196,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
       items: [
         { id: 'leads', label: 'Müşteri Talepleri', icon: MessageSquare, countBadge: contactLeads.length, badgeColor: 'text-emerald-400' },
         { id: 'crm', label: 'Müşteriler & CRM', icon: Users, badgeColor: 'text-emerald-400' },
+        { id: 'testimonials', label: `Müşteri Yorumları (${testimonials.length})`, icon: Star, badgeColor: 'text-amber-400' },
         { id: 'newsletter', label: 'Haber Bülteni', icon: Users, countBadge: subscribers.length, badgeColor: 'text-blue-400' },
         { id: 'faq', label: 'Sıkça Sorulan Sorular', icon: HelpCircle, badgeColor: 'text-amber-400' },
         { id: 'contact', label: 'İletişim & Duyuru Bandı', icon: Phone, badgeColor: 'text-emerald-400' },
@@ -1223,11 +1228,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
   return (
     <div className="min-h-screen bg-slate-100 text-[#111111] font-sans flex flex-col md:flex-row">
-      {/* Mandatory Onboarding Wizard Modal if not completed */}
-      {!systemConfig.isOnboardingCompleted && (
+      {/* Mandatory Onboarding Wizard Modal if explicitly not completed */}
+      {isSettingsLoaded && systemConfig.isOnboardingCompleted === false && localStorage.getItem('irem_onboarding_completed') !== 'true' && (
         <FirstTimeSetupModal 
           sessionToken={sessionToken} 
           onCompleted={() => {
+            try {
+              localStorage.setItem('irem_onboarding_completed', 'true');
+            } catch (e) {}
             updateSystemConfig({ isOnboardingCompleted: true });
           }} 
         />
@@ -3634,6 +3642,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
             )}
 
           </div>
+        )}
+
+        {/* Tab 5.8: TESTIMONIALS & REVIEWS MANAGEMENT */}
+        {activeTab === 'testimonials' && (
+          <TestimonialsAdminTab showToast={showToast} />
         )}
 
         {/* Tab 6: EMAIL & SMTP CONFIGURATION */}

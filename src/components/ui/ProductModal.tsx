@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CollectionItem } from '../../types';
 import { CONTACT_DATA } from '../../constants/data';
-import { X, Check, ShieldCheck, Layers, Palette, ArrowRight } from 'lucide-react';
+import { X, Check, ShieldCheck, Layers, Palette, ArrowRight, Share2, Ruler } from 'lucide-react';
 import { useAppImages } from '../../context/ImageContext';
 import { useConversation } from '../../context/ConversationContext';
+import { SizeGuideModal } from './SizeGuideModal';
 
 interface ProductModalProps {
   item: CollectionItem | null;
@@ -21,8 +22,34 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   const { setActiveProduct } = useConversation();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [copiedShare, setCopiedShare] = useState(false);
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const modalOverlayRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleShare = () => {
+    if (!item) return;
+    const shareUrl = `${window.location.origin}${window.location.pathname}?product=${encodeURIComponent(item.id)}`;
+    const shareData = {
+      title: `${item.name} | İrem Comfort`,
+      text: `${item.name} - %100 Hakiki Deri Bayan Comfort Terlik & Sandalet`,
+      url: shareUrl
+    };
+
+    if (navigator.share) {
+      navigator.share(shareData).catch(() => {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          setCopiedShare(true);
+          setTimeout(() => setCopiedShare(false), 2000);
+        });
+      });
+    } else {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        setCopiedShare(true);
+        setTimeout(() => setCopiedShare(false), 2000);
+      });
+    }
+  };
 
   // Synchronize active product in Visitor Session Memory
   useEffect(() => {
@@ -239,6 +266,17 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                       </div>
                     </div>
                   )}
+
+                  {/* Beden Rehberi Button */}
+                  <div className="pt-2">
+                    <button
+                      onClick={() => setIsSizeGuideOpen(true)}
+                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#0A2D6F] font-extrabold text-xs border border-blue-200 transition-all cursor-pointer shadow-xs active:scale-95"
+                    >
+                      <Ruler className="w-4 h-4 text-[#D4AF37]" />
+                      <span>Beden & Numara Rehberi (36 - 41)</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Key Features */}
@@ -261,6 +299,24 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
               {/* Pinned Action Buttons Row (Always Fixed at Bottom) */}
               <div className="pt-3 sm:pt-4 mt-2 sm:mt-3 border-t border-[#0A2D6F]/10 flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3 shrink-0 bg-white z-10">
+                <button
+                  onClick={handleShare}
+                  className="w-full sm:w-auto py-3 sm:py-3.5 px-4 rounded-full bg-slate-100 hover:bg-slate-200 text-[#062050] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer border border-slate-200 active:scale-95 shrink-0"
+                  title="Ürünü Paylaş"
+                >
+                  {copiedShare ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-600" />
+                      <span className="text-emerald-700">Bağlantı Kopyalandı!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Share2 className="w-4 h-4 text-[#062050]" />
+                      <span>Paylaş</span>
+                    </>
+                  )}
+                </button>
+
                 {targetTrendyolUrl && (
                   <a
                     href={targetTrendyolUrl}
@@ -268,7 +324,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                     rel="noopener noreferrer"
                     className="w-full sm:w-auto py-3 sm:py-3.5 px-5 rounded-full bg-[#F27A1A] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-[#d9660c] transition-all cursor-pointer shadow-md active:scale-95 shrink-0"
                   >
-                    <span>Trendyol'dan Satın Al</span>
+                    <span>Trendyol Anavelle'den Satın Al</span>
                     <ArrowRight className="w-4 h-4" />
                   </a>
                 )}
@@ -290,6 +346,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({
           </div>
         </motion.div>
       </div>
+
+      {/* Size Guide Modal */}
+      <SizeGuideModal
+        isOpen={isSizeGuideOpen}
+        onClose={() => setIsSizeGuideOpen(false)}
+      />
     </AnimatePresence>
   );
 };

@@ -172,7 +172,7 @@ export class ConversationEngine {
           addUniqueSentence(`Taraklı veya ödemli ayaklar için cırt cırtlı ve ayarlanabilir tokalı terlik modellerimiz ekstra rahatlık sunmaktadır.`);
         }
       } else if (intent.primaryIntent === 'purchase_location' || intent.isExplicitPurchaseRequested) {
-        addUniqueSentence(`"${activeProd.name}" modelimizi İrem Comfort resmi Trendyol mağazamızdan veya Manisa atölyemizden sipariş verebilirsiniz.`);
+        addUniqueSentence(`"${activeProd.name}" modelimizi Trendyol yetkili satıcımız **Anavelle** mağazamızdan veya Manisa atölyemizden sipariş verebilirsiniz.`);
       }
     }
 

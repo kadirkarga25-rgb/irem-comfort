@@ -79,7 +79,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   className="inline-flex items-center gap-2.5 px-7 py-4 rounded-full bg-[#F27A1A] text-white font-bold text-sm tracking-wider uppercase transition-all duration-300 hover:bg-[#d9660c] hover:shadow-xl hover:shadow-[#F27A1A]/30 active:scale-95 cursor-pointer"
                 >
                   <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
-                  <span>Trendyol'da Satın Al</span>
+                  <span>Trendyol Anavelle'den Satın Al</span>
                 </a>
               )}
 

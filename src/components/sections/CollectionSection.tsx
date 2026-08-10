@@ -1,46 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { COLLECTION_ITEMS } from '../../constants/data';
 import { CollectionItem } from '../../types';
 import { ProductModal } from '../ui/ProductModal';
-import { Eye, ArrowUpRight, Sparkles } from 'lucide-react';
+import { Eye, ArrowRight, Sparkles, ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
 import { useAppImages } from '../../context/ImageContext';
 
 interface CollectionSectionProps {
   onInquireProduct: (productName: string) => void;
+  onOpenProductsPage?: () => void;
 }
 
 export const CollectionSection: React.FC<CollectionSectionProps> = ({
-  onInquireProduct
+  onInquireProduct,
+  onOpenProductsPage
 }) => {
-  const { images, collectionItems } = useAppImages();
-  const [selectedCategory, setSelectedCategory] = useState<string>('Tümü');
+  const { images, collectionItems, t, language } = useAppImages();
   const [activeModalItem, setActiveModalItem] = useState<CollectionItem | null>(null);
-
-  const categories = ['Tümü', 'Bayan Comfort Terlik', 'Bayan Comfort Sandalet', 'Sabo & Ortopedik Terlik', 'Mantar Taban Terlik'];
+  const [featuredIndex, setFeaturedIndex] = useState(0);
 
   const itemsToDisplay = collectionItems && collectionItems.length > 0 ? collectionItems : COLLECTION_ITEMS;
 
-  const filteredItems = selectedCategory === 'Tümü'
-    ? itemsToDisplay
-    : itemsToDisplay.filter(item => item.category === selectedCategory);
+  // Auto-rotate the featured banner models every 5 seconds
+  useEffect(() => {
+    if (itemsToDisplay.length <= 3) return;
+    const interval = setInterval(() => {
+      setFeaturedIndex((prev) => (prev + 3) % itemsToDisplay.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [itemsToDisplay]);
+
+  // Pick 3 items based on featuredIndex
+  const currentShowcaseItems = [
+    itemsToDisplay[featuredIndex % itemsToDisplay.length],
+    itemsToDisplay[(featuredIndex + 1) % itemsToDisplay.length],
+    itemsToDisplay[(featuredIndex + 2) % itemsToDisplay.length],
+  ].filter(Boolean);
+
+  const handleNextShowcase = () => {
+    setFeaturedIndex((prev) => (prev + 1) % itemsToDisplay.length);
+  };
+
+  const handlePrevShowcase = () => {
+    setFeaturedIndex((prev) => (prev - 1 + itemsToDisplay.length) % itemsToDisplay.length);
+  };
 
   return (
-    <section id="collection" className="py-24 sm:py-32 bg-white relative">
+    <section id="collection" className="py-20 sm:py-28 bg-gradient-to-b from-slate-50 via-white to-slate-50 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
-          <div className="space-y-4 max-w-2xl">
+        {/* Section Header with Actions */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+          <div className="space-y-3 max-w-2xl">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="inline-flex items-center gap-2 text-xs font-semibold tracking-widest text-[#0A2D6F] uppercase"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-xs font-extrabold tracking-widest text-[#0A2D6F] uppercase"
             >
-              <Sparkles className="w-4 h-4 text-[#0A2D6F]" />
-              <span>Manisa İmalatı Hakiki Deri Koleksiyonu</span>
+              <Sparkles className="w-4 h-4 text-[#D4AF37]" />
+              <span>{language === 'tr' ? 'Öne Çıkan Sezon Modelleri' : language === 'en' ? 'Featured Seasonal Showcase' : 'تشكيلة الموسم المميزة'}</span>
             </motion.div>
 
             <motion.h2
@@ -58,118 +78,111 @@ export const CollectionSection: React.FC<CollectionSectionProps> = ({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.7, delay: 0.2 }}
-              className="text-base text-[#111111]/70 font-light"
+              className="text-xs sm:text-sm text-[#111111]/70 font-medium leading-relaxed"
             >
-              Her bir model Manisa Ayakkabıcılar Sitesindeki atölyemizde hakiki deri saya ve ortopedik kavisli tabanlarla üretilir. Detaylı ürün özelliklerini ve numara seçeneklerini görmek için tıklayın.
+              Manisa atölyemizde imal edilen %100 hakiki deri bayan terlik, sandalet ve ortopedik sabo modellerimizden öne çıkanlar. Tüm kataloğumuzu detaylı filtrelerle incelemek için Ürünler Sayfamıza geçiş yapabilirsiniz.
             </motion.p>
           </div>
 
-          {/* Category Filter Pills */}
-          <div className="flex flex-wrap items-center gap-2 border-b sm:border-none border-[#0A2D6F]/10 pb-4 sm:pb-0">
-            {categories.map((cat) => {
-              const isSelected = selectedCategory === cat;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
-                    isSelected
-                      ? 'bg-[#0A2D6F] text-white shadow-lg shadow-[#0A2D6F]/20'
-                      : 'bg-[#F8F8F8] text-[#111111]/70 hover:bg-[#0A2D6F]/10 hover:text-[#0A2D6F]'
-                  }`}
-                >
-                  {cat}
-                </button>
-              );
-            })}
+          {/* Carousel Controls & Products Page Button */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1.5 bg-white p-1 rounded-2xl shadow-sm border border-slate-200">
+              <button
+                onClick={handlePrevShowcase}
+                className="p-2 rounded-xl hover:bg-slate-100 text-[#062050] transition-colors cursor-pointer"
+                title="Önceki Modeller"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <span className="text-[11px] font-bold text-slate-500 px-2 font-mono">
+                {Math.floor(featuredIndex / 3) + 1} / {Math.ceil(itemsToDisplay.length / 3)}
+              </span>
+              <button
+                onClick={handleNextShowcase}
+                className="p-2 rounded-xl hover:bg-slate-100 text-[#062050] transition-colors cursor-pointer"
+                title="Sonraki Modeller"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+
+            {onOpenProductsPage && (
+              <button
+                onClick={onOpenProductsPage}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#062050] hover:bg-[#163E87] text-white text-xs font-extrabold uppercase tracking-wider shadow-lg shadow-[#062050]/20 transition-all cursor-pointer active:scale-95"
+              >
+                <ShoppingBag className="w-4 h-4 text-[#D4AF37]" />
+                <span>{t.navProductsPage || 'Tüm Ürünler Sayfası'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Product Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* 3-Model Showcase Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
           <AnimatePresence mode="popLayout">
-            {filteredItems.map((item, index) => (
+            {currentShowcaseItems.map((item, index) => (
               <motion.div
-                key={item.id}
+                key={`${item.id}-${featuredIndex}-${index}`}
                 layout
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.5, delay: index * 0.08 }}
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.4, delay: index * 0.08 }}
                 onClick={() => setActiveModalItem(item)}
-                className="group relative bg-[#F8F8F8] rounded-3xl overflow-hidden border border-[#0A2D6F]/10 hover:border-[#0A2D6F]/30 transition-all duration-500 hover:shadow-2xl cursor-pointer flex flex-col justify-between"
+                className="group relative bg-white rounded-3xl overflow-hidden border border-slate-200 hover:border-[#062050]/40 transition-all duration-500 hover:shadow-2xl cursor-pointer flex flex-col justify-between"
               >
-                {/* Product Image Showcase */}
-                <div className="relative h-80 sm:h-96 w-full overflow-hidden bg-gradient-to-br from-[#062050] to-[#0A2D6F] flex items-center justify-center">
+                {/* Product Image */}
+                <div className="relative h-72 sm:h-80 w-full overflow-hidden bg-gradient-to-br from-[#062050] to-[#0A2D6F] flex items-center justify-center">
                   {(images.collectionImages[item.id]?.image || item.image) ? (
                     <img
                       src={images.collectionImages[item.id]?.image || item.image}
                       alt={item.name}
                       className="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-700 ease-out"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        if (target.src.includes('/public/uploads/')) {
-                          const parts = target.src.split('/public/uploads/');
-                          if (parts[1]) {
-                            target.src = '/uploads/' + parts[1];
-                            return;
-                          }
-                        }
-                      }}
                     />
                   ) : (
                     <div className="p-6 text-center text-white space-y-2">
-                      <div className="w-12 h-12 rounded-xl bg-white/10 border border-[#D4AF37]/30 flex items-center justify-center mx-auto text-[#D4AF37]">
-                        <Sparkles className="w-6 h-6" />
-                      </div>
-                      <span className="text-[10px] font-bold tracking-widest uppercase text-[#D4AF37] block">
-                        Fotoğraf Ekleyin
-                      </span>
-                      <p className="text-xs text-slate-300 font-medium">Görsel Bekleniyor</p>
+                      <Sparkles className="w-8 h-8 text-[#D4AF37] mx-auto" />
+                      <span className="text-xs font-bold text-[#D4AF37] block">Hakiki Deri</span>
                     </div>
                   )}
-                  
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                  {/* Top Category Badge */}
-                  <div className="absolute top-4 left-4 z-10 px-3.5 py-1 rounded-full bg-white/90 backdrop-blur-md text-[#0A2D6F] text-[10px] font-bold tracking-widest uppercase shadow-sm">
+                  {/* Top Badge */}
+                  <div className="absolute top-4 left-4 z-10 px-3.5 py-1 rounded-full bg-white/95 backdrop-blur-md text-[#062050] text-[10px] font-extrabold tracking-wider uppercase shadow-sm">
                     {item.category}
                   </div>
 
-                  {/* Hover Overlay Button */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-100 scale-95 z-10">
-                    <span className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-[#0A2D6F] font-semibold text-xs uppercase tracking-wider shadow-xl">
+                  {/* Hover Overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 z-10 bg-black/20">
+                    <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-[#062050] font-extrabold text-xs uppercase tracking-wider shadow-xl">
                       <Eye className="w-4 h-4" />
-                      <span>Detayları İncele</span>
+                      <span>{t.productsDetailsBtn || 'Detayları İncele'}</span>
                     </span>
                   </div>
                 </div>
 
-                {/* Card Info Content */}
-                <div className="p-6 space-y-3 bg-white flex-1 flex flex-col justify-between border-t border-[#0A2D6F]/5">
+                {/* Card Information */}
+                <div className="p-6 space-y-3 flex-1 flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-xl font-bold text-[#111111] font-serif-luxury group-hover:text-[#0A2D6F] transition-colors">
-                        {item.name}
-                      </h3>
-                      <ArrowUpRight className="w-5 h-5 text-[#0A2D6F]/40 group-hover:text-[#0A2D6F] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
-                    </div>
-                    <p className="text-xs text-[#111111]/60 font-medium mt-1">
+                    <h3 className="text-lg font-extrabold text-slate-900 font-serif-luxury group-hover:text-[#062050] transition-colors">
+                      {item.name}
+                    </h3>
+                    <p className="text-xs font-bold text-blue-700 mt-1">
                       {item.subtitle}
                     </p>
                   </div>
 
-                  <p className="text-xs text-[#111111]/70 font-light line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-slate-600 font-medium line-clamp-2 leading-relaxed">
                     {item.description}
                   </p>
 
-                  {/* Materials Tag Strip */}
-                  <div className="pt-3 border-t border-[#0A2D6F]/10 flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-[11px] font-semibold text-[#0A2D6F] tracking-wide">
-                      {item.materials[0]}
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+                      {item.materials[0] || 'Hakiki Deri'}
                     </span>
-                    <span className="text-[10px] text-[#111111]/50 uppercase tracking-wider font-mono">
-                      Özel El İşçiliği
+                    <span className="text-[11px] font-extrabold text-[#062050]">
+                      İrem Comfort
                     </span>
                   </div>
                 </div>
@@ -177,6 +190,28 @@ export const CollectionSection: React.FC<CollectionSectionProps> = ({
               </motion.div>
             ))}
           </AnimatePresence>
+        </div>
+
+        {/* Bottom Call to Action Banner to go to Products Page */}
+        <div className="mt-12 bg-gradient-to-r from-[#062050] via-[#0A2D6F] to-[#163E87] rounded-3xl p-6 sm:p-10 text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6 border border-white/10">
+          <div className="space-y-2 text-center sm:text-left">
+            <h3 className="text-xl sm:text-2xl font-bold font-serif-luxury">
+              Tüm Bayan Comfort Koleksiyonumuzu & Kataloğumuzu İnceleyin
+            </h3>
+            <p className="text-xs sm:text-sm text-blue-100/80 font-medium">
+              Manisa imalatımız ortopedik sabo, mantar taban ve hakiki deri sandalet modellerimizin tamamı ayrı ürünler sayfamızda!
+            </p>
+          </div>
+
+          {onOpenProductsPage && (
+            <button
+              onClick={onOpenProductsPage}
+              className="px-8 py-4 rounded-full bg-[#D4AF37] hover:bg-amber-400 text-[#062050] font-black text-xs uppercase tracking-widest shadow-2xl transition-all cursor-pointer whitespace-nowrap active:scale-95 shrink-0 flex items-center gap-2"
+            >
+              <span>Ürünler Sayfasına Git</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
       </div>

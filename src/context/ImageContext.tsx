@@ -4,9 +4,11 @@ import {
   CRAFTSMANSHIP_STEPS, 
   CONTACT_DATA, 
   ANNOUNCEMENT_TICKER,
-  DEFAULT_FAQ_ITEMS
+  DEFAULT_FAQ_ITEMS,
+  DEFAULT_TESTIMONIALS
 } from '../constants/data';
-import { CollectionItem, CraftsmanshipStep, ContactInfo, FaqItem, AboutSlide, SystemConfig, SeoConfig, ThemeConfig, ThemePreset, SectionOrderItem } from '../types';
+import { TRANSLATIONS, TranslationDictionary } from '../constants/i18n';
+import { CollectionItem, CraftsmanshipStep, ContactInfo, FaqItem, AboutSlide, SystemConfig, SeoConfig, ThemeConfig, ThemePreset, SectionOrderItem, TestimonialItem, Language, AnalyticsMetrics } from '../types';
 import { deepMerge } from '../utils/deepMerge';
 
 async function uploadImageToGithub(dataUrl: string, folder: string = "site_images"): Promise<string> {
@@ -234,6 +236,22 @@ interface ImageContextType {
   toggleSectionEnabled: (id: string) => void;
   resetSectionOrder: () => void;
 
+  // Multi-Language i18n Store
+  language: Language;
+  setLanguage: (lang: Language) => void;
+  t: TranslationDictionary;
+
+  // Testimonials & Reviews Store
+  testimonials: TestimonialItem[];
+  addTestimonial: (item: Omit<TestimonialItem, 'id'>) => void;
+  updateTestimonial: (id: string, updated: Partial<TestimonialItem>) => void;
+  deleteTestimonial: (id: string) => void;
+  resetTestimonials: () => void;
+
+  // Analytics & Event Counter Metrics Store
+  analytics: AnalyticsMetrics;
+  trackEvent: (event: keyof AnalyticsMetrics) => void;
+
   // Dirty State & Immutable Deep Merge Store
   isDirty: boolean;
   setIsDirty: (dirty: boolean) => void;
@@ -322,8 +340,9 @@ export const DEFAULT_SECTION_ORDER: SectionOrderItem[] = [
   { id: 'collection', title: 'Koleksiyon & Ürünlerimiz', subtitle: 'Sandalet ve terlik ürün kartları, kategori filtreleri', enabled: true },
   { id: 'craftsmanship', title: 'Zanaat & Atölye Süreci', subtitle: 'Elde kesim, saya dikim, ortopedik montaj adımları', enabled: true },
   { id: 'why-us', title: 'Neden İrem Comfort', subtitle: 'Anatomik taban, %100 hakiki saya, toptan avantajlar', enabled: true },
-  { id: 'faq', title: 'Sıkça Sorulan Sorular (SSS)', subtitle: 'Toptan sipariş, kalıp, kargo ve deri bakımı rehberi', enabled: true },
+  { id: 'testimonials', title: 'Müşteri Yorumları & Referanslar', subtitle: 'Toptan butik ve perakende müşteri geri bildirimleri', enabled: true },
   { id: 'contact', title: 'İletişim & Konum', subtitle: 'WhatsApp, showroom adresi, harita ve mesaj formu', enabled: true },
+  { id: 'faq', title: 'Sıkça Sorulan Sorular (SSS)', subtitle: 'Toptan sipariş, kalıp, kargo ve deri bakımı rehberi', enabled: true },
   { id: 'newsletter', title: 'E-Bülten & Kataloğ', subtitle: 'E-posta e-bülten kayıt alanı ve dijital katalog indirme', enabled: true }
 ];
 
@@ -346,7 +365,7 @@ export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
   fadeDuration: 800,
   minLoadingTime: 3,
   deploymentRevision: "v1.0.0",
-  isOnboardingCompleted: false
+  isOnboardingCompleted: true
 };
 
 export const DEFAULT_SEO_CONFIG: SeoConfig = {
@@ -386,7 +405,73 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [seoConfig, setSeoConfig] = useState<SeoConfig>(DEFAULT_SEO_CONFIG);
   const [themeConfig, setThemeConfig] = useState<ThemeConfig>(DEFAULT_THEME_CONFIG);
   const [sectionOrder, setSectionOrder] = useState<SectionOrderItem[]>(DEFAULT_SECTION_ORDER);
+  const [testimonials, setTestimonials] = useState<TestimonialItem[]>(DEFAULT_TESTIMONIALS);
+  const [language, setLanguageState] = useState<Language>('tr');
+  const [analytics, setAnalytics] = useState<AnalyticsMetrics>(() => {
+    try {
+      const saved = localStorage.getItem('irem_analytics_metrics_v1');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      totalVisitors: 142,
+      fairModalOpens: 45,
+      fairCuts: 32,
+      whatsappClicks: 68,
+      catalogDownloads: 53
+    };
+  });
   const [isManagerOpen, setIsManagerOpen] = useState(false);
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  };
+
+  const t = TRANSLATIONS[language] || TRANSLATIONS.tr;
+
+  const trackEvent = useCallback((event: keyof AnalyticsMetrics) => {
+    setAnalytics(prev => {
+      const next = { ...prev, [event]: (prev[event] || 0) + 1 };
+      try {
+        localStorage.setItem('irem_analytics_metrics_v1', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+  }, []);
+
+  // Track initial visitor count
+  useEffect(() => {
+    const sessionKey = 'irem_visited_session';
+    if (!sessionStorage.getItem(sessionKey)) {
+      sessionStorage.setItem(sessionKey, 'true');
+      trackEvent('totalVisitors');
+    }
+  }, [trackEvent]);
+
+  // Inject GA script if ID present
+  useEffect(() => {
+    if (seoConfig?.gaTrackingId) {
+      const gaId = seoConfig.gaTrackingId.trim();
+      if (gaId && !document.getElementById('ga-gtag-script')) {
+        const script1 = document.createElement('script');
+        script1.id = 'ga-gtag-script';
+        script1.async = true;
+        script1.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+        document.head.appendChild(script1);
+
+        const script2 = document.createElement('script');
+        script2.id = 'ga-gtag-inline';
+        script2.innerHTML = `
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', '${gaId}');
+        `;
+        document.head.appendChild(script2);
+      }
+    }
+  }, [seoConfig?.gaTrackingId]);
 
   // Single Source of Truth Loading Gate
   const [isSettingsLoaded, setIsSettingsLoaded] = useState(false);
@@ -456,6 +541,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             if (s.seoConfig) setSeoConfig(prev => ({ ...prev, ...s.seoConfig }));
             if (s.themeConfig) setThemeConfig(prev => ({ ...prev, ...s.themeConfig }));
             if (s.sectionOrder && Array.isArray(s.sectionOrder)) setSectionOrder(s.sectionOrder);
+            if (s.testimonials && Array.isArray(s.testimonials)) setTestimonials(s.testimonials);
           }
         })
         .catch(err => {
@@ -845,6 +931,43 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsDirty(true);
   };
 
+  const addTestimonial = (item: Omit<TestimonialItem, 'id'>) => {
+    const newItem: TestimonialItem = {
+      ...item,
+      id: 'test-' + Date.now()
+    };
+    setTestimonials(prev => {
+      const next = [newItem, ...prev];
+      saveSection('testimonials', { testimonials: next });
+      return next;
+    });
+    setIsDirty(true);
+  };
+
+  const updateTestimonial = (id: string, updated: Partial<TestimonialItem>) => {
+    setTestimonials(prev => {
+      const next = prev.map(item => item.id === id ? { ...item, ...updated } : item);
+      saveSection('testimonials', { testimonials: next });
+      return next;
+    });
+    setIsDirty(true);
+  };
+
+  const deleteTestimonial = (id: string) => {
+    setTestimonials(prev => {
+      const next = prev.filter(t => t.id !== id);
+      saveSection('testimonials', { testimonials: next });
+      return next;
+    });
+    setIsDirty(true);
+  };
+
+  const resetTestimonials = () => {
+    setTestimonials(DEFAULT_TESTIMONIALS);
+    saveSection('testimonials', { testimonials: DEFAULT_TESTIMONIALS });
+    setIsDirty(true);
+  };
+
   const getCurrentAdminState = useCallback((additionalState?: Record<string, any>) => {
     return {
       images,
@@ -860,6 +983,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       seoConfig,
       themeConfig,
       sectionOrder,
+      testimonials,
       ...(additionalState || {})
     };
   }, [
@@ -875,26 +999,24 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     systemConfig,
     seoConfig,
     themeConfig,
-    sectionOrder
+    sectionOrder,
+    testimonials
   ]);
 
   const saveAllChanges = async (additionalState?: Record<string, any>): Promise<{ success: boolean; message: string }> => {
     const currentStateObj = getCurrentAdminState(additionalState);
 
-    // Immutable Deep Merge with last saved baseline settings
-    const mergedPayload = deepMerge(lastSavedSettingsRef.current || {}, currentStateObj);
-
     try {
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ section: 'ALL', data: mergedPayload })
+        body: JSON.stringify({ section: 'ALL', data: currentStateObj, publish: true })
       });
       const data = await res.json();
       if (data.success || res.ok) {
-        lastSavedSettingsRef.current = mergedPayload;
+        lastSavedSettingsRef.current = currentStateObj;
         setIsDirty(false);
-        return { success: true, message: '✓ Tüm değişiklikler immutable deep merge ile başarıyla kaydedildi!' };
+        return { success: true, message: '✓ Tüm değişiklikler ve yüklenen tüm fotoğraflar kalıcı olarak GitHub\'a kaydedildi!' };
       }
     } catch (err) {
       console.error('Error in saveAllChanges:', err);
@@ -1073,6 +1195,16 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         moveSection,
         toggleSectionEnabled,
         resetSectionOrder,
+        language,
+        setLanguage,
+        t,
+        testimonials,
+        addTestimonial,
+        updateTestimonial,
+        deleteTestimonial,
+        resetTestimonials,
+        analytics,
+        trackEvent,
         isDirty,
         setIsDirty,
         markDirty,

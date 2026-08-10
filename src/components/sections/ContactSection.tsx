@@ -111,10 +111,10 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
                       <span className="text-xs text-white/90 font-medium">Trendyol Mağazamız</span>
                     </div>
                     <h4 className="text-lg font-bold font-serif-luxury text-white">
-                      Trendyol'da İrem Comfort
+                      Trendyol'da Anavelle Mağazamız
                     </h4>
                     <p className="text-xs text-white/90 font-light">
-                      Modellerimizi Trendyol güvencesiyle online sipariş verin
+                      İrem Comfort modellerimizi Trendyol'da Anavelle mağazamız güvencesiyle sipariş verin
                     </p>
                   </div>
                 </div>

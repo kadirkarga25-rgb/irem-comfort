@@ -71,6 +71,33 @@ export interface AboutSlide {
   alt: string;
 }
 
+export interface TestimonialItem {
+  id: string;
+  name?: string;
+  author?: string;
+  role: string;
+  location?: string;
+  rating: number; // 1-5
+  comment: string;
+  productId?: string;
+  productName?: string;
+  date?: string;
+  type?: 'toptan' | 'perakende';
+  verified?: boolean;
+  avatar?: string;
+  avatarUrl?: string;
+}
+
+export type Language = 'tr' | 'en' | 'ar';
+
+export interface AnalyticsMetrics {
+  totalVisitors: number;
+  fairModalOpens: number;
+  fairCuts: number;
+  whatsappClicks: number;
+  catalogDownloads: number;
+}
+
 export interface SystemConfig {
   maxWaitTimeSeconds?: number;
   isDeploying: boolean;
@@ -103,6 +130,8 @@ export interface SeoConfig {
   canonicalUrl: string;
   robotsTxt: string;
   sitemapXml: string;
+  gaTrackingId?: string; // e.g. G-XXXXXXXXXX
+  metaPixelId?: string;  // e.g. 1234567890
 }
 
 export interface MediaFile {
@@ -142,5 +171,3 @@ export interface SectionOrderItem {
   subtitle: string;
   enabled: boolean;
 }
-
-

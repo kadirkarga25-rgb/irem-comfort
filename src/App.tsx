@@ -9,6 +9,7 @@ import { CraftsmanshipSection } from './components/sections/CraftsmanshipSection
 import { WhyIremComfortSection } from './components/sections/WhyIremComfortSection';
 import { FaqSection } from './components/sections/FaqSection';
 import { ContactSection } from './components/sections/ContactSection';
+import { TestimonialsSection } from './components/sections/TestimonialsSection';
 
 import { NewsletterSection } from './components/sections/NewsletterSection';
 import { Footer } from './components/layout/Footer';
@@ -25,23 +26,29 @@ import { NotFoundPage } from './components/ui/NotFoundPage';
 import { LegalModal, LegalDocType } from './components/ui/LegalModal';
 import { CookieConsent } from './components/ui/CookieConsent';
 import { DeployingView } from './components/ui/DeployingView';
+import { ProductsPage } from './components/pages/ProductsPage';
 import { useAppImages } from './context/ImageContext';
 
 function MainAppContent() {
-  const { systemConfig, sectionOrder, isSettingsLoaded } = useAppImages();
+  const { systemConfig, sectionOrder, isSettingsLoaded, fairConfig } = useAppImages();
 
   const [scrollY, setScrollY] = useState(0);
   const [activeSection, setActiveSection] = useState('hero');
   const [contactPrefill, setContactPrefill] = useState('');
   const [isFairModalOpen, setIsFairModalOpen] = useState(false);
   const [legalModalDoc, setLegalModalDoc] = useState<LegalDocType | null>(null);
+  const [isProductsPage, setIsProductsPage] = useState<boolean>(false);
   
   // Route state: check if URL contains /admin, #admin, or ?admin
   const [isAdminView, setIsAdminView] = useState<boolean>(() => {
     const path = window.location.pathname.toLowerCase();
     const hash = window.location.hash.toLowerCase();
     const search = window.location.search.toLowerCase();
-    return path === '/admin' || hash === '#admin' || search.includes('admin');
+    const isStandalone = typeof window !== 'undefined' && (
+      window.matchMedia('(display-mode: standalone)').matches || 
+      (window.navigator as any).standalone === true
+    );
+    return path === '/admin' || hash === '#admin' || search.includes('admin') || search.includes('pwa') || isStandalone;
   });
 
   // Password reset route state: check if URL contains /sifre-sifirla, /sifre-sifirla-html, #sifre-sifirla, etc.
@@ -104,7 +111,11 @@ function MainAppContent() {
       const hash = window.location.hash.toLowerCase();
       const search = window.location.search.toLowerCase();
 
-      const admin = path === '/admin' || hash === '#admin' || search.includes('admin');
+      const isStandalone = typeof window !== 'undefined' && (
+        window.matchMedia('(display-mode: standalone)').matches || 
+        (window.navigator as any).standalone === true
+      );
+      const admin = path === '/admin' || hash === '#admin' || search.includes('admin') || search.includes('pwa') || isStandalone;
       const reset = (
         path.includes('sifre-sifirla') || 
         path.includes('sifre_sifirla') || 
@@ -242,8 +253,50 @@ function MainAppContent() {
     return () => observer.disconnect();
   }, [isAdminView, isNotFoundView, systemConfig.isDeploying, sectionOrder]);
 
+  // 10 second activity timer: Auto popup fair invitation with confetti if fair exists
+  useEffect(() => {
+    if (isAdminView || isResetView || isRemoteView || isSurveyView || isNotFoundView) return;
+
+    const timer = setTimeout(() => {
+      if (fairConfig && fairConfig.enabled && fairConfig.name) {
+        const alreadyShown = typeof window !== 'undefined' && sessionStorage.getItem('irem_fair_invitation_auto_shown');
+        if (!alreadyShown) {
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('irem_fair_invitation_auto_shown', 'true');
+          }
+          setIsFairModalOpen(true);
+        }
+      }
+    }, 10000);
+
+    return () => clearTimeout(timer);
+  }, [fairConfig, isAdminView, isResetView, isRemoteView, isSurveyView, isNotFoundView]);
+
 
   const scrollToSection = (sectionId: string) => {
+    if (sectionId === 'products-page') {
+      setIsProductsPage(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (isProductsPage) {
+      setIsProductsPage(false);
+      setTimeout(() => {
+        const target = document.getElementById(sectionId);
+        if (target) {
+          const offset = window.innerWidth < 768 ? -150 : -90;
+          if (lenisRef.current) {
+            lenisRef.current.scrollTo(target, { offset });
+          } else {
+            const y = target.getBoundingClientRect().top + window.pageYOffset + offset;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+          }
+        }
+      }, 100);
+      return;
+    }
+
     const target = document.getElementById(sectionId);
     if (!target) return;
 
@@ -343,11 +396,19 @@ function MainAppContent() {
       case 'about':
         return <AboutSection key="about" />;
       case 'collection':
-        return <CollectionSection key="collection" onInquireProduct={handleInquireProduct} />;
+        return (
+          <CollectionSection
+            key="collection"
+            onInquireProduct={handleInquireProduct}
+            onOpenProductsPage={() => scrollToSection('products-page')}
+          />
+        );
       case 'craftsmanship':
         return <CraftsmanshipSection key="craftsmanship" />;
       case 'why-us':
         return <WhyIremComfortSection key="why-us" />;
+      case 'testimonials':
+        return <TestimonialsSection key="testimonials" />;
       case 'faq':
         return <FaqSection key="faq" />;
       case 'contact':
@@ -370,16 +431,23 @@ function MainAppContent() {
       {/* 2. Glassmorphic Header Navigation */}
       <Header
         scrollY={scrollY}
-        activeSection={activeSection}
+        activeSection={isProductsPage ? 'products-page' : activeSection}
         onNavigate={scrollToSection}
         onOpenFairModal={() => setIsFairModalOpen(true)}
       />
 
-      {/* 3. Main Sections - Dynamically Reordered */}
+      {/* 3. Main Sections or Dedicated Products Page */}
       <main>
-        {(sectionOrder || []).map((sec) => (
-          sec.enabled !== false ? renderSection(sec.id) : null
-        ))}
+        {isProductsPage ? (
+          <ProductsPage
+            onBackToHome={() => setIsProductsPage(false)}
+            onInquireProduct={handleInquireProduct}
+          />
+        ) : (
+          (sectionOrder || []).map((sec) => (
+            sec.enabled !== false ? renderSection(sec.id) : null
+          ))
+        )}
       </main>
 
       {/* 4. Footer */}

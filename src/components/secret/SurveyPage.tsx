@@ -920,7 +920,7 @@ export function SurveyPage({ onReturnToSite }: SurveyPageProps) {
                   className="w-full py-3 bg-[#f27a1a] hover:bg-[#d6650d] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-orange-500/20"
                 >
                   <ShoppingBag className="w-4 h-4 text-white" />
-                  <span>Trendyol Mağazamıza Git ve Alışveriş Yap</span>
+                  <span>Trendyol Anavelle Mağazamıza Git ve Alışveriş Yap</span>
                 </a>
 
                 <a
@@ -930,7 +930,7 @@ export function SurveyPage({ onReturnToSite }: SurveyPageProps) {
                   className="w-full py-3 bg-[#082C6C] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2"
                 >
                   <ShoppingBag className="w-4 h-4 text-[#C8A96E]" />
-                  <span>Trendyol'da Değerlendirme Yap</span>
+                  <span>Trendyol Anavelle'de Değerlendirme Yap</span>
                 </a>
 
                 <a

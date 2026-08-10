@@ -1,4 +1,4 @@
-import { CollectionItem, CraftsmanshipStep, WhyUsCard, ContactInfo, FaqItem } from '../types';
+import { CollectionItem, CraftsmanshipStep, WhyUsCard, ContactInfo, FaqItem, TestimonialItem } from '../types';
 
 export const BRAND_NAME = "İrem Comfort";
 export const BRAND_TAGLINE = "Hakiki Deri Bayan Comfort Sandalet & Terlik İmalatı";
@@ -21,7 +21,7 @@ export const CONTACT_DATA: ContactInfo = {
 
 export const ANNOUNCEMENT_TICKER = [
   "YENİ SEZON HAKİKİ DERİ BAYAN COMFORT SANDALET VE TERLİK KOLEKSİYONU ÇIKTI",
-  "TRENDYOL RESMİ MAĞAZAMIZ AÇILDI — ONLİNE ALIŞVERİŞ İÇİN BİZE ULAŞIN",
+  "TRENDYOL'DA ANAVELLE MAĞAZAMIZ AÇILDI — ONLİNE ALIŞVERİŞ İÇİN BİZE ULAŞIN",
   "ANATOMİK TABANLI YUMUŞAK SAYA BAYAN TERLİK VE SABO İMALATI",
   "YENİ SEZON KATALOĞU VE TOPTAN / PERAKENDE BİLGİ HATTI: 0533 029 71 25",
   "MANİSA AYAKKABICILAR SİTESİ ÜRETİM ATÖLYEMİZDEN DOĞRUDAN DANIŞMA"
@@ -376,5 +376,57 @@ export const DEFAULT_FAQ_ITEMS: FaqItem[] = [
     isActive: true
   }
 ];
+
+export const DEFAULT_TESTIMONIALS: TestimonialItem[] = [
+  {
+    id: 'test-1',
+    name: 'Selin Yıldırım — Elegance Butik',
+    role: 'Toptan Mağaza İşletmecisi',
+    location: 'İzmir, Alsancak',
+    rating: 5,
+    comment: '3 sezondur mağazamız için İrem Comfort’tan toptan sandalet ve terlik alıyoruz. Müşterilerimiz kalıbına ve derisinin yumuşaklığına bayılıyor. Seri teslimatlar zamanında yapılıyor, Manisa atölye ekibine teşekkürler.',
+    productName: 'İrem Comfort Çift Tokalı Hakiki Deri Terlik',
+    date: '12 Mayıs 2026',
+    type: 'toptan',
+    verified: true
+  },
+  {
+    id: 'test-2',
+    name: 'Op. Dr. Aysel B.',
+    role: 'Bireysel Müşteri (Ortopedik Sabo)',
+    location: 'İstanbul',
+    rating: 5,
+    comment: 'Hastanede 12 saatlik nöbetlerimde ayak tabanlarım ciddi şekilde ağrıyordu. İrem Comfort ortopedik deri sabo terliği tavsiye üzerine aldım. İlk günden beri topuk ağrım bitti. Derisi nefes alıyor, terleme sıfır.',
+    productName: 'Hakiki Deri Ortopedik Sabo Terlik',
+    date: '28 Nisan 2026',
+    type: 'perakende',
+    verified: true
+  },
+  {
+    id: 'test-3',
+    name: 'Murat Kundura & Ayakkabı',
+    role: 'Toplu Mağaza Siparişi',
+    location: 'Ankara',
+    rating: 5,
+    comment: 'Ankara’daki ayakkabı mağazalarımız için verdiğimiz serili siparişlerde dikiş kalitesi ve deri işçiliği mükemmel. Fuar vesilesiyle tanışmıştık, yıllardır kesintisiz çalışıyoruz.',
+    productName: 'Çapraz Bantlı Hakiki Deri Sandalet',
+    date: '04 Haziran 2026',
+    type: 'toptan',
+    verified: true
+  },
+  {
+    id: 'test-4',
+    name: 'Zeynep K.',
+    role: 'Günlük Kullanıcı',
+    location: 'Bursa',
+    rating: 5,
+    comment: 'Trendyol Anavelle mağazanızdan sipariş verdim. Ertesi gün kargolandı. Kutuyu açtığımda mis gibi gerçek deri kokuyordu. Tabanı tam ortopedik, tatile giderken yanımdan ayırmayacağım.',
+    productName: 'İrem Comfort Çift Tokalı Terlik (Taba)',
+    date: '18 Haziran 2026',
+    type: 'perakende',
+    verified: true
+  }
+];
+
 
 

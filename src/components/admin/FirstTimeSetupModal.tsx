@@ -13,7 +13,8 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  Github
+  Github,
+  X
 } from 'lucide-react';
 import { useAppImages } from '../../context/ImageContext';
 
@@ -53,6 +54,15 @@ export const FirstTimeSetupModal: React.FC<FirstTimeSetupModalProps> = ({ sessio
   // Finish Step
   const [isFinishing, setIsFinishing] = useState(false);
   const [finishError, setFinishError] = useState<string | null>(null);
+
+  // Skip or Close Wizard
+  const handleSkipOrClose = () => {
+    try {
+      localStorage.setItem('irem_onboarding_completed', 'true');
+    } catch (e) {}
+    updateSystemConfig({ isOnboardingCompleted: true });
+    onCompleted();
+  };
 
   // Handle Password Change
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -128,7 +138,10 @@ export const FirstTimeSetupModal: React.FC<FirstTimeSetupModalProps> = ({ sessio
     setFinishError(null);
 
     try {
-      // 1. Set onboarding as completed in system config
+      // 1. Set onboarding as completed in system config & localStorage
+      try {
+        localStorage.setItem('irem_onboarding_completed', 'true');
+      } catch (e) {}
       updateSystemConfig({ isOnboardingCompleted: true });
 
       // 2. Trigger automatic GitHub publication of all uploaded photos and settings
@@ -170,28 +183,39 @@ export const FirstTimeSetupModal: React.FC<FirstTimeSetupModalProps> = ({ sessio
             </div>
           </div>
 
-          {/* Stepper Indicator */}
-          <div className="hidden sm:flex items-center gap-2 bg-black/20 p-1.5 rounded-2xl border border-white/10">
-            <div className={`px-3 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-              activeStep === 1 ? 'bg-[#D4AF37] text-[#062050]' : passwordChanged ? 'text-emerald-400' : 'text-slate-400'
-            }`}>
-              <KeyRound className="w-3.5 h-3.5" />
-              <span>1. Şifre</span>
+          {/* Stepper Indicator & Close Button */}
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2 bg-black/20 p-1.5 rounded-2xl border border-white/10">
+              <div className={`px-3 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                activeStep === 1 ? 'bg-[#D4AF37] text-[#062050]' : passwordChanged ? 'text-emerald-400' : 'text-slate-400'
+              }`}>
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>1. Şifre</span>
+              </div>
+              <span className="text-slate-600 text-xs">•</span>
+              <div className={`px-3 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                activeStep === 2 ? 'bg-[#D4AF37] text-[#062050]' : 'text-slate-400'
+              }`}>
+                <ImageIcon className="w-3.5 h-3.5" />
+                <span>2. Fotoğraflar</span>
+              </div>
+              <span className="text-slate-600 text-xs">•</span>
+              <div className={`px-3 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                activeStep === 3 ? 'bg-[#D4AF37] text-[#062050]' : 'text-slate-400'
+              }`}>
+                <Github className="w-3.5 h-3.5" />
+                <span>3. GitHub Kayıt</span>
+              </div>
             </div>
-            <span className="text-slate-600 text-xs">•</span>
-            <div className={`px-3 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-              activeStep === 2 ? 'bg-[#D4AF37] text-[#062050]' : 'text-slate-400'
-            }`}>
-              <ImageIcon className="w-3.5 h-3.5" />
-              <span>2. Fotoğraflar</span>
-            </div>
-            <span className="text-slate-600 text-xs">•</span>
-            <div className={`px-3 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-              activeStep === 3 ? 'bg-[#D4AF37] text-[#062050]' : 'text-slate-400'
-            }`}>
-              <Github className="w-3.5 h-3.5" />
-              <span>3. GitHub Kayıt</span>
-            </div>
+
+            <button
+              onClick={handleSkipOrClose}
+              className="p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white transition-all cursor-pointer flex items-center gap-1 text-xs font-bold border border-white/10"
+              title="Sihirbazı Kapat & Doğrudan Panele Geç"
+            >
+              <X className="w-4 h-4" />
+              <span className="hidden md:inline">Kapat</span>
+            </button>
           </div>
         </div>
 
