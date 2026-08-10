@@ -3,16 +3,22 @@ import { Globe, FileText, Search, Save, RefreshCw, CheckCircle2, ShieldCheck, Ex
 import { useAppImages } from '../../context/ImageContext';
 
 export const SeoAdminTab: React.FC = () => {
-  const { seoConfig, updateSeoConfig, resetSeoConfig, collectionItems } = useAppImages();
+  const { seoConfig, updateSeoConfig, resetSeoConfig, collectionItems, markDirty, markClean } = useAppImages();
   const [formData, setFormData] = useState(seoConfig);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  React.useEffect(() => {
+    setFormData(seoConfig);
+  }, [seoConfig]);
+
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    markDirty();
   };
 
   const handleSave = () => {
     updateSeoConfig(formData);
+    markClean();
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
   };

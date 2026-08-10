@@ -12,7 +12,7 @@ export const SecurityAdminTab: React.FC = () => {
 
   const [showPass, setShowPass] = useState(false);
 
-  const handleUpdatePassword = (e: React.FormEvent) => {
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPass.length < 6) {
       setPassMessage({ type: 'error', text: 'Yeni şifreniz en az 6 karakter olmalıdır.' });
@@ -23,10 +23,24 @@ export const SecurityAdminTab: React.FC = () => {
       return;
     }
 
-    setPassMessage({ type: 'success', text: 'Yönetici şifreniz başarıyla güncellendi!' });
-    setCurrentPass('');
-    setNewPass('');
-    setConfirmPass('');
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: currentPass, newPassword: newPass })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPassMessage({ type: 'success', text: 'Yönetici şifreniz başarıyla güncellendi!' });
+        setCurrentPass('');
+        setNewPass('');
+        setConfirmPass('');
+      } else {
+        setPassMessage({ type: 'error', text: data.error || 'Şifre güncellenirken hata oluştu.' });
+      }
+    } catch (err) {
+      setPassMessage({ type: 'error', text: 'Sunucuya bağlanılamadı.' });
+    }
   };
 
   return (

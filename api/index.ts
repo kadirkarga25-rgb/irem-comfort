@@ -2624,8 +2624,8 @@ app.post("/api/settings", async (req, res) => {
 
     saveDraftSettings(inMemorySettingsCache);
 
-    // Auto-publish settings to GitHub to ensure permanent retention across container restarts
-    const shouldPublish = publish !== false;
+    // Only publish to GitHub if explicitly requested (publish === true)
+    const shouldPublish = publish === true;
     if (shouldPublish) {
       const publishRes = await publishSettings(inMemorySettingsCache);
       if (publishRes.publishSuccess) {

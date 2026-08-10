@@ -145,6 +145,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     isDirty,
     setIsDirty,
     markDirty,
+    markClean,
     getCurrentAdminState,
     saveAllChanges,
     discardUnsavedChanges,
@@ -424,6 +425,19 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     } else {
       syncAllMediaToGithub(true);
       action();
+    }
+  };
+
+  const handleTabSelect = (tabId: string) => {
+    if (isDirty && activeTab !== tabId) {
+      setPendingExitAction(() => () => {
+        setActiveTab(tabId as any);
+        setIsMobileSidebarOpen(false);
+      });
+      setShowExitConfirmModal(true);
+    } else {
+      setActiveTab(tabId as any);
+      setIsMobileSidebarOpen(false);
     }
   };
 
@@ -1425,10 +1439,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                     return (
                       <button
                         key={item.id}
-                        onClick={() => {
-                          setActiveTab(item.id as any);
-                          setIsMobileSidebarOpen(false);
-                        }}
+                        onClick={() => handleTabSelect(item.id)}
                         title={isSidebarCollapsed ? item.label : undefined}
                         className={`
                           w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer relative group
@@ -1571,12 +1582,23 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
             )}
 
             <button
+              onClick={handleSaveAllSubmit}
+              disabled={isSavingAll}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-sm disabled:opacity-50"
+              title="Tüm ayarları admin panelinde ve sunucuda kalıcı olarak saklar"
+            >
+              <Save className={`w-3.5 h-3.5 ${isSavingAll ? 'animate-spin' : ''}`} />
+              <span>{isSavingAll ? 'Kaydediliyor...' : 'Kaydet'}</span>
+            </button>
+
+            <button
               onClick={() => syncAllMediaToGithub(false)}
               disabled={isSyncingGithub}
-              className="px-4 py-2 rounded-xl bg-[#062050] hover:bg-[#0A2D6F] text-amber-300 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-sm disabled:opacity-50"
+              className="px-4 py-2 rounded-xl bg-[#062050] hover:bg-[#0A2D6F] text-amber-300 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-sm disabled:opacity-50 border border-amber-400/30"
+              title="Kaydedilmiş son durumu canlı production siteye (GitHub) gönderir"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncingGithub ? 'animate-spin' : ''}`} />
-              <span>{isSyncingGithub ? 'GitHub\'a Aktarılıyor...' : 'GitHub\'a Yükle'}</span>
+              <span>{isSyncingGithub ? 'Yayınlanıyor...' : 'Yayınla (Live Production)'}</span>
             </button>
 
             <button

@@ -256,6 +256,7 @@ interface ImageContextType {
   isDirty: boolean;
   setIsDirty: (dirty: boolean) => void;
   markDirty: () => void;
+  markClean: () => void;
   getCurrentAdminState: (additionalState?: Record<string, any>) => Record<string, any>;
   saveAllChanges: (additionalState?: Record<string, any>) => Promise<{ success: boolean; message: string }>;
   discardUnsavedChanges: () => Promise<void>;
@@ -479,7 +480,32 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Dirty State & Deep Merge Save Ref
   const [isDirty, setIsDirty] = useState(false);
   const markDirty = useCallback(() => setIsDirty(true), []);
+  const markClean = useCallback(() => setIsDirty(false), []);
   const lastSavedSettingsRef = useRef<any>(null);
+
+  // Initial load from local draft cache if available
+  useEffect(() => {
+    try {
+      const draft = localStorage.getItem('ic_admin_draft_settings_v1');
+      if (draft) {
+        const s = JSON.parse(draft);
+        if (s.images) setImages(s.images);
+        if (s.heroConfig) setHeroConfig(s.heroConfig);
+        if (s.fairConfig) setFairConfig(s.fairConfig);
+        if (s.contactData) setContactData(s.contactData);
+        if (s.announcements) setAnnouncements(s.announcements);
+        if (s.collectionItems) setCollectionItems(s.collectionItems);
+        if (s.craftsmanshipSteps) setCraftsmanshipSteps(s.craftsmanshipSteps);
+        if (s.faqItems) setFaqItems(s.faqItems);
+        if (s.aboutSlides) setAboutSlides(s.aboutSlides);
+        if (s.systemConfig) setSystemConfig(prev => ({ ...prev, ...s.systemConfig }));
+        if (s.seoConfig) setSeoConfig(prev => ({ ...prev, ...s.seoConfig }));
+        if (s.themeConfig) setThemeConfig(prev => ({ ...prev, ...s.themeConfig }));
+        if (s.sectionOrder && Array.isArray(s.sectionOrder)) setSectionOrder(s.sectionOrder);
+        if (s.testimonials && Array.isArray(s.testimonials)) setTestimonials(s.testimonials);
+      }
+    } catch (e) {}
+  }, []);
 
   // Apply dynamic theme CSS custom properties to document root
   useEffect(() => {
@@ -528,6 +554,9 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           if (data?.success && data?.settings && isMounted) {
             const s = data.settings;
             lastSavedSettingsRef.current = s;
+            try {
+              localStorage.setItem('ic_admin_draft_settings_v1', JSON.stringify(s));
+            } catch (e) {}
             if (s.images) setImages(s.images);
             if (s.heroConfig) setHeroConfig(s.heroConfig);
             if (s.fairConfig) setFairConfig(s.fairConfig);
@@ -563,13 +592,19 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [isDirty]);
 
   // Save specific section to backend server & local file
-  const saveSection = async (sectionName: string, dataObj: Record<string, any>) => {
+  const saveSection = async (sectionName: string, dataObj: Record<string, any>, publish: boolean = false) => {
     const payload = dataObj[sectionName] !== undefined ? dataObj[sectionName] : dataObj;
+
+    try {
+      const saved = JSON.parse(localStorage.getItem('ic_admin_draft_settings_v1') || '{}');
+      saved[sectionName] = payload;
+      localStorage.setItem('ic_admin_draft_settings_v1', JSON.stringify(saved));
+    } catch (e) {}
 
     fetch('/api/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ section: sectionName, data: payload }),
+      body: JSON.stringify({ section: sectionName, data: payload, publish }),
     }).catch(err => console.error("Failed saving section to server route:", err));
   };
 
@@ -1208,6 +1243,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         isDirty,
         setIsDirty,
         markDirty,
+        markClean,
         getCurrentAdminState,
         saveAllChanges,
         discardUnsavedChanges,

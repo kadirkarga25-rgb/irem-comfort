@@ -11,7 +11,7 @@ interface Props {
 }
 
 export const DeploymentExperienceAdminTab: React.FC<Props> = ({ onTestDeploymentExperience }) => {
-  const { systemConfig, updateSystemConfig, saveSettings } = useAppImages();
+  const { systemConfig, updateSystemConfig, markClean } = useAppImages();
   const [mediaVideos, setMediaVideos] = useState<MediaFile[]>([]);
   const [loadingVideos, setLoadingVideos] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -27,6 +27,20 @@ export const DeploymentExperienceAdminTab: React.FC<Props> = ({ onTestDeployment
   const [showSkip, setShowSkip] = useState(systemConfig.skipButton ?? true);
   const [fadeDuration, setFadeDuration] = useState(systemConfig.fadeDuration ?? 800);
   const [minLoadingTime, setMinLoadingTime] = useState(systemConfig.minLoadingTime ?? 3);
+
+  useEffect(() => {
+    if (systemConfig) {
+      setVideoUrl(systemConfig.deploymentVideo || '');
+      setEnableIntro(systemConfig.enableDeploymentIntro ?? false);
+      setVolume(systemConfig.videoVolume ?? 0.8);
+      setLoop(systemConfig.loopVideo ?? false);
+      setAutoplay(systemConfig.autoplayVideo ?? true);
+      setMuted(systemConfig.mutedVideo ?? true);
+      setShowSkip(systemConfig.skipButton ?? true);
+      setFadeDuration(systemConfig.fadeDuration ?? 800);
+      setMinLoadingTime(systemConfig.minLoadingTime ?? 3);
+    }
+  }, [systemConfig]);
 
   useEffect(() => {
     fetchVideos();
@@ -70,7 +84,7 @@ export const DeploymentExperienceAdminTab: React.FC<Props> = ({ onTestDeployment
         fadeDuration: Number(fadeDuration),
         minLoadingTime: Number(minLoadingTime)
       });
-      await saveSettings();
+      markClean();
       showNotification('✅ Deployment Deneyimi ayarları başarıyla kaydedildi!');
     } catch (err) {
       showNotification('❌ Ayarlar kaydedilirken hata oluştu.');
