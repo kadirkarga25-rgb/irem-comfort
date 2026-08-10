@@ -609,6 +609,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateHeroImage = async (url: string) => {
+    setIsDirty(true);
     const cleanUrl = await uploadImageToGithub(url, 'hero');
     setImages(prev => {
       const next = { ...prev, heroImage: cleanUrl };
@@ -618,6 +619,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateAboutImage = async (url: string) => {
+    setIsDirty(true);
     const cleanUrl = await uploadImageToGithub(url, 'about');
     setImages(prev => {
       const next = { ...prev, aboutImage: cleanUrl };
@@ -627,6 +629,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateCraftsmanshipImage = async (stepNumber: string, url: string) => {
+    setIsDirty(true);
     const cleanUrl = await uploadImageToGithub(url, 'craftsmanship');
     setImages(prev => {
       const next = {
@@ -642,6 +645,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateCollectionImage = async (itemId: string, field: 'image' | 'secondaryImage', url: string) => {
+    setIsDirty(true);
     const cleanUrl = await uploadImageToGithub(url, 'products');
     setImages(prev => {
       const next = {
@@ -666,27 +670,29 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const resetAllImages = () => {
+    setIsDirty(true);
     const defaults = getDefaultImages();
     setImages(defaults);
     saveSection('images', { images: defaults });
   };
 
   const updateHeroConfig = (newConfig: Partial<HeroConfig>) => {
+    setIsDirty(true);
     setHeroConfig(prev => {
       const next = deepMerge(prev, newConfig);
       saveSection('heroConfig', { heroConfig: next });
       return next;
     });
-    setIsDirty(true);
   };
 
   const resetHeroConfig = () => {
+    setIsDirty(true);
     setHeroConfig(DEFAULT_HERO_CONFIG);
     saveSection('heroConfig', { heroConfig: DEFAULT_HERO_CONFIG });
-    setIsDirty(true);
   };
 
   const updateFairConfig = async (newConfig: Partial<FairConfig>) => {
+    setIsDirty(true);
     const processed = { ...newConfig };
     if (processed.posterUrl && processed.posterUrl.startsWith('data:image/')) {
       processed.posterUrl = await uploadImageToGithub(processed.posterUrl, 'fair');
@@ -699,43 +705,43 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       saveSection('fairConfig', { fairConfig: next });
       return next;
     });
-    setIsDirty(true);
   };
 
   const resetFairConfig = () => {
+    setIsDirty(true);
     setFairConfig(DEFAULT_FAIR_CONFIG);
     saveSection('fairConfig', { fairConfig: DEFAULT_FAIR_CONFIG });
-    setIsDirty(true);
   };
 
   const updateContactData = (newContact: Partial<ContactInfo>) => {
+    setIsDirty(true);
     setContactData(prev => {
       const next = deepMerge(prev, newContact);
       saveSection('contactData', { contactData: next });
       return next;
     });
-    setIsDirty(true);
   };
 
   const resetContactData = () => {
+    setIsDirty(true);
     setContactData(CONTACT_DATA);
     saveSection('contactData', { contactData: CONTACT_DATA });
-    setIsDirty(true);
   };
 
   const updateAnnouncements = (list: string[]) => {
+    setIsDirty(true);
     setAnnouncements(list);
     saveSection('announcements', { announcements: list });
-    setIsDirty(true);
   };
 
   const resetAnnouncements = () => {
+    setIsDirty(true);
     setAnnouncements(ANNOUNCEMENT_TICKER);
     saveSection('announcements', { announcements: ANNOUNCEMENT_TICKER });
-    setIsDirty(true);
   };
 
   const updateCollectionItem = async (itemId: string, newItem: Partial<CollectionItem>) => {
+    setIsDirty(true);
     const itemToSave = { ...newItem };
     if (itemToSave.image && itemToSave.image.startsWith('data:image/')) {
       itemToSave.image = await uploadImageToGithub(itemToSave.image, 'products');
@@ -744,13 +750,14 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       itemToSave.secondaryImage = await uploadImageToGithub(itemToSave.secondaryImage, 'products');
     }
     setCollectionItems(prev => {
-      const next = prev.map(item => item.id === itemId ? { ...item, ...itemToSave } : item);
+      const next = prev.map(item => item.id === itemId ? deepMerge(item, itemToSave) : item);
       saveSection('collectionItems', { collectionItems: next });
       return next;
     });
   };
 
   const addCollectionItem = async (newItem: Omit<CollectionItem, 'id'>) => {
+    setIsDirty(true);
     const itemToSave = { ...newItem };
     if (itemToSave.image && itemToSave.image.startsWith('data:image/')) {
       itemToSave.image = await uploadImageToGithub(itemToSave.image, 'products');
@@ -768,6 +775,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const deleteCollectionItem = (itemId: string) => {
+    setIsDirty(true);
     setCollectionItems(prev => {
       const next = prev.filter(item => item.id !== itemId);
       saveSection('collectionItems', { collectionItems: next });
@@ -776,36 +784,41 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const resetCollectionItems = () => {
+    setIsDirty(true);
     setCollectionItems(COLLECTION_ITEMS);
     saveSection('collectionItems', { collectionItems: COLLECTION_ITEMS });
   };
 
   const updateCraftsmanshipStep = async (stepNumber: string, newStep: Partial<CraftsmanshipStep>) => {
+    setIsDirty(true);
     const stepToSave = { ...newStep };
     if (stepToSave.image && stepToSave.image.startsWith('data:image/')) {
       stepToSave.image = await uploadImageToGithub(stepToSave.image, 'craftsmanship');
     }
     setCraftsmanshipSteps(prev => {
-      const next = prev.map(step => step.number === stepNumber ? { ...step, ...stepToSave } : step);
+      const next = prev.map(step => step.number === stepNumber ? deepMerge(step, stepToSave) : step);
       saveSection('craftsmanshipSteps', { craftsmanshipSteps: next });
       return next;
     });
   };
 
   const resetCraftsmanshipSteps = () => {
+    setIsDirty(true);
     setCraftsmanshipSteps(CRAFTSMANSHIP_STEPS);
     saveSection('craftsmanshipSteps', { craftsmanshipSteps: CRAFTSMANSHIP_STEPS });
   };
 
   const updateFaqItem = (id: string, newFaq: Partial<FaqItem>) => {
+    setIsDirty(true);
     setFaqItems(prev => {
-      const next = prev.map(item => item.id === id ? { ...item, ...newFaq } : item);
+      const next = prev.map(item => item.id === id ? deepMerge(item, newFaq) : item);
       saveSection('faqItems', { faqItems: next });
       return next;
     });
   };
 
   const addFaqItem = (newFaq: Omit<FaqItem, 'id'>) => {
+    setIsDirty(true);
     setFaqItems(prev => {
       const newItem: FaqItem = {
         ...newFaq,
@@ -818,6 +831,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const deleteFaqItem = (id: string) => {
+    setIsDirty(true);
     setFaqItems(prev => {
       const next = prev.filter(item => item.id !== id);
       saveSection('faqItems', { faqItems: next });
@@ -826,23 +840,26 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const resetFaqItems = () => {
+    setIsDirty(true);
     setFaqItems(DEFAULT_FAQ_ITEMS);
     saveSection('faqItems', { faqItems: DEFAULT_FAQ_ITEMS });
   };
 
   const updateAboutSlide = async (id: string, newSlide: Partial<AboutSlide>) => {
+    setIsDirty(true);
     const slideToSave = { ...newSlide };
     if (slideToSave.image && slideToSave.image.startsWith('data:image/')) {
       slideToSave.image = await uploadImageToGithub(slideToSave.image, 'about');
     }
     setAboutSlides(prev => {
-      const next = prev.map(slide => slide.id === id ? { ...slide, ...slideToSave } : slide);
+      const next = prev.map(slide => slide.id === id ? deepMerge(slide, slideToSave) : slide);
       saveSection('aboutSlides', { aboutSlides: next });
       return next;
     });
   };
 
   const addAboutSlide = async (newSlide: Omit<AboutSlide, 'id'>) => {
+    setIsDirty(true);
     const slideToSave = { ...newSlide };
     if (slideToSave.image && slideToSave.image.startsWith('data:image/')) {
       slideToSave.image = await uploadImageToGithub(slideToSave.image, 'about');
@@ -859,6 +876,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const deleteAboutSlide = (id: string) => {
+    setIsDirty(true);
     setAboutSlides(prev => {
       if (prev.length <= 1) return prev;
       const next = prev.filter(slide => slide.id !== id);
@@ -868,6 +886,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const moveAboutSlide = (id: string, direction: 'up' | 'down') => {
+    setIsDirty(true);
     setAboutSlides(prev => {
       const index = prev.findIndex(s => s.id === id);
       if (index === -1) return prev;
@@ -884,6 +903,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const resetAboutSlides = () => {
+    setIsDirty(true);
     setAboutSlides(DEFAULT_ABOUT_SLIDES);
     saveSection('aboutSlides', { aboutSlides: DEFAULT_ABOUT_SLIDES });
   };

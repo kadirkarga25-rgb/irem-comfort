@@ -2,6 +2,7 @@ import express from "express";
 import nodemailer from "nodemailer";
 import fs from "fs";
 import path from "path";
+import { deepMerge } from "../src/utils/deepMerge";
 
 const app = express();
 
@@ -2616,10 +2617,14 @@ app.post("/api/settings", async (req, res) => {
 
     const payload = sanitizedData;
 
-    if (section) {
-      inMemorySettingsCache[section] = payload;
-    } else if (typeof payload === 'object') {
-      Object.assign(inMemorySettingsCache, payload);
+    if (section && section !== 'ALL' && section !== 'all') {
+      if (typeof payload === 'object' && payload !== null && !Array.isArray(payload)) {
+        inMemorySettingsCache[section] = deepMerge(inMemorySettingsCache[section] || {}, payload);
+      } else {
+        inMemorySettingsCache[section] = payload;
+      }
+    } else if (typeof payload === 'object' && payload !== null) {
+      inMemorySettingsCache = deepMerge(inMemorySettingsCache || {}, payload);
     }
 
     saveDraftSettings(inMemorySettingsCache);

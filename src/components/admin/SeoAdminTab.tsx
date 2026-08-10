@@ -13,7 +13,7 @@ export const SeoAdminTab: React.FC = () => {
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    markDirty();
+    updateSeoConfig({ [field]: value });
   };
 
   const handleSave = () => {
