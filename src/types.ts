@@ -1,3 +1,9 @@
+export interface ColorOption {
+  name: string;
+  hex: string;
+  image?: string;
+}
+
 export interface CollectionItem {
   id: string;
   name: string;
@@ -10,7 +16,7 @@ export interface CollectionItem {
   materials: string[];
   dimensions: string;
   leatherGrades: string[];
-  colors: { name: string; hex: string }[];
+  colors: ColorOption[];
   features: string[];
   isFeatured?: boolean;
   trendyolUrl?: string;

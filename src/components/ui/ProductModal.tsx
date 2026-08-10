@@ -9,12 +9,14 @@ import { SizeGuideModal } from './SizeGuideModal';
 
 interface ProductModalProps {
   item: CollectionItem | null;
+  initialColor?: string;
   onClose: () => void;
   onInquire: (productName: string) => void;
 }
 
 export const ProductModal: React.FC<ProductModalProps> = ({
   item,
+  initialColor,
   onClose,
   onInquire
 }) => {
@@ -51,12 +53,48 @@ export const ProductModal: React.FC<ProductModalProps> = ({
     }
   };
 
-  // Synchronize active product in Visitor Session Memory
+  // Synchronize active product in Visitor Session Memory & set initial color/image
   useEffect(() => {
     if (item) {
       setActiveProduct(item);
+      const targetCol = initialColor || (item.colors && item.colors[0]?.name) || null;
+      setSelectedColor(targetCol);
+
+      if (targetCol && item.colors) {
+        const foundCol = item.colors.find(c => c.name === targetCol);
+        if (foundCol?.image) {
+          const itemImages = storeImages.collectionImages[item.id] || { image: item.image, secondaryImage: item.secondaryImage };
+          const baseImages = [itemImages.image, itemImages.secondaryImage].filter(Boolean) as string[];
+          const modalImagesMap = new Map<string, { url: string; label?: string; hex?: string }>();
+          baseImages.forEach((url, i) => {
+            if (url && !modalImagesMap.has(url)) {
+              modalImagesMap.set(url, { url, label: i === 0 ? 'Ana Model' : 'Detay Görseli' });
+            }
+          });
+          (item.colors || []).forEach((c) => {
+            if (c.image && !modalImagesMap.has(c.image)) {
+              modalImagesMap.set(c.image, { url: c.image, label: c.name, hex: c.hex });
+            }
+          });
+          const modalImagesList = Array.from(modalImagesMap.values());
+          const idx = modalImagesList.findIndex(m => m.url === foundCol.image);
+          if (idx !== -1) {
+            setActiveImageIndex(idx);
+          } else {
+            setActiveImageIndex(0);
+          }
+        } else {
+          setActiveImageIndex(0);
+        }
+      } else {
+        setActiveImageIndex(0);
+      }
+    } else {
+      setActiveProduct(null);
+      setSelectedColor(null);
+      setActiveImageIndex(0);
     }
-  }, [item, setActiveProduct]);
+  }, [item, initialColor, setActiveProduct, storeImages]);
 
   // Lock background body & html scroll strictly when modal is open
   useEffect(() => {
@@ -96,9 +134,37 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   if (!item) return null;
 
   const itemImages = storeImages.collectionImages[item.id] || { image: item.image, secondaryImage: item.secondaryImage };
-  const modalImages = [itemImages.image, itemImages.secondaryImage || itemImages.image];
+  const baseImages = [itemImages.image, itemImages.secondaryImage].filter(Boolean) as string[];
+
+  // Combine base product images with color-specific photos
+  const modalImagesMap = new Map<string, { url: string; label?: string; hex?: string }>();
+  baseImages.forEach((url, i) => {
+    if (url && !modalImagesMap.has(url)) {
+      modalImagesMap.set(url, { url, label: i === 0 ? 'Ana Model' : 'Detay Görseli' });
+    }
+  });
+
+  (item.colors || []).forEach((c) => {
+    if (c.image && !modalImagesMap.has(c.image)) {
+      modalImagesMap.set(c.image, { url: c.image, label: c.name, hex: c.hex });
+    }
+  });
+
+  const modalImages = Array.from(modalImagesMap.values());
   const currentColor = selectedColor || (item.colors && item.colors[0]?.name);
   const targetTrendyolUrl = item.trendyolUrl || contactData?.trendyolUrl || CONTACT_DATA.trendyolUrl;
+
+  const handleColorClick = (c: { name: string; hex: string; image?: string }) => {
+    setSelectedColor(c.name);
+    if (c.image) {
+      const imgIdx = modalImages.findIndex(m => m.url === c.image);
+      if (imgIdx !== -1) {
+        setActiveImageIndex(imgIdx);
+      }
+    }
+  };
+
+  const currentDisplayUrl = modalImages[activeImageIndex]?.url || item.image;
 
   return (
     <AnimatePresence>
@@ -137,9 +203,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             {/* Left Column: Fixed Product Main Image & Thumbnails directly below */}
             <div className="lg:col-span-5 bg-[#F8F8F8] p-3 sm:p-6 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-[#0A2D6F]/10 overflow-hidden shrink-0 max-h-[32vh] sm:max-h-[38vh] lg:max-h-none h-auto lg:h-full">
               <div className="relative rounded-xl sm:rounded-2xl overflow-hidden flex-1 min-h-[140px] sm:min-h-[220px] bg-gradient-to-br from-[#062050] to-[#0A2D6F] border border-[#0A2D6F]/10 shadow-inner flex items-center justify-center">
-                {modalImages[activeImageIndex] ? (
+                {currentDisplayUrl ? (
                   <img
-                    src={modalImages[activeImageIndex]}
+                    src={currentDisplayUrl}
                     alt={item.name}
                     className="w-full h-full object-cover object-center transition-all duration-300"
                     onError={(e) => {
@@ -162,27 +228,37 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                   </div>
                 )}
                 
-                <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#0A2D6F] text-white text-[9px] sm:text-[10px] font-bold tracking-widest uppercase shadow-sm">
-                  {item.category}
+                <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#0A2D6F] text-white text-[9px] sm:text-[10px] font-bold tracking-widest uppercase shadow-sm flex items-center gap-1.5">
+                  <span>{item.category}</span>
+                  {modalImages[activeImageIndex]?.label && (
+                    <span className="text-amber-300 font-normal opacity-90">• {modalImages[activeImageIndex].label}</span>
+                  )}
                 </div>
               </div>
 
               {/* Thumbnails Directly Under Main Image */}
-              {modalImages.filter(Boolean).length > 0 && (
+              {modalImages.length > 0 && (
                 <div className="flex items-center gap-2 pt-2 sm:pt-3 overflow-x-auto shrink-0 scrollbar-none">
-                  {modalImages.filter(Boolean).map((img, idx) => (
+                  {modalImages.map((imgObj, idx) => (
                     <button
                       key={idx}
                       onClick={() => setActiveImageIndex(idx)}
-                      className={`relative w-12 h-12 sm:w-18 sm:h-18 rounded-lg sm:rounded-xl overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${
+                      className={`relative w-12 h-12 sm:w-16 sm:h-16 rounded-lg sm:rounded-xl overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${
                         activeImageIndex === idx ? 'border-[#0A2D6F] scale-102 shadow-md ring-2 ring-[#0A2D6F]/20' : 'border-slate-200 opacity-60 hover:opacity-100'
                       }`}
+                      title={imgObj.label || 'Görsel'}
                     >
                       <img 
-                        src={img} 
-                        alt="Küçük Görsel" 
+                        src={imgObj.url} 
+                        alt={imgObj.label || "Küçük Görsel"} 
                         className="w-full h-full object-cover" 
                       />
+                      {imgObj.hex && (
+                        <span 
+                          className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full border border-white shadow-xs" 
+                          style={{ backgroundColor: imgObj.hex }} 
+                        />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -229,15 +305,18 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                       {item.colors.map((c, idx) => (
                         <button
                           key={c.name || idx}
-                          onClick={() => setSelectedColor(c.name)}
+                          onClick={() => handleColorClick(c)}
                           className={`w-8 h-8 rounded-full border-2 transition-transform cursor-pointer relative active:scale-110 ${
                             currentColor === c.name ? 'border-[#0A2D6F] scale-110 shadow-md ring-2 ring-[#0A2D6F]/20' : 'border-gray-300 hover:scale-105'
                           }`}
                           style={{ backgroundColor: c.hex }}
-                          title={c.name}
+                          title={c.image ? `${c.name} (Özel Fotoğraflı)` : c.name}
                         >
                           {currentColor === c.name && (
                             <Check className={`w-4 h-4 absolute inset-0 m-auto ${c.hex === '#EAE6DF' || c.hex === '#F0ECE1' || c.hex === '#FFFFFF' ? 'text-black' : 'text-[#0A2D6F]'}`} />
+                          )}
+                          {c.image && (
+                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white" title="Renk Fotoğrafı Mevcut" />
                           )}
                         </button>
                       ))}

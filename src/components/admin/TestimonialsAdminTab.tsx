@@ -28,8 +28,27 @@ export const TestimonialsAdminTab: React.FC<TestimonialsAdminTabProps> = ({ show
     updateTestimonial, 
     deleteTestimonial, 
     resetTestimonials,
-    collectionItems
+    collectionItems,
+    sectionOrder,
+    updateSectionOrder
   } = useAppImages();
+
+  const isSectionEnabled = sectionOrder?.find(s => s.id === 'testimonials')?.enabled !== false;
+
+  const handleToggleSection = () => {
+    const updatedOrder = (sectionOrder || []).map(s => {
+      if (s.id === 'testimonials') {
+        return { ...s, enabled: !isSectionEnabled };
+      }
+      return s;
+    });
+    updateSectionOrder(updatedOrder);
+    showToast(
+      !isSectionEnabled 
+        ? 'Referanslar & Müşteri Yorumları bölümü sitemizde aktif edildi!' 
+        : 'Referanslar & Müşteri Yorumları bölümü sitemizden gizlendi.'
+    );
+  };
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -123,10 +142,10 @@ export const TestimonialsAdminTab: React.FC<TestimonialsAdminTabProps> = ({ show
         <div>
           <h3 className="font-extrabold text-[#082C6C] text-lg sm:text-xl flex items-center gap-2.5 font-serif-luxury">
             <MessageSquare className="w-6 h-6 text-[#D4AF37]" />
-            <span>Müşteri Değerlendirmeleri & Yorum Yönetimi</span>
+            <span>Referanslar & Müşteri Yorumları Yönetimi</span>
           </h3>
           <p className="text-xs text-slate-500 mt-1 max-w-2xl">
-            Sitede gösterilen gerçek müşteri yorumlarını yönetin, yeni yorum ekleyin veya yorumları ürünlerinizle bağdaştırın.
+            Sitede gösterilen gerçek müşteri yorumlarını ve toptan/butik referanslarını yönetin, yeni yorum ekleyin veya yorumları ürünlerinizle bağdaştırın.
           </p>
         </div>
 
@@ -150,9 +169,52 @@ export const TestimonialsAdminTab: React.FC<TestimonialsAdminTabProps> = ({ show
             className="px-4 py-2 bg-[#082C6C] hover:bg-[#163E87] text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Plus className="w-4 h-4 text-amber-300" />
-            <span>Yeni Yorum Ekle</span>
+            <span>Yeni Yorum / Referans Ekle</span>
           </button>
         </div>
+      </div>
+
+      {/* Website Live Visibility Toggle */}
+      <div className={`p-5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
+        isSectionEnabled 
+          ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900' 
+          : 'bg-amber-50/80 border-amber-200 text-amber-900'
+      }`}>
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+            isSectionEnabled ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
+          }`}>
+            <Star className="w-5 h-5 fill-current" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className="font-extrabold text-sm">
+                Referanslar & Müşteri Yorumları Bölümü
+              </h4>
+              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                isSectionEnabled ? 'bg-emerald-200 text-emerald-900' : 'bg-amber-200 text-amber-900'
+              }`}>
+                {isSectionEnabled ? 'Sitede Yayında (AÇIK)' : 'Sitede Gizli (KAPALI)'}
+              </span>
+            </div>
+            <p className="text-xs opacity-80 mt-0.5">
+              {isSectionEnabled 
+                ? 'Bu bölüm şu anda ana sayfada ziyaretçilere görünmektedir.' 
+                : 'Bu bölüm şu anda ana sayfada gizlenmiştir. "Sitede Göster" butonuna basarak yayınlayabilirsiniz.'}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleToggleSection}
+          className={`px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer shrink-0 ${
+            isSectionEnabled 
+              ? 'bg-red-600 hover:bg-red-700 text-white' 
+              : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+          }`}
+        >
+          {isSectionEnabled ? 'Sitede Gizle' : 'Sitede Göster (Aç)'}
+        </button>
       </div>
 
       {/* Add / Edit Form Modal or Card */}

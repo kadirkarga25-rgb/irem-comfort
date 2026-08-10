@@ -69,6 +69,12 @@ const TARGET_SPECS_MAP: Record<string, CropTargetSpecs> = {
     recommendedHeight: 1000,
     aspectRatioLabel: '1:1 Kare',
   },
+  productColor: {
+    title: 'Ürün Renk Fotoğrafı',
+    recommendedWidth: 1000,
+    recommendedHeight: 1000,
+    aspectRatioLabel: '1:1 Kare',
+  },
   fairPoster: {
     title: 'Fuar Afiş Görseli',
     recommendedWidth: 1200,
@@ -207,7 +213,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
       case 'media': return 'Medya Kütüphanesi';
       case 'leads': return 'Müşteri Talepleri';
       case 'crm': return 'Müşteriler & CRM Portalı';
-      case 'testimonials': return 'Müşteri Değerlendirmeleri & Yorumlar';
+      case 'testimonials': return 'Referanslar & Müşteri Yorumları';
       case 'newsletter': return 'Haber Bülteni & Şablonlar';
       case 'faq': return 'Sıkça Sorulan Sorular';
       case 'contact': return 'İletişim & Duyuru Bandı';
@@ -865,9 +871,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadTarget, setUploadTarget] = useState<{
-    type: 'hero' | 'about' | 'craftsmanship' | 'collection' | 'fairPoster' | 'fairQr' | 'aboutSlide';
+    type: 'hero' | 'about' | 'craftsmanship' | 'collection' | 'fairPoster' | 'fairQr' | 'aboutSlide' | 'productColor';
     id?: string;
     field?: 'image' | 'secondaryImage';
+    colorIdx?: number;
   } | null>(null);
 
   const showToast = (msg: string) => {
@@ -977,6 +984,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     } else if (uploadTarget.type === 'fairQr') {
       updateFairConfig({ qrCodeUrl: croppedBase64 });
       showToast('Fuar QR kodu görseli boyutlandırıldı ve güncellendi!');
+    } else if (uploadTarget.type === 'productColor' && uploadTarget.id !== undefined && uploadTarget.colorIdx !== undefined) {
+      const currentItem = (collectionItems && collectionItems.length > 0 ? collectionItems : COLLECTION_ITEMS).find(i => i.id === uploadTarget.id);
+      if (currentItem && currentItem.colors) {
+        const nextColors = [...currentItem.colors];
+        if (nextColors[uploadTarget.colorIdx]) {
+          nextColors[uploadTarget.colorIdx] = { ...nextColors[uploadTarget.colorIdx], image: croppedBase64 };
+          updateCollectionItem(uploadTarget.id, { colors: nextColors });
+          showToast(`${nextColors[uploadTarget.colorIdx].name || 'Renk'} fotoğrafı boyutlandırıldı ve güncellendi!`);
+        }
+      }
     }
 
     setIsCropModalOpen(false);
@@ -1008,6 +1025,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     } else if (uploadTarget.type === 'fairQr') {
       updateFairConfig({ qrCodeUrl: selectedUrl });
       showToast('Sistem kütüphanesinden Fuar QR kodu görseli güncellendi!');
+    } else if (uploadTarget.type === 'productColor' && uploadTarget.id !== undefined && uploadTarget.colorIdx !== undefined) {
+      const currentItem = (collectionItems && collectionItems.length > 0 ? collectionItems : COLLECTION_ITEMS).find(i => i.id === uploadTarget.id);
+      if (currentItem && currentItem.colors) {
+        const nextColors = [...currentItem.colors];
+        if (nextColors[uploadTarget.colorIdx]) {
+          nextColors[uploadTarget.colorIdx] = { ...nextColors[uploadTarget.colorIdx], image: selectedUrl };
+          updateCollectionItem(uploadTarget.id, { colors: nextColors });
+          showToast(`${nextColors[uploadTarget.colorIdx].name || 'Renk'} fotoğrafı güncellendi!`);
+        }
+      }
     }
 
     setIsImageSelectModalOpen(false);
@@ -1196,7 +1223,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
       items: [
         { id: 'leads', label: 'Müşteri Talepleri', icon: MessageSquare, countBadge: contactLeads.length, badgeColor: 'text-emerald-400' },
         { id: 'crm', label: 'Müşteriler & CRM', icon: Users, badgeColor: 'text-emerald-400' },
-        { id: 'testimonials', label: `Müşteri Yorumları (${testimonials.length})`, icon: Star, badgeColor: 'text-amber-400' },
+        { id: 'testimonials', label: `Referanslar & Müşteri Yorumları (${testimonials.length})`, icon: Star, badgeColor: 'text-amber-400' },
         { id: 'newsletter', label: 'Haber Bülteni', icon: Users, countBadge: subscribers.length, badgeColor: 'text-blue-400' },
         { id: 'faq', label: 'Sıkça Sorulan Sorular', icon: HelpCircle, badgeColor: 'text-amber-400' },
         { id: 'contact', label: 'İletişim & Duyuru Bandı', icon: Phone, badgeColor: 'text-emerald-400' },
@@ -2511,87 +2538,158 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
                     {/* Section 2: Color Options Management */}
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h5 className="text-xs font-bold uppercase tracking-wider text-[#082C6C] flex items-center gap-1.5">
-                          <Layers className="w-3.5 h-3.5 text-[#082C6C]" />
-                          <span>2. Deri Renk Seçenekleri ({item.colors?.length || 0} Renk)</span>
-                        </h5>
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <h5 className="text-xs font-bold uppercase tracking-wider text-[#082C6C] flex items-center gap-1.5">
+                            <Layers className="w-3.5 h-3.5 text-[#082C6C]" />
+                            <span>2. Deri Renk Seçenekleri & Her Rengin Özel Fotoğrafı ({item.colors?.length || 0} Renk)</span>
+                          </h5>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const currentColors = item.colors || [];
-                            const updatedColors = [
-                              ...currentColors,
-                              { name: 'Yeni Deri Tonu', hex: '#8B5A2B' }
-                            ];
-                            updateCollectionItem(item.id, { colors: updatedColors });
-                            showToast('Yeni renk seçeneği eklendi.');
-                          }}
-                          className="px-2.5 py-1 rounded-lg bg-[#082C6C]/10 hover:bg-[#082C6C]/20 text-[#082C6C] text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>Renk Ekle</span>
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const currentColors = item.colors || [];
+                              const updatedColors = [
+                                ...currentColors,
+                                { name: 'Yeni Deri Tonu', hex: '#8B5A2B' }
+                              ];
+                              updateCollectionItem(item.id, { colors: updatedColors });
+                              showToast('Yeni renk seçeneği eklendi.');
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-[#082C6C]/10 hover:bg-[#082C6C]/20 text-[#082C6C] text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Renk Ekle</span>
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-1">
+                          Her renk için o renkteki ürünün çekim fotoğrafını yükleyebilirsiniz. Müşteri sitede veya ürünü incelerken bu rengi seçtiğinde, ekrandaki ürün fotoğrafı o renge ait çekim görseliyle otomatik değişir.
+                        </p>
                       </div>
 
                       <div className="bg-slate-50/70 p-4 rounded-xl border border-slate-200 space-y-3">
                         {item.colors && item.colors.length > 0 ? (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {item.colors.map((col, colorIdx) => (
                               <div
                                 key={colorIdx}
-                                className="flex items-center gap-2 bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs"
+                                className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs space-y-2.5"
                               >
-                                {/* Color Picker Circle */}
-                                <input
-                                  type="color"
-                                  value={col.hex || '#000000'}
-                                  onChange={(e) => {
-                                    const nextColors = [...item.colors];
-                                    nextColors[colorIdx] = { ...nextColors[colorIdx], hex: e.target.value };
-                                    updateCollectionItem(item.id, { colors: nextColors });
-                                  }}
-                                  className="w-8 h-8 rounded-full border border-slate-300 cursor-pointer p-0.5 bg-transparent shrink-0"
-                                  title="Renk Kodu Seç"
-                                />
-
-                                <div className="flex-1 min-w-0 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  {/* Color Picker Circle */}
                                   <input
-                                    type="text"
-                                    value={col.name}
-                                    onChange={(e) => {
-                                      const nextColors = [...item.colors];
-                                      nextColors[colorIdx] = { ...nextColors[colorIdx], name: e.target.value };
-                                      updateCollectionItem(item.id, { colors: nextColors });
-                                    }}
-                                    placeholder="Renk Adı (Örn: Siyah)"
-                                    className="w-full px-2 py-1 text-xs rounded border border-slate-200 focus:border-[#082C6C] focus:outline-none font-semibold text-slate-800"
-                                  />
-                                  <input
-                                    type="text"
-                                    value={col.hex}
+                                    type="color"
+                                    value={col.hex || '#000000'}
                                     onChange={(e) => {
                                       const nextColors = [...item.colors];
                                       nextColors[colorIdx] = { ...nextColors[colorIdx], hex: e.target.value };
                                       updateCollectionItem(item.id, { colors: nextColors });
                                     }}
-                                    placeholder="#1C1C1C"
-                                    className="w-full px-2 py-0.5 text-[10px] rounded border border-slate-200 focus:border-[#082C6C] focus:outline-none font-mono text-slate-500"
+                                    className="w-8 h-8 rounded-full border border-slate-300 cursor-pointer p-0.5 bg-transparent shrink-0"
+                                    title="Renk Kodu Seç"
                                   />
+
+                                  <div className="flex-1 min-w-0 space-y-1">
+                                    <input
+                                      type="text"
+                                      value={col.name}
+                                      onChange={(e) => {
+                                        const nextColors = [...item.colors];
+                                        nextColors[colorIdx] = { ...nextColors[colorIdx], name: e.target.value };
+                                        updateCollectionItem(item.id, { colors: nextColors });
+                                      }}
+                                      placeholder="Renk Adı (Örn: Siyah)"
+                                      className="w-full px-2 py-1 text-xs rounded border border-slate-200 focus:border-[#082C6C] focus:outline-none font-semibold text-slate-800"
+                                    />
+                                    <input
+                                      type="text"
+                                      value={col.hex}
+                                      onChange={(e) => {
+                                        const nextColors = [...item.colors];
+                                        nextColors[colorIdx] = { ...nextColors[colorIdx], hex: e.target.value };
+                                        updateCollectionItem(item.id, { colors: nextColors });
+                                      }}
+                                      placeholder="#1C1C1C"
+                                      className="w-full px-2 py-0.5 text-[10px] rounded border border-slate-200 focus:border-[#082C6C] focus:outline-none font-mono text-slate-500"
+                                    />
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const nextColors = item.colors.filter((_, idx) => idx !== colorIdx);
+                                      updateCollectionItem(item.id, { colors: nextColors });
+                                    }}
+                                    className="p-1.5 rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors shrink-0 cursor-pointer"
+                                    title="Rengi Sil"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
                                 </div>
 
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const nextColors = item.colors.filter((_, idx) => idx !== colorIdx);
-                                    updateCollectionItem(item.id, { colors: nextColors });
-                                  }}
-                                  className="p-1.5 rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors shrink-0 cursor-pointer"
-                                  title="Rengi Sil"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                                {/* Color Specific Photo Field */}
+                                <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                                  <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600">
+                                    <span className="flex items-center gap-1">
+                                      <ImageIcon className="w-3 h-3 text-[#082C6C]" />
+                                      <span>Renk Fotoğrafı:</span>
+                                    </span>
+                                    {col.image && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const nextColors = [...item.colors];
+                                          nextColors[colorIdx] = { ...nextColors[colorIdx], image: '' };
+                                          updateCollectionItem(item.id, { colors: nextColors });
+                                        }}
+                                        className="text-[10px] text-rose-600 hover:underline cursor-pointer font-normal"
+                                      >
+                                        Fotoğrafı Kaldır
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-center gap-2">
+                                    {col.image ? (
+                                      <div className="relative w-9 h-9 rounded-lg overflow-hidden border border-slate-200 shrink-0 bg-slate-100">
+                                        <img src={col.image} alt={col.name} className="w-full h-full object-cover" />
+                                      </div>
+                                    ) : (
+                                      <div className="w-9 h-9 rounded-lg border border-dashed border-slate-300 bg-slate-50 shrink-0 flex items-center justify-center text-slate-400">
+                                        <ImageIcon className="w-4 h-4" />
+                                      </div>
+                                    )}
+
+                                    <input
+                                      type="text"
+                                      value={col.image || ''}
+                                      onChange={(e) => {
+                                        const nextColors = [...item.colors];
+                                        nextColors[colorIdx] = { ...nextColors[colorIdx], image: e.target.value };
+                                        updateCollectionItem(item.id, { colors: nextColors });
+                                      }}
+                                      placeholder="Fotoğraf URL (veya Yükle)"
+                                      className="flex-1 min-w-0 px-2 py-1 text-[11px] rounded border border-slate-200 focus:border-[#082C6C] focus:outline-none text-slate-700 bg-white"
+                                    />
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setUploadTarget({
+                                          type: 'productColor',
+                                          id: item.id,
+                                          colorIdx: colorIdx
+                                        });
+                                        setIsImageSelectModalOpen(true);
+                                      }}
+                                      className="px-2.5 py-1 rounded bg-[#082C6C] hover:bg-[#0b357f] text-white text-[10px] font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                                      title="Fotoğraf Yükle veya Seç"
+                                    >
+                                      <Upload className="w-3 h-3" />
+                                      <span>Seç</span>
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
                             ))}
                           </div>

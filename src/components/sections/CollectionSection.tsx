@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { COLLECTION_ITEMS } from '../../constants/data';
 import { CollectionItem } from '../../types';
 import { ProductModal } from '../ui/ProductModal';
+import { ProductCard } from '../ui/ProductCard';
 import { Eye, ArrowRight, Sparkles, ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
 import { useAppImages } from '../../context/ImageContext';
 
@@ -17,6 +18,7 @@ export const CollectionSection: React.FC<CollectionSectionProps> = ({
 }) => {
   const { images, collectionItems, t, language } = useAppImages();
   const [activeModalItem, setActiveModalItem] = useState<CollectionItem | null>(null);
+  const [selectedColorForModal, setSelectedColorForModal] = useState<string | undefined>(undefined);
   const [featuredIndex, setFeaturedIndex] = useState(0);
 
   const itemsToDisplay = collectionItems && collectionItems.length > 0 ? collectionItems : COLLECTION_ITEMS;
@@ -122,72 +124,21 @@ export const CollectionSection: React.FC<CollectionSectionProps> = ({
         {/* 3-Model Showcase Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
           <AnimatePresence mode="popLayout">
-            {currentShowcaseItems.map((item, index) => (
-              <motion.div
-                key={`${item.id}-${featuredIndex}-${index}`}
-                layout
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.4, delay: index * 0.08 }}
-                onClick={() => setActiveModalItem(item)}
-                className="group relative bg-white rounded-3xl overflow-hidden border border-slate-200 hover:border-[#062050]/40 transition-all duration-500 hover:shadow-2xl cursor-pointer flex flex-col justify-between"
-              >
-                {/* Product Image */}
-                <div className="relative h-72 sm:h-80 w-full overflow-hidden bg-gradient-to-br from-[#062050] to-[#0A2D6F] flex items-center justify-center">
-                  {(images.collectionImages[item.id]?.image || item.image) ? (
-                    <img
-                      src={images.collectionImages[item.id]?.image || item.image}
-                      alt={item.name}
-                      className="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-700 ease-out"
-                    />
-                  ) : (
-                    <div className="p-6 text-center text-white space-y-2">
-                      <Sparkles className="w-8 h-8 text-[#D4AF37] mx-auto" />
-                      <span className="text-xs font-bold text-[#D4AF37] block">Hakiki Deri</span>
-                    </div>
-                  )}
-
-                  {/* Top Badge */}
-                  <div className="absolute top-4 left-4 z-10 px-3.5 py-1 rounded-full bg-white/95 backdrop-blur-md text-[#062050] text-[10px] font-extrabold tracking-wider uppercase shadow-sm">
-                    {item.category}
-                  </div>
-
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 z-10 bg-black/20">
-                    <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-[#062050] font-extrabold text-xs uppercase tracking-wider shadow-xl">
-                      <Eye className="w-4 h-4" />
-                      <span>{t.productsDetailsBtn || 'Detayları İncele'}</span>
-                    </span>
-                  </div>
-                </div>
-
-                {/* Card Information */}
-                <div className="p-6 space-y-3 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-lg font-extrabold text-slate-900 font-serif-luxury group-hover:text-[#062050] transition-colors">
-                      {item.name}
-                    </h3>
-                    <p className="text-xs font-bold text-blue-700 mt-1">
-                      {item.subtitle}
-                    </p>
-                  </div>
-
-                  <p className="text-xs text-slate-600 font-medium line-clamp-2 leading-relaxed">
-                    {item.description}
-                  </p>
-
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
-                      {item.materials[0] || 'Hakiki Deri'}
-                    </span>
-                    <span className="text-[11px] font-extrabold text-[#062050]">
-                      İrem Comfort
-                    </span>
-                  </div>
-                </div>
-
-              </motion.div>
+            {currentShowcaseItems.map((item) => (
+              <ProductCard
+                key={`${item.id}-${featuredIndex}`}
+                item={item}
+                images={images}
+                t={t}
+                onSelect={(selectedItem, initialColor) => {
+                  setSelectedColorForModal(initialColor);
+                  setActiveModalItem(selectedItem);
+                }}
+                onInquire={onInquireProduct}
+                onShare={(_e, selectedItem) => {
+                  setActiveModalItem(selectedItem);
+                }}
+              />
             ))}
           </AnimatePresence>
         </div>
@@ -219,7 +170,11 @@ export const CollectionSection: React.FC<CollectionSectionProps> = ({
       {/* Product Detail Specifications Modal */}
       <ProductModal
         item={activeModalItem}
-        onClose={() => setActiveModalItem(null)}
+        initialColor={selectedColorForModal}
+        onClose={() => {
+          setActiveModalItem(null);
+          setSelectedColorForModal(undefined);
+        }}
         onInquire={onInquireProduct}
       />
     </section>
