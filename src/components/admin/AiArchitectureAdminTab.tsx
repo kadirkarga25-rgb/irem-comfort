@@ -274,7 +274,7 @@ export const AiArchitectureAdminTab: React.FC = () => {
               </div>
               <p className="text-slate-600 leading-relaxed">{doc.content}</p>
               <div className="flex flex-wrap gap-1 pt-1">
-                {doc.keywords.slice(0, 6).map((kw, idx) => (
+                {(doc.keywords || []).slice(0, 6).map((kw, idx) => (
                   <span key={idx} className="bg-white border border-slate-200 text-slate-500 text-[10px] px-2 py-0.5 rounded">
                     #{kw}
                   </span>

@@ -112,8 +112,8 @@ export class KnowledgeEngine {
         keywords: [
           item.name.toLowerCase(),
           item.category.toLowerCase(),
-          ...item.materials.map(m => m.toLowerCase()),
-          ...item.features.map(f => f.toLowerCase()),
+          ...(Array.isArray(item.materials) ? item.materials.map(m => m.toLowerCase()) : []),
+          ...(Array.isArray(item.features) ? item.features.map(f => f.toLowerCase()) : []),
           ...(isWideFoot ? ['taraklı', 'geniş', 'ödem', 'cırt cırtlı'] : []),
           ...(isSabo ? ['sabo', 'hemşire', 'doktor', 'hastane', 'medikal'] : []),
           ...(isSandal ? ['sandalet', 'yazlık'] : ['terlik'])

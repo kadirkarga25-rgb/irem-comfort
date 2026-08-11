@@ -605,7 +605,17 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ section: sectionName, data: payload, publish }),
-    }).catch(err => console.error("Failed saving section to server route:", err));
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data?.success && data?.settings) {
+          lastSavedSettingsRef.current = data.settings;
+          try {
+            localStorage.setItem('ic_admin_draft_settings_v1', JSON.stringify(data.settings));
+          } catch (e) {}
+        }
+      })
+      .catch(err => console.error("Failed saving section to server route:", err));
   };
 
   const updateHeroImage = async (url: string) => {

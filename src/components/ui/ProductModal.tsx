@@ -302,7 +302,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                       <span>Deri Tonu: <strong className="text-[#0A2D6F]">{currentColor || 'Standart'}</strong></span>
                     </span>
                     <div className="flex items-center gap-2.5 pt-0.5 flex-wrap">
-                      {item.colors.map((c, idx) => (
+                      {Array.isArray(item.colors) && item.colors.map((c, idx) => (
                         <button
                           key={c.name || idx}
                           onClick={() => handleColorClick(c)}
@@ -359,7 +359,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 </div>
 
                 {/* Key Features */}
-                {item.features && item.features.length > 0 && (
+                {Array.isArray(item.features) && item.features.length > 0 && (
                   <div className="space-y-2 bg-[#F8F8F8] p-3 sm:p-4 rounded-xl border border-[#0A2D6F]/10">
                     <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#0A2D6F]">
                       Ergonomik & Öne Çıkan Özellikler

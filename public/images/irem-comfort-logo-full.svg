@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 200" fill="none">
+  <!-- Circular Icon Group -->
+  <g transform="translate(10, 0)">
+    <path d="M 164 63 A 74 74 0 1 0 137 36" stroke="#0A2D6F" stroke-width="12" stroke-linecap="round" fill="none"/>
+    <circle cx="72" cy="71" r="8.5" fill="#0A2D6F"/>
+    <rect x="63.5" y="87" width="17" height="48" rx="4" fill="#0A2D6F"/>
+    <path d="M 137 93 A 22 22 0 1 0 137 129" stroke="#0A2D6F" stroke-width="16" stroke-linecap="round" fill="none"/>
+  </g>
+  
+  <!-- Text 'irem' -->
+  <text x="215" y="126" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="82" font-weight="400" fill="#111827" letter-spacing="-1">irem</text>
+  <!-- Text 'comfort' -->
+  <text x="382" y="126" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="82" font-weight="700" fill="#0A2D6F" letter-spacing="-2">comfort</text>
+  <!-- TM Symbol -->
+  <text x="702" y="70" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="700" fill="#0A2D6F">TM</text>
+</svg>

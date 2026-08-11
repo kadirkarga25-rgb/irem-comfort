@@ -302,6 +302,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
       if (data.success) {
         setIsDirty(false);
         showToast("✓ Site ayarları kalıcı olarak GitHub'a yayınlandı ve doğrulandı!");
+        if (data.settings) {
+          try {
+            localStorage.setItem('ic_admin_draft_settings_v1', JSON.stringify(data.settings));
+          } catch (e) {}
+        }
         if (data.diagnostics) {
           setPersistenceDiagnostics(data.diagnostics);
         }

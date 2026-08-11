@@ -162,7 +162,7 @@ export const CraftsmanshipSection: React.FC = () => {
                     Kalite Kriterleri
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {activeStep.detailPoints.map((pt, idx) => (
+                    {(activeStep.detailPoints || []).map((pt, idx) => (
                       <div key={idx} className="flex items-start gap-2.5 text-xs text-[#111111]/80">
                         <CheckCircle2 className="w-4 h-4 text-[#0A2D6F] shrink-0 mt-0.5" />
                         <span className="font-medium">{pt}</span>

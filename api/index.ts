@@ -1886,6 +1886,17 @@ async function loadCanonicalSettingsFromGithub(customToken?: string, customRepo?
   return false;
 }
 
+// Helper function to guarantee inMemorySettingsCache is loaded before read/write operations
+async function ensureSettingsLoaded(): Promise<any> {
+  if (!inMemorySettingsCache || Object.keys(inMemorySettingsCache).length === 0) {
+    const loaded = await loadCanonicalSettingsFromGithub();
+    if (!loaded || !inMemorySettingsCache || Object.keys(inMemorySettingsCache).length === 0) {
+      inMemorySettingsCache = loadSettingsFromFile();
+    }
+  }
+  return inMemorySettingsCache || {};
+}
+
 // Initialize memory cache on boot with bundled file fallback, then trigger canonical load
 try {
   inMemorySettingsCache = loadSettingsFromFile();
@@ -1965,10 +1976,14 @@ async function publishSettings(
   }
 
   try {
-    // Requirements 1, 2, 3: Single source of truth during publish is the CURRENT Admin state passed in settingsToPublish
-    const rawPayload = (settingsToPublish && typeof settingsToPublish === 'object' && Object.keys(settingsToPublish).length > 0)
-      ? settingsToPublish
+    await ensureSettingsLoaded();
+
+    // Requirements 1, 2, 3: Single source of truth during publish is the CURRENT Admin state merged with canonical settings
+    const mergedPayload = (settingsToPublish && typeof settingsToPublish === 'object' && Object.keys(settingsToPublish).length > 0)
+      ? deepMerge(inMemorySettingsCache || {}, settingsToPublish)
       : inMemorySettingsCache;
+
+    const rawPayload = mergedPayload;
 
     if (!rawPayload || typeof rawPayload !== 'object' || Object.keys(rawPayload).length === 0) {
       throw new Error("Yayınlama hatası: Güncel Admin Panel verisi (current state) boş veya bulunamadı.");
@@ -2650,8 +2665,12 @@ app.post(["/api/deploy-cancel", "/api/deploy-reset"], (_req, res) => {
   return res.json({ success: true, message: "Deploy işlemi sıfırlandı ve kapatıldı." });
 });
 
-app.get("/api/settings", async (_req, res) => {
+app.get("/api/settings", async (req, res) => {
   try {
+    const force = req.query.force === 'true';
+    if (force || !inMemorySettingsCache || Object.keys(inMemorySettingsCache).length === 0) {
+      await loadCanonicalSettingsFromGithub();
+    }
     if (!inMemorySettingsCache || Object.keys(inMemorySettingsCache).length === 0) {
       inMemorySettingsCache = loadSettingsFromFile();
     }
@@ -2716,6 +2735,8 @@ app.post("/api/publish-settings", async (req, res) => {
 
 app.post("/api/settings", async (req, res) => {
   try {
+    await ensureSettingsLoaded();
+
     const { section, data, settings, publish } = req.body || {};
     const sanitizedData = sanitizeNoBase64(data || settings);
 

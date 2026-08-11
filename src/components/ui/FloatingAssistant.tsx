@@ -339,7 +339,7 @@ export const FloatingAssistant: React.FC = () => {
                           <span>Ürün Karşılaştırma Analizi</span>
                         </div>
                         <div className="space-y-1.5 text-[10px] divide-y divide-slate-200/60">
-                          {msg.comparisonData.comparisonPoints.map((point, idx) => (
+                          {(msg.comparisonData.comparisonPoints || []).map((point, idx) => (
                             <div key={idx} className="pt-1.5 flex flex-col gap-0.5">
                               <span className="font-extrabold text-slate-700">{point.feature}:</span>
                               <div className="grid grid-cols-2 gap-1 text-[9.5px]">

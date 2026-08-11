@@ -26,6 +26,7 @@ import { NotFoundPage } from './components/ui/NotFoundPage';
 import { LegalModal, LegalDocType } from './components/ui/LegalModal';
 import { CookieConsent } from './components/ui/CookieConsent';
 import { DeployingView } from './components/ui/DeployingView';
+import { MaintenancePage } from './components/ui/MaintenancePage';
 import { ProductsPage } from './components/pages/ProductsPage';
 import { useAppImages } from './context/ImageContext';
 
@@ -39,6 +40,16 @@ function MainAppContent() {
   const [legalModalDoc, setLegalModalDoc] = useState<LegalDocType | null>(null);
   const [isProductsPage, setIsProductsPage] = useState<boolean>(false);
   
+  // Preview route state: check if URL contains ?preview=1, ?preview=true, ?preview, #preview, or if admin token exists
+  const [isPreviewView, setIsPreviewView] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const search = window.location.search.toLowerCase();
+    const hash = window.location.hash.toLowerCase();
+    const isPreviewParam = search.includes('preview') || hash.includes('preview');
+    const hasAdminToken = Boolean(localStorage.getItem('irem_admin_token'));
+    return isPreviewParam || hasAdminToken;
+  });
+
   // Route state: check if URL contains /admin, #admin, or ?admin
   const [isAdminView, setIsAdminView] = useState<boolean>(() => {
     const path = window.location.pathname.toLowerCase();
@@ -134,6 +145,10 @@ function MainAppContent() {
         search.includes('anket')
       );
 
+      const isPreviewParam = search.includes('preview') || hash.includes('preview');
+      const hasAdminToken = Boolean(typeof window !== 'undefined' && localStorage.getItem('irem_admin_token'));
+      setIsPreviewView(isPreviewParam || hasAdminToken);
+
       setIsAdminView(admin);
       setIsResetView(reset);
       setIsRemoteView(remote);
@@ -158,7 +173,7 @@ function MainAppContent() {
 
   // Initialize Lenis Smooth Scroll
   useEffect(() => {
-    if (isAdminView || isResetView || isRemoteView || isSurveyView || isNotFoundView || systemConfig.isDeploying) return;
+    if (isAdminView || isResetView || isRemoteView || isSurveyView || isNotFoundView || !isPreviewView || systemConfig.isDeploying) return;
 
     const lenis = new Lenis({
       duration: 1.2,
@@ -224,11 +239,11 @@ function MainAppContent() {
       lenis.destroy();
       lenisRef.current = null;
     };
-  }, [isAdminView, isResetView, isRemoteView, isSurveyView, isNotFoundView, systemConfig.isDeploying, isFairModalOpen, legalModalDoc, sectionOrder]);
+  }, [isAdminView, isResetView, isRemoteView, isSurveyView, isNotFoundView, isPreviewView, systemConfig.isDeploying, isFairModalOpen, legalModalDoc, sectionOrder]);
 
   // Secondary Intersection Observer backup for static positions
   useEffect(() => {
-    if (isAdminView || isNotFoundView || systemConfig.isDeploying) return;
+    if (isAdminView || isNotFoundView || !isPreviewView || systemConfig.isDeploying) return;
 
     const activeSectionIds = (sectionOrder || []).filter(s => s.enabled !== false).map(s => s.id);
     
@@ -251,11 +266,11 @@ function MainAppContent() {
     });
 
     return () => observer.disconnect();
-  }, [isAdminView, isNotFoundView, systemConfig.isDeploying, sectionOrder]);
+  }, [isAdminView, isNotFoundView, isPreviewView, systemConfig.isDeploying, sectionOrder]);
 
   // 10 second activity timer: Auto popup fair invitation with confetti if fair exists
   useEffect(() => {
-    if (isAdminView || isResetView || isRemoteView || isSurveyView || isNotFoundView) return;
+    if (isAdminView || isResetView || isRemoteView || isSurveyView || isNotFoundView || !isPreviewView) return;
 
     const timer = setTimeout(() => {
       if (fairConfig && fairConfig.enabled && fairConfig.name) {
@@ -270,7 +285,7 @@ function MainAppContent() {
     }, 10000);
 
     return () => clearTimeout(timer);
-  }, [fairConfig, isAdminView, isResetView, isRemoteView, isSurveyView, isNotFoundView]);
+  }, [fairConfig, isAdminView, isResetView, isRemoteView, isSurveyView, isNotFoundView, isPreviewView]);
 
 
   const scrollToSection = (sectionId: string) => {
@@ -321,9 +336,10 @@ function MainAppContent() {
     setIsRemoteView(false);
     setIsSurveyView(false);
     setIsNotFoundView(false);
+    setIsPreviewView(true);
     
-    if (window.location.pathname !== '/' || window.location.hash || window.location.search) {
-      window.history.pushState('', document.title, '/');
+    if (!window.location.search.includes('preview')) {
+      window.history.pushState('', document.title, '/?preview=1');
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -381,6 +397,10 @@ function MainAppContent() {
 
   if (isNotFoundView) {
     return <NotFoundPage onReturnToSite={returnToPublicSite} />;
+  }
+
+  if (!isPreviewView) {
+    return <MaintenancePage />;
   }
 
   const renderSection = (sectionId: string) => {
