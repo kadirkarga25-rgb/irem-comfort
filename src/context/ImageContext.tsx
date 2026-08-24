@@ -1079,7 +1079,11 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
       const data = await res.json();
       if (data.success || res.ok) {
-        lastSavedSettingsRef.current = currentStateObj;
+        const finalSettings = data.settings || currentStateObj;
+        lastSavedSettingsRef.current = finalSettings;
+        try {
+          localStorage.setItem('ic_admin_draft_settings_v1', JSON.stringify(finalSettings));
+        } catch (e) {}
         setIsDirty(false);
         return { success: true, message: '✓ Tüm değişiklikler ve yüklenen tüm fotoğraflar kalıcı olarak GitHub\'a kaydedildi!' };
       }

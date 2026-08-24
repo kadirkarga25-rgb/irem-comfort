@@ -25,28 +25,28 @@ export const LogoIC: React.FC<LogoICProps> = ({
       className={`inline-block shrink-0 transition-all duration-300 ${className}`}
       aria-label="İrem Comfort IC Logo"
     >
-      {/* Outer Circle Ring with top-right gap */}
+      {/* Outer Circle Ring with subtle gap at top-right above the 'c' */}
       <path
-        d="M 164 63 A 74 74 0 1 0 137 36"
+        d="M 168 68 A 76 76 0 1 0 138 34"
         stroke={color}
         strokeWidth="12"
         strokeLinecap="round"
         fill="none"
       />
 
-      {/* Inside Glyph Group - 'i' and 'c' */}
+      {/* Inside Glyph Group - 'i' and 'c' perfectly centered inside the ring */}
       <g>
         {/* Letter 'i' - Top Dot */}
-        <circle cx="72" cy="71" r="8.5" fill={color} />
+        <circle cx="69" cy="68" r="7.5" fill={color} />
 
         {/* Letter 'i' - Vertical Stem */}
-        <rect x="63.5" y="87" width="17" height="48" rx="4" fill={color} />
+        <rect x="61.5" y="84" width="15" height="46" rx="3" fill={color} />
 
         {/* Letter 'c' - Lowercase Arc */}
         <path
-          d="M 137 93 A 22 22 0 1 0 137 129"
+          d="M 132 94 A 20 20 0 1 0 132 122"
           stroke={color}
-          strokeWidth="16"
+          strokeWidth="14"
           strokeLinecap="round"
           fill="none"
         />

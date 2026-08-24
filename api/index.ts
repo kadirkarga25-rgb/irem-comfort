@@ -1418,21 +1418,6 @@ async function syncAllImagesToGithub(userCommitMsg: string = "Auto-sync uploaded
   return { success: true, count: syncedFilesCount };
 }
 
-app.post("/api/sync-github", async (req, res) => {
-  try {
-    const { commitMessage } = req.body || {};
-    const result = await syncAllImagesToGithub(commitMessage || "Admin: Görseller ve ayarlar GitHub deposuna aktarıldı");
-    return res.json({
-      success: true,
-      message: "Tüm görseller ve site ayarları GitHub deposuna başarıyla aktarıldı.",
-      syncedCount: result.count
-    });
-  } catch (err) {
-    console.error("Error in /api/sync-github:", err);
-    return res.status(500).json({ success: false, error: "GitHub senkronizasyonunda hata oluştu." });
-  }
-});
-
 function sanitizeNoBase64(obj: any, folder: string = "gallery"): any {
   if (!obj) return obj;
   if (typeof obj === 'string') {
@@ -1960,21 +1945,6 @@ async function publishSettings(
   details?: string;
   diagnostics: any;
 }> {
-  const { token, repo, branch } = getGithubConfig(customToken, customRepo, customBranch);
-
-  if (!token || !repo) {
-    persistenceStatus = 'ERROR';
-    lastPersistenceError = "GitHub Access Token veya Depo bilgisi bulunamadı.";
-    return {
-      success: false,
-      publishSuccess: false,
-      verified: false,
-      error: "Yayınlama başarısız: GitHub erişim yetkisi (token/repo) bulunamadı.",
-      details: lastPersistenceError,
-      diagnostics: getPersistenceDiagnostics()
-    };
-  }
-
   try {
     await ensureSettingsLoaded();
 
@@ -2022,6 +1992,22 @@ async function publishSettings(
     // Update in-memory cache and sitemap/robots with latest canonicalSettings
     inMemorySettingsCache = canonicalSettings;
     generateSitemapAndRobots(canonicalSettings);
+
+    const { token, repo, branch } = getGithubConfig(customToken, customRepo, customBranch);
+
+    if (!token || !repo) {
+      persistenceStatus = 'UNSAVED';
+      lastPersistenceError = "GitHub Access Token veya Depo bilgisi tanımlanmadığı için sadece yerel dosya ve sunucu belleğine kaydedildi.";
+      return {
+        success: true,
+        publishSuccess: true,
+        verified: false,
+        settings: canonicalSettings,
+        error: "GitHub token/repo eksik, yerel dosya ve sunucu belleği başarıyla güncellendi.",
+        details: lastPersistenceError,
+        diagnostics: getPersistenceDiagnostics()
+      };
+    }
 
     // 1. Sync all uploaded media to GitHub
     await syncAllImagesToGithub("Pre-publish media sync");
@@ -2729,6 +2715,32 @@ app.post("/api/publish-settings", async (req, res) => {
       publishSuccess: false,
       error: "Yayınlama başarısız: site_settings.json GitHub'a kalıcı olarak kaydedilemedi.",
       details: err?.message
+    });
+  }
+});
+
+app.post("/api/sync-github", async (req, res) => {
+  try {
+    await ensureSettingsLoaded();
+    const { settings, token, repo, branch, commitMessage } = req.body || {};
+    const payload = settings || inMemorySettingsCache;
+
+    const result = await publishSettings(payload, token, repo, branch);
+    await syncAllImagesToGithub(commitMessage || "Admin: Görseller ve ayarlar GitHub deposuna aktarıldı");
+
+    return res.json({
+      success: result.publishSuccess || result.success,
+      publishSuccess: result.publishSuccess,
+      message: "Tüm medya ve site ayarları GitHub'a başarıyla senkronize edildi.",
+      settings: result.settings || inMemorySettingsCache,
+      diagnostics: result.diagnostics
+    });
+  } catch (err: any) {
+    console.error("Error in /api/sync-github:", err);
+    return res.status(500).json({
+      success: false,
+      error: "GitHub senkronizasyonu sırasında hata oluştu.",
+      details: err?.message || String(err)
     });
   }
 });
