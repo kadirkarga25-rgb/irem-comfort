@@ -36,13 +36,13 @@
     "isOnboardingCompleted": false
   },
   "heroConfig": {
-    "badgeText": "Test Badge",
-    "title": "İREM COMFORT YENİ ANA SAYFA",
-    "description": "Test Desc",
-    "primaryBtnText": "Btn 1",
-    "secondaryBtnText": "Btn 2",
-    "signatureModelTitle": "Sig 1",
-    "signatureModelSub": "Sig Sub"
+    "badgeText": "Kuruluş 1993 • Manisa Ayakkabıcılar Sitesi İmalatı",
+    "title": "Bayan Comfort Deri Sandalet & Terlik.",
+    "description": "%100 Hakiki deri saya, ortopedik kavisli anatomik taban ve Manisa atölyemizin usta el işçiliği. Gün boyu adımlarınıza hafiflik ve zarif konfor katan yeni sezon modellerimizi keşfedin.",
+    "primaryBtnText": "Koleksiyonu Keşfet",
+    "secondaryBtnText": "Atölyemiz",
+    "signatureModelTitle": "Çift Tokalı Hakiki Deri Terlik",
+    "signatureModelSub": "Yumuşak Dana Derisi Saya • Anatomik Yumuşak Konfor Taban"
   },
   "images": {
     "heroImage": "",
@@ -82,36 +82,8 @@
   },
   "aboutSlides": [
     {
-      "id": "slide-1",
-      "image": "",
-      "badge": "İREM COMFORT • MANİSA",
-      "title": "Hakiki Deri.",
-      "subtitle": "Doğal Konfor.",
-      "alt": "İrem Comfort Hakiki Deri Bayan Sandalet Model"
-    },
-    {
-      "id": "slide-2",
-      "image": "",
-      "badge": "%100 HAKİKİ SAYA",
-      "title": "%100 Hakiki Deri",
-      "subtitle": "Nefes Alan Yumuşak Dana ve Kuzu Derisi",
-      "alt": "Manisa Atölyesi Hakiki Deri Doku Yakın Çekim"
-    },
-    {
-      "id": "slide-3",
-      "image": "",
-      "badge": "MANİSA ATÖLYESİ",
-      "title": "Manisa'da Üretiliyor",
-      "subtitle": "Usta Ellerin Geleneksel Dikiş Zanaatı",
-      "alt": "Manisa Ayakkabıcılar Sitesi Deri Zanaatkarlığı"
-    },
-    {
-      "id": "slide-4",
-      "image": "",
-      "badge": "ORTOPEDİK TABAN",
-      "title": "Anatomik Konfor",
-      "subtitle": "Ayak Kavisini Destekleyen Esnek Taban Structure",
-      "alt": "Anatomik Ortopedik Taban Mimarisi Yakın Çekim"
+      "title": "Hakkımızda Slayt",
+      "desc": "Açıklama"
     }
   ],
   "ALL": {
@@ -1054,11 +1026,230 @@
   },
   "craftsmanshipSteps": [
     {
-      "id": "1",
-      "title": "USTALIKLA İŞLENMİŞ DERİ",
-      "desc": "Atolye aciklamasi",
-      "icon": "Sparkles",
-      "image": ""
+      "number": "01",
+      "title": "Hakiki Deri Seçimi",
+      "subtitle": "En Üst Kalite Anilin & Nappa Dana Derileri",
+      "description": "İrem Comfort imalatında sadece yumuşak, gözenekli ve nefes alan %100 hakiki deri tabakaları seçilir. Sentetik kaplamalı suni deriler kesinlikle imalathanemize giremez.",
+      "detailPoints": [
+        "%100 Hakiki dana ve kuzu derisi saya kalitesi",
+        "Nefes alabilen terleme ve koku önleyici gözenekler",
+        "Ayak yapısına hızla esneyip uyum sağlayan yumuşak doku",
+        "Yırtılma ve dikiş mukavemet testlerinden geçmiş hakiki deriler"
+      ],
+      "image": "",
+      "iconName": "ShieldCheck"
+    },
+    {
+      "number": "02",
+      "title": "Hassas Kesim ve Saya Dikişi",
+      "subtitle": "Manisa Atölyemizde Usta Zanaatkarların Dokunuşu",
+      "description": "Seçilen deriler ayakkabı kalıplarına uygun olarak milimetrik hassasiyetle kesilir. Saya parçaları dayanıklı iplerle elde ve özel dikiş makinelerinde titizlikle birleştirilir.",
+      "detailPoints": [
+        "Ayağı vurmayan gizli dikiş ve biye teknikleri",
+        "Aşınmaya dayanıklı yüksek mukavemetli iplikler",
+        "Ayarlanabilir kemer ve tokalı montaj detayları",
+        "Her numaraya özel anatomik saya kalıp uyumu"
+      ],
+      "image": "",
+      "iconName": "Sparkles"
+    },
+    {
+      "number": "03",
+      "title": "Anatomik Taban Montajı",
+      "subtitle": "Ortopedik Kavis ve Jel Ped Desteği",
+      "description": "Terlik ve sandaletlerimizin rahatlığının kalbinde anatomik taban teknolojisi yatar. Ayak kavislerini destekleyen poliüretan ve mantar tabanlıklar saya ile birleştirilir.",
+      "detailPoints": [
+        "Aksis ve kavis destekli anatomik iç tabanlık",
+        "Topuk dikeni ve nasır baskısını azaltan özel jel dolgu",
+        "Darbe ve sarsıntıları emen esnek poliüretan alt taban",
+        "Kaymaz alt taban deseni"
+      ],
+      "image": "",
+      "iconName": "Cpu"
+    },
+    {
+      "number": "04",
+      "title": "Final Kalite Kontrolü",
+      "subtitle": "Manisa Ayakkabıcılar Sitesi İmalat Güvencesi",
+      "description": "Üretim bandından çıkan her bir terlik ve sandalet teker teker incelenir. Deri yüzeyi temizlenir, kalıp kontrolleri yapılır ve ambalajlanarak sevkiyata hazırlanır.",
+      "detailPoints": [
+        "Dikiş, yapıştırma ve taban mukavemet kontrolü",
+        "Çiftler arası renk ve ton uyum incelemesi",
+        "Doğal deri bakım spreyi ile parlaklık verme",
+        "%100 Yerli İmalat ve Üretici Güvencesi"
+      ],
+      "image": "",
+      "iconName": "Award"
     }
-  ]
+  ],
+  "_updatedAt": 1788266995183,
+  "faqItems": [
+    {
+      "q": "Soru 1",
+      "a": "Cevap 1"
+    }
+  ],
+  "fairConfig": {
+    "enabled": false,
+    "name": "AYMOD Uluslararası Ayakkabı Moda Fuarı",
+    "location": "İstanbul Fuar Merkezi (İFM) - Yeşilköy",
+    "standNumber": "Hall 4 - Stand B214",
+    "startDate": "2026-08-20",
+    "endDate": "2026-08-23",
+    "description": "İrem Comfort olarak 2026-2027 Sezonu Erkek & Kadın Hakiki Deri Terlik, Sandalet ve Ortopedik Comfort koleksiyonumuzu sergiliyoruz. Tüm iş ortaklarımızı standımıza bekleriz.",
+    "posterUrl": "",
+    "qrCodeUrl": "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://iremcomfort.com/fuar-stanti",
+    "badgeText": "RESMİ FUAR DAVETİ",
+    "whatsappContact": "905330297125"
+  },
+  "contactData": {
+    "phone": "+905330297125",
+    "phoneDisplay": "0533 029 71 25",
+    "whatsapp": "905330297125",
+    "whatsappDisplay": "0533 029 71 25",
+    "instagram": "@irem.comfort",
+    "instagramUrl": "https://www.instagram.com/irem.comfort",
+    "instagramVerified": true,
+    "email": "info@iremcomfort.com",
+    "address": "Manisa Ayakkabıcılar Sitesi (Güzelyurt Mahallesi) 5757.Sokak No:21/A Yunusemre / Manisa 45030",
+    "showroomHours": "Pzt - Cmt: 08:30 - 19:00 | Pazar: Özel Randevu İle",
+    "trendyolUrl": "https://www.trendyol.com/magaza/irem-comfort-m-1286942?sst=0&channelId=1",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=%C4%B0rem+Comfort+Manisa+Ayakkab%C4%B1c%C4%B1lar+Sitesi"
+  },
+  "announcements": [
+    "YENİ SEZON HAKİKİ DERİ BAYAN COMFORT SANDALET VE TERLİK KOLEKSİYONU ÇIKTI",
+    "TRENDYOL'DA ANAVELLE MAĞAZAMIZ AÇILDI — ONLİNE ALIŞVERİŞ İÇİN BİZE ULAŞIN",
+    "ANATOMİK TABANLI YUMUŞAK SAYA BAYAN TERLİK VE SABO İMALATI",
+    "YENİ SEZON KATALOĞU VE TOPTAN / PERAKENDE BİLGİ HATTI: 0533 029 71 25",
+    "MANİSA AYAKKABICILAR SİTESİ ÜRETİM ATÖLYEMİZDEN DOĞRUDAN DANIŞMA"
+  ],
+  "sectionOrder": [
+    {
+      "id": "hero",
+      "title": "Hero (Ana Karşılama)",
+      "subtitle": "Slogan, butonlar ve öne çıkan hakiki deri terlik görseli",
+      "enabled": true
+    },
+    {
+      "id": "about",
+      "title": "Hakkımızda & Hikayemiz",
+      "subtitle": "Manisa imalatı, 1993'ten beri miras ve slayt galeri",
+      "enabled": true
+    },
+    {
+      "id": "collection",
+      "title": "Koleksiyon & Ürünlerimiz",
+      "subtitle": "Sandalet ve terlik ürün kartları, kategori filtreleri",
+      "enabled": true
+    },
+    {
+      "id": "craftsmanship",
+      "title": "Zanaat & Atölye Süreci",
+      "subtitle": "Elde kesim, saya dikim, ortopedik montaj adımları",
+      "enabled": true
+    },
+    {
+      "id": "why-us",
+      "title": "Neden İrem Comfort",
+      "subtitle": "Anatomik taban, %100 hakiki saya, toptan avantajlar",
+      "enabled": true
+    },
+    {
+      "id": "testimonials",
+      "title": "Müşteri Yorumları & Referanslar",
+      "subtitle": "Toptan butik ve perakende müşteri geri bildirimleri",
+      "enabled": true
+    },
+    {
+      "id": "contact",
+      "title": "İletişim & Konum",
+      "subtitle": "WhatsApp, showroom adresi, harita ve mesaj formu",
+      "enabled": true
+    },
+    {
+      "id": "faq",
+      "title": "Sıkça Sorulan Sorular (SSS)",
+      "subtitle": "Toptan sipariş, kalıp, kargo ve deri bakımı rehberi",
+      "enabled": true
+    },
+    {
+      "id": "newsletter",
+      "title": "E-Bülten & Kataloğ",
+      "subtitle": "E-posta e-bülten kayıt alanı ve dijital katalog indirme",
+      "enabled": true
+    }
+  ],
+  "testimonials": [
+    {
+      "id": "test-1",
+      "name": "Selin Yıldırım — Elegance Butik",
+      "role": "Toptan Mağaza İşletmecisi",
+      "location": "İzmir, Alsancak",
+      "rating": 5,
+      "comment": "3 sezondur mağazamız için İrem Comfort’tan toptan sandalet ve terlik alıyoruz. Müşterilerimiz kalıbına ve derisinin yumuşaklığına bayılıyor. Seri teslimatlar zamanında yapılıyor, Manisa atölye ekibine teşekkürler.",
+      "productName": "İrem Comfort Çift Tokalı Hakiki Deri Terlik",
+      "date": "12 Mayıs 2026",
+      "type": "toptan",
+      "verified": true
+    },
+    {
+      "id": "test-2",
+      "name": "Op. Dr. Aysel B.",
+      "role": "Bireysel Müşteri (Ortopedik Sabo)",
+      "location": "İstanbul",
+      "rating": 5,
+      "comment": "Hastanede 12 saatlik nöbetlerimde ayak tabanlarım ciddi şekilde ağrıyordu. İrem Comfort ortopedik deri sabo terliği tavsiye üzerine aldım. İlk günden beri topuk ağrım bitti. Derisi nefes alıyor, terleme sıfır.",
+      "productName": "Hakiki Deri Ortopedik Sabo Terlik",
+      "date": "28 Nisan 2026",
+      "type": "perakende",
+      "verified": true
+    },
+    {
+      "id": "test-3",
+      "name": "Murat Kundura & Ayakkabı",
+      "role": "Toplu Mağaza Siparişi",
+      "location": "Ankara",
+      "rating": 5,
+      "comment": "Ankara’daki ayakkabı mağazalarımız için verdiğimiz serili siparişlerde dikiş kalitesi ve deri işçiliği mükemmel. Fuar vesilesiyle tanışmıştık, yıllardır kesintisiz çalışıyoruz.",
+      "productName": "Çapraz Bantlı Hakiki Deri Sandalet",
+      "date": "04 Haziran 2026",
+      "type": "toptan",
+      "verified": true
+    },
+    {
+      "id": "test-4",
+      "name": "Zeynep K.",
+      "role": "Günlük Kullanıcı",
+      "location": "Bursa",
+      "rating": 5,
+      "comment": "Trendyol Anavelle mağazanızdan sipariş verdim. Ertesi gün kargolandı. Kutuyu açtığımda mis gibi gerçek deri kokuyordu. Tabanı tam ortopedik, tatile giderken yanımdan ayırmayacağım.",
+      "productName": "İrem Comfort Çift Tokalı Terlik (Taba)",
+      "date": "18 Haziran 2026",
+      "type": "perakende",
+      "verified": true
+    }
+  ],
+  "githubRepo": "kadirkarga25-rgb/irem-comfort",
+  "githubBranch": "main",
+  "emailConfig": {
+    "smtpHost": "mail.iremcomfort.com",
+    "smtpPort": 587,
+    "smtpUser": "info@iremcomfort.com",
+    "smtpPass": "",
+    "smtpSecure": false,
+    "adminEmails": "kargakadir4525@gmail.com, info@iremcomfort.com",
+    "senderName": "İrem Comfort Ayakkabıcılık",
+    "senderEmail": "info@iremcomfort.com",
+    "sendCustomerConfirmation": true,
+    "sendAdminNotification": true
+  },
+  "newsletterSubject": "İrem Comfort 2026-2027 Yeni Sezon Hakiki Deri Koleksiyon Kataloğu Yayınlandı!",
+  "newsletterBadge": "YENİ SEZON KATALOĞU",
+  "newsletterTitle": "2026-2027 Bayan Comfort Sandalet & Terlik Koleksiyonumuzu Keşfedin!",
+  "newsletterSubtitle": "Manisa Ayakkabıcılar Sitesi İmalat Atölyemizden %100 Hakiki Deri Kalitesi",
+  "newsletterBody": "Değerli Müşterimiz ve İş Ortağımız,\n\nİrem Comfort olarak Manisa Ayakkabıcılar Sitesindeki atölyemizde özenle imal ettiğimiz %100 hakiki deri, anatomik yumuşak tabanlı bayan comfort terlik ve sandalet koleksiyonumuzun yeni sezon kataloğu hazırlandı.\n\nUzun saatler ayakta kalan kadınlar için geliştirilen ortopedik sabo modellerimiz, çift tokalı zamansız klasiklerimiz ve şık yazlık sandaletlerimizi incelemek için sizleri online kataloğumuza bekliyoruz.",
+  "newsletterCtaText": "Koleksiyonu & Kataloğu İnceleyin",
+  "newsletterCtaUrl": "https://iremcomfort.com/#collection",
+  "newsletterBanner": "https://images.unsplash.com/photo-1603808033176-9d134e6f2c74?auto=format&fit=crop&q=80&w=1200",
+  "newsletterOfferBox": ""
 }

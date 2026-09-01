@@ -40,15 +40,8 @@ function MainAppContent() {
   const [legalModalDoc, setLegalModalDoc] = useState<LegalDocType | null>(null);
   const [isProductsPage, setIsProductsPage] = useState<boolean>(false);
   
-  // Preview route state: check if URL contains ?preview=1, ?preview=true, ?preview, #preview, or if admin token exists
-  const [isPreviewView, setIsPreviewView] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    const search = window.location.search.toLowerCase();
-    const hash = window.location.hash.toLowerCase();
-    const isPreviewParam = search.includes('preview') || hash.includes('preview');
-    const hasAdminToken = Boolean(localStorage.getItem('irem_admin_token'));
-    return isPreviewParam || hasAdminToken;
-  });
+  // Preview route state: standard root / route now renders the complete live site directly
+  const [isPreviewView, setIsPreviewView] = useState<boolean>(true);
 
   // Route state: check if URL contains /admin, #admin, or ?admin
   const [isAdminView, setIsAdminView] = useState<boolean>(() => {
@@ -145,9 +138,7 @@ function MainAppContent() {
         search.includes('anket')
       );
 
-      const isPreviewParam = search.includes('preview') || hash.includes('preview');
-      const hasAdminToken = Boolean(typeof window !== 'undefined' && localStorage.getItem('irem_admin_token'));
-      setIsPreviewView(isPreviewParam || hasAdminToken);
+      setIsPreviewView(true);
 
       setIsAdminView(admin);
       setIsResetView(reset);
@@ -338,9 +329,7 @@ function MainAppContent() {
     setIsNotFoundView(false);
     setIsPreviewView(true);
     
-    if (!window.location.search.includes('preview')) {
-      window.history.pushState('', document.title, '/?preview=1');
-    }
+    window.history.pushState('', document.title, '/');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
