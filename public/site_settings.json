@@ -45,7 +45,7 @@
     "signatureModelSub": "Yumuşak Dana Derisi Saya • Anatomik Yumuşak Konfor Taban"
   },
   "images": {
-    "heroImage": "",
+    "heroImage": "/uploads/gallery/Ads_z_tasar_m.png",
     "aboutImage": "",
     "craftsmanshipImages": {
       "01": "",
@@ -1082,7 +1082,7 @@
       "iconName": "Award"
     }
   ],
-  "_updatedAt": 1788266995183,
+  "_updatedAt": 1788269304182,
   "faqItems": [
     {
       "q": "Soru 1",
