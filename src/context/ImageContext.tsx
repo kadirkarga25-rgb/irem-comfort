@@ -482,6 +482,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const markDirty = useCallback(() => setIsDirty(true), []);
   const markClean = useCallback(() => setIsDirty(false), []);
   const lastSavedSettingsRef = useRef<any>(null);
+  const lastUpdatedTimestampRef = useRef<number>(0);
 
   // Initial load from local draft cache if available
   useEffect(() => {
@@ -489,6 +490,10 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const draft = localStorage.getItem('ic_admin_draft_settings_v1');
       if (draft) {
         const s = JSON.parse(draft);
+        if (s._updatedAt) {
+          lastUpdatedTimestampRef.current = s._updatedAt;
+          lastSavedSettingsRef.current = s;
+        }
         if (s.images) setImages(s.images);
         if (s.heroConfig) setHeroConfig(s.heroConfig);
         if (s.fairConfig) setFairConfig(s.fairConfig);
@@ -553,6 +558,17 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         .then(data => {
           if (data?.success && data?.settings && isMounted) {
             const s = data.settings;
+            const incomingTimestamp = s._updatedAt || 0;
+            const currentLocalTimestamp = lastUpdatedTimestampRef.current || lastSavedSettingsRef.current?._updatedAt || 0;
+
+            // PREVENT STALE RESPONSE FROM OVERWRITING NEWER LOCAL/SAVED STATE
+            if (incomingTimestamp > 0 && currentLocalTimestamp > 0 && incomingTimestamp < currentLocalTimestamp) {
+              return;
+            }
+
+            if (incomingTimestamp > 0) {
+              lastUpdatedTimestampRef.current = Math.max(lastUpdatedTimestampRef.current, incomingTimestamp);
+            }
             lastSavedSettingsRef.current = s;
             try {
               localStorage.setItem('ic_admin_draft_settings_v1', JSON.stringify(s));
@@ -594,25 +610,31 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Save specific section to backend server & local file
   const saveSection = async (sectionName: string, dataObj: Record<string, any>, publish: boolean = false) => {
     const payload = dataObj[sectionName] !== undefined ? dataObj[sectionName] : dataObj;
+    const updatedAt = Date.now();
+    lastUpdatedTimestampRef.current = updatedAt;
 
     try {
       const saved = JSON.parse(localStorage.getItem('ic_admin_draft_settings_v1') || '{}');
       saved[sectionName] = payload;
+      saved._updatedAt = updatedAt;
       localStorage.setItem('ic_admin_draft_settings_v1', JSON.stringify(saved));
     } catch (e) {}
 
     fetch('/api/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ section: sectionName, data: payload, publish }),
+      body: JSON.stringify({ section: sectionName, data: payload, publish, _updatedAt: updatedAt }),
     })
       .then(res => res.json())
       .then(data => {
         if (data?.success && data?.settings) {
-          lastSavedSettingsRef.current = data.settings;
-          try {
-            localStorage.setItem('ic_admin_draft_settings_v1', JSON.stringify(data.settings));
-          } catch (e) {}
+          const serverUpdatedAt = data.settings._updatedAt || data._updatedAt || updatedAt;
+          if (serverUpdatedAt >= (lastUpdatedTimestampRef.current || 0)) {
+            lastSavedSettingsRef.current = { ...data.settings, _updatedAt: serverUpdatedAt };
+            try {
+              localStorage.setItem('ic_admin_draft_settings_v1', JSON.stringify(lastSavedSettingsRef.current));
+            } catch (e) {}
+          }
         }
       })
       .catch(err => console.error("Failed saving section to server route:", err));
@@ -1069,17 +1091,24 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   ]);
 
   const saveAllChanges = async (additionalState?: Record<string, any>): Promise<{ success: boolean; message: string }> => {
-    const currentStateObj = getCurrentAdminState(additionalState);
+    const updatedAt = Date.now();
+    lastUpdatedTimestampRef.current = updatedAt;
+    const currentStateObj = { ...getCurrentAdminState(additionalState), _updatedAt: updatedAt };
 
     try {
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ section: 'ALL', data: currentStateObj, publish: true })
+        body: JSON.stringify({ section: 'ALL', data: currentStateObj, publish: true, _updatedAt: updatedAt })
       });
       const data = await res.json();
       if (data.success || res.ok) {
-        lastSavedSettingsRef.current = currentStateObj;
+        const finalSettings = { ...(data.settings || currentStateObj), _updatedAt: Math.max(updatedAt, data.settings?._updatedAt || 0) };
+        lastSavedSettingsRef.current = finalSettings;
+        lastUpdatedTimestampRef.current = finalSettings._updatedAt;
+        try {
+          localStorage.setItem('ic_admin_draft_settings_v1', JSON.stringify(finalSettings));
+        } catch (e) {}
         setIsDirty(false);
         return { success: true, message: '✓ Tüm değişiklikler ve yüklenen tüm fotoğraflar kalıcı olarak GitHub\'a kaydedildi!' };
       }
@@ -1091,11 +1120,15 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const discardUnsavedChanges = async () => {
     try {
-      const res = await fetch('/api/settings');
+      const res = await fetch('/api/settings?force=true');
       const data = await res.json();
       if (data?.success && data?.settings) {
         const s = data.settings;
         lastSavedSettingsRef.current = s;
+        lastUpdatedTimestampRef.current = s._updatedAt || Date.now();
+        try {
+          localStorage.setItem('ic_admin_draft_settings_v1', JSON.stringify(s));
+        } catch (e) {}
         if (s.images) setImages(s.images);
         if (s.heroConfig) setHeroConfig(s.heroConfig);
         if (s.fairConfig) setFairConfig(s.fairConfig);
@@ -1109,6 +1142,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (s.seoConfig) setSeoConfig(s.seoConfig);
         if (s.themeConfig) setThemeConfig(s.themeConfig);
         if (s.sectionOrder && Array.isArray(s.sectionOrder)) setSectionOrder(s.sectionOrder);
+        if (s.testimonials && Array.isArray(s.testimonials)) setTestimonials(s.testimonials);
       }
     } catch (e) {}
     setIsDirty(false);

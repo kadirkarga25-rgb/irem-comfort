@@ -1418,21 +1418,6 @@ async function syncAllImagesToGithub(userCommitMsg: string = "Auto-sync uploaded
   return { success: true, count: syncedFilesCount };
 }
 
-app.post("/api/sync-github", async (req, res) => {
-  try {
-    const { commitMessage } = req.body || {};
-    const result = await syncAllImagesToGithub(commitMessage || "Admin: Görseller ve ayarlar GitHub deposuna aktarıldı");
-    return res.json({
-      success: true,
-      message: "Tüm görseller ve site ayarları GitHub deposuna başarıyla aktarıldı.",
-      syncedCount: result.count
-    });
-  } catch (err) {
-    console.error("Error in /api/sync-github:", err);
-    return res.status(500).json({ success: false, error: "GitHub senkronizasyonunda hata oluştu." });
-  }
-});
-
 function sanitizeNoBase64(obj: any, folder: string = "gallery"): any {
   if (!obj) return obj;
   if (typeof obj === 'string') {
@@ -1861,12 +1846,31 @@ async function loadCanonicalSettingsFromGithub(customToken?: string, customRepo?
         const fileContent = Buffer.from(data.content, "base64").toString("utf-8");
         const parsed = JSON.parse(fileContent);
         if (parsed && typeof parsed === 'object') {
-          inMemorySettingsCache = parsed;
+          const localMemoryTimestamp = inMemorySettingsCache?._updatedAt || 0;
+          const localFile = loadSettingsFromFile();
+          const localFileTimestamp = localFile?._updatedAt || 0;
+          const maxLocalTimestamp = Math.max(localMemoryTimestamp, localFileTimestamp);
+          const ghTimestamp = parsed._updatedAt || 0;
+
+          if (maxLocalTimestamp > ghTimestamp && maxLocalTimestamp > 0) {
+            // Local state has newer changes! Merge GitHub base with newer local draft
+            const activeLocal = (inMemorySettingsCache && Object.keys(inMemorySettingsCache).length > 0)
+              ? inMemorySettingsCache
+              : localFile;
+            inMemorySettingsCache = deepMerge(parsed, activeLocal);
+            inMemorySettingsCache._updatedAt = maxLocalTimestamp;
+          } else {
+            inMemorySettingsCache = parsed;
+            if (!inMemorySettingsCache._updatedAt) {
+              inMemorySettingsCache._updatedAt = Date.now();
+            }
+          }
+
           lastSettingsSource = 'GitHub';
           lastSettingsCommitSha = data.sha || '';
           lastPublishedAt = new Date().toISOString();
           persistenceStatus = 'SYNCHRONIZED';
-          githubHeroImageVerified = parsed?.images?.heroImage || '';
+          githubHeroImageVerified = inMemorySettingsCache?.images?.heroImage || '';
           generateSitemapAndRobots(inMemorySettingsCache);
           console.log("✓ Successfully loaded canonical site_settings.json from GitHub repository!");
           return true;
@@ -1960,21 +1964,6 @@ async function publishSettings(
   details?: string;
   diagnostics: any;
 }> {
-  const { token, repo, branch } = getGithubConfig(customToken, customRepo, customBranch);
-
-  if (!token || !repo) {
-    persistenceStatus = 'ERROR';
-    lastPersistenceError = "GitHub Access Token veya Depo bilgisi bulunamadı.";
-    return {
-      success: false,
-      publishSuccess: false,
-      verified: false,
-      error: "Yayınlama başarısız: GitHub erişim yetkisi (token/repo) bulunamadı.",
-      details: lastPersistenceError,
-      diagnostics: getPersistenceDiagnostics()
-    };
-  }
-
   try {
     await ensureSettingsLoaded();
 
@@ -2022,6 +2011,22 @@ async function publishSettings(
     // Update in-memory cache and sitemap/robots with latest canonicalSettings
     inMemorySettingsCache = canonicalSettings;
     generateSitemapAndRobots(canonicalSettings);
+
+    const { token, repo, branch } = getGithubConfig(customToken, customRepo, customBranch);
+
+    if (!token || !repo) {
+      persistenceStatus = 'UNSAVED';
+      lastPersistenceError = "GitHub Access Token veya Depo bilgisi tanımlanmadığı için sadece yerel dosya ve sunucu belleğine kaydedildi.";
+      return {
+        success: true,
+        publishSuccess: true,
+        verified: false,
+        settings: canonicalSettings,
+        error: "GitHub token/repo eksik, yerel dosya ve sunucu belleği başarıyla güncellendi.",
+        details: lastPersistenceError,
+        diagnostics: getPersistenceDiagnostics()
+      };
+    }
 
     // 1. Sync all uploaded media to GitHub
     await syncAllImagesToGithub("Pre-publish media sync");
@@ -2674,9 +2679,13 @@ app.get("/api/settings", async (req, res) => {
     if (!inMemorySettingsCache || Object.keys(inMemorySettingsCache).length === 0) {
       inMemorySettingsCache = loadSettingsFromFile();
     }
+    if (inMemorySettingsCache && !inMemorySettingsCache._updatedAt) {
+      inMemorySettingsCache._updatedAt = Date.now();
+    }
     return res.json({
       success: true,
       settings: inMemorySettingsCache || {},
+      _updatedAt: inMemorySettingsCache?._updatedAt,
       diagnostics: getPersistenceDiagnostics()
     });
   } catch (err: any) {
@@ -2720,6 +2729,7 @@ app.post("/api/publish-settings", async (req, res) => {
       publishSuccess: true,
       message: "Site ayarları başarıyla GitHub'a kalıcı olarak yayınlandı ve doğrulandı.",
       settings: inMemorySettingsCache,
+      _updatedAt: inMemorySettingsCache?._updatedAt,
       diagnostics: result.diagnostics
     });
   } catch (err: any) {
@@ -2733,11 +2743,38 @@ app.post("/api/publish-settings", async (req, res) => {
   }
 });
 
+app.post("/api/sync-github", async (req, res) => {
+  try {
+    await ensureSettingsLoaded();
+    const { settings, token, repo, branch, commitMessage } = req.body || {};
+    const payload = settings || inMemorySettingsCache;
+
+    const result = await publishSettings(payload, token, repo, branch);
+    await syncAllImagesToGithub(commitMessage || "Admin: Görseller ve ayarlar GitHub deposuna aktarıldı");
+
+    return res.json({
+      success: result.publishSuccess || result.success,
+      publishSuccess: result.publishSuccess,
+      message: "Tüm medya ve site ayarları GitHub'a başarıyla senkronize edildi.",
+      settings: result.settings || inMemorySettingsCache,
+      _updatedAt: inMemorySettingsCache?._updatedAt,
+      diagnostics: result.diagnostics
+    });
+  } catch (err: any) {
+    console.error("Error in /api/sync-github:", err);
+    return res.status(500).json({
+      success: false,
+      error: "GitHub senkronizasyonu sırasında hata oluştu.",
+      details: err?.message || String(err)
+    });
+  }
+});
+
 app.post("/api/settings", async (req, res) => {
   try {
     await ensureSettingsLoaded();
 
-    const { section, data, settings, publish } = req.body || {};
+    const { section, data, settings, publish, _updatedAt } = req.body || {};
     const sanitizedData = sanitizeNoBase64(data || settings);
 
     if (!sanitizedData || typeof sanitizedData !== 'object') {
@@ -2745,6 +2782,8 @@ app.post("/api/settings", async (req, res) => {
     }
 
     const payload = sanitizedData;
+    const incomingTimestamp = _updatedAt || payload._updatedAt || Date.now();
+    const newTimestamp = Math.max(incomingTimestamp, (inMemorySettingsCache?._updatedAt || 0) + 1, Date.now());
 
     if (section && section !== 'ALL' && section !== 'all') {
       if (typeof payload === 'object' && payload !== null && !Array.isArray(payload)) {
@@ -2756,6 +2795,7 @@ app.post("/api/settings", async (req, res) => {
       inMemorySettingsCache = deepMerge(inMemorySettingsCache || {}, payload);
     }
 
+    inMemorySettingsCache._updatedAt = newTimestamp;
     saveDraftSettings(inMemorySettingsCache);
 
     // Only publish to GitHub if explicitly requested (publish === true)
@@ -2768,6 +2808,7 @@ app.post("/api/settings", async (req, res) => {
           publishSuccess: true,
           message: "Site ayarları kalıcı olarak GitHub'a yayınlandı ve kaydedildi.",
           settings: inMemorySettingsCache,
+          _updatedAt: newTimestamp,
           diagnostics: publishRes.diagnostics
         });
       }
@@ -2777,6 +2818,7 @@ app.post("/api/settings", async (req, res) => {
       success: true,
       message: "Site ayarları kaydedildi.",
       settings: inMemorySettingsCache,
+      _updatedAt: newTimestamp,
       diagnostics: getPersistenceDiagnostics()
     });
   } catch (err) {

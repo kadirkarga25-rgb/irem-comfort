@@ -383,28 +383,58 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   const syncAllMediaToGithub = async (quiet: boolean = false) => {
     setIsSyncingGithub(true);
     try {
+      const freshStatePayload = getCurrentAdminState({
+        githubRepo: githubRepoInput,
+        githubBranch: githubBranchInput,
+        emailConfig,
+        newsletterSubject,
+        newsletterBadge,
+        newsletterTitle,
+        newsletterSubtitle,
+        newsletterBody,
+        newsletterCtaText,
+        newsletterCtaUrl,
+        newsletterBanner,
+        newsletterOfferBox
+      });
+
       const res = await fetch('/api/sync-github', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ commitMessage: 'Admin: Görseller ve ayarlar GitHub deposuna aktarıldı' })
+        body: JSON.stringify({
+          token: githubTokenInput || localStorage.getItem('irem_github_token'),
+          repo: githubRepoInput || localStorage.getItem('irem_github_repo'),
+          branch: githubBranchInput || localStorage.getItem('irem_github_branch'),
+          commitMessage: 'Admin: Görseller ve ayarlar GitHub deposuna aktarıldı',
+          settings: freshStatePayload
+        })
       });
       const data = await res.json();
-      if (data.success && !quiet) {
-        showToast('Tüm görseller ve site ayarları GitHub deposuna başarıyla yüklendi!');
+      if (data.success) {
+        setIsDirty(false);
+        if (data.settings) {
+          try {
+            localStorage.setItem('ic_admin_draft_settings_v1', JSON.stringify(data.settings));
+          } catch (e) {}
+        }
+        if (data.diagnostics) {
+          setPersistenceDiagnostics(data.diagnostics);
+        }
+        if (!quiet) {
+          showToast('✓ Tüm ayarlar ve görseller kalıcı olarak GitHub\'a yayınlandı ve doğrulandı!');
+        }
+      } else if (!quiet) {
+        showToast('❌ Yayınlama hatası: ' + (data.error || 'Bilinmeyen hata'));
       }
     } catch (err) {
       console.error("Failed to sync media to GitHub:", err);
+      if (!quiet) {
+        showToast('❌ GitHub ile bağlantı kurulamadı.');
+      }
     } finally {
       setIsSyncingGithub(false);
     }
   };
-
-  useEffect(() => {
-    return () => {
-      // Auto sync images and site settings when exiting admin
-      fetch('/api/sync-github', { method: 'POST' }).catch(() => {});
-    };
-  }, []);
 
   // Prevent accidental navigation/tab-close when there are unsaved changes
   useEffect(() => {
@@ -4766,7 +4796,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                   setShowExitConfirmModal(false);
                   discardUnsavedChanges();
                   if (pendingExitAction) {
-                    syncAllMediaToGithub(true);
                     pendingExitAction();
                   }
                 }}
