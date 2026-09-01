@@ -37,7 +37,7 @@
   },
   "heroConfig": {
     "badgeText": "Test Badge",
-    "title": "İREM COMFORT DOĞRULAMA TEST BAŞLIĞI",
+    "title": "İREM COMFORT YENİ ANA SAYFA",
     "description": "Test Desc",
     "primaryBtnText": "Btn 1",
     "secondaryBtnText": "Btn 2",
@@ -82,8 +82,36 @@
   },
   "aboutSlides": [
     {
-      "title": "Hakkımızda Slayt",
-      "desc": "Açıklama"
+      "id": "slide-1",
+      "image": "",
+      "badge": "İREM COMFORT • MANİSA",
+      "title": "Hakiki Deri.",
+      "subtitle": "Doğal Konfor.",
+      "alt": "İrem Comfort Hakiki Deri Bayan Sandalet Model"
+    },
+    {
+      "id": "slide-2",
+      "image": "",
+      "badge": "%100 HAKİKİ SAYA",
+      "title": "%100 Hakiki Deri",
+      "subtitle": "Nefes Alan Yumuşak Dana ve Kuzu Derisi",
+      "alt": "Manisa Atölyesi Hakiki Deri Doku Yakın Çekim"
+    },
+    {
+      "id": "slide-3",
+      "image": "",
+      "badge": "MANİSA ATÖLYESİ",
+      "title": "Manisa'da Üretiliyor",
+      "subtitle": "Usta Ellerin Geleneksel Dikiş Zanaatı",
+      "alt": "Manisa Ayakkabıcılar Sitesi Deri Zanaatkarlığı"
+    },
+    {
+      "id": "slide-4",
+      "image": "",
+      "badge": "ORTOPEDİK TABAN",
+      "title": "Anatomik Konfor",
+      "subtitle": "Ayak Kavisini Destekleyen Esnek Taban Structure",
+      "alt": "Anatomik Ortopedik Taban Mimarisi Yakın Çekim"
     }
   ],
   "ALL": {
@@ -1027,17 +1055,10 @@
   "craftsmanshipSteps": [
     {
       "id": "1",
-      "title": "ÖZEL DİKİM & DERİ İŞLEME SANATI",
-      "desc": "Test açıklama",
+      "title": "USTALIKLA İŞLENMİŞ DERİ",
+      "desc": "Atolye aciklamasi",
       "icon": "Sparkles",
       "image": ""
-    }
-  ],
-  "_updatedAt": 1788264536975,
-  "faqItems": [
-    {
-      "q": "Soru 1",
-      "a": "Cevap 1"
     }
   ]
 }
