@@ -84,6 +84,22 @@
     {
       "title": "Hakkımızda Slayt",
       "desc": "Açıklama"
+    },
+    {
+      "badge": "YENİ SEZON",
+      "title": "Hakiki Deri Konfor",
+      "subtitle": "Atölyemizden Mükemmel Dikiş İşçiliği",
+      "image": "https://images.unsplash.com/photo-1603808033176-9d134e6f2c74?auto=format&fit=crop&q=80&w=1200",
+      "alt": "İrem Comfort Yeni Slayt Görseli",
+      "id": "slide-1788269315012"
+    },
+    {
+      "badge": "YENİ SEZON",
+      "title": "Hakiki Deri Konfor",
+      "subtitle": "Atölyemizden Mükemmel Dikiş İşçiliği",
+      "image": "https://images.unsplash.com/photo-1603808033176-9d134e6f2c74?auto=format&fit=crop&q=80&w=1200",
+      "alt": "İrem Comfort Yeni Slayt Görseli",
+      "id": "slide-1788269318328"
     }
   ],
   "ALL": {
@@ -1082,7 +1098,7 @@
       "iconName": "Award"
     }
   ],
-  "_updatedAt": 1788269304182,
+  "_updatedAt": 1788269335925,
   "faqItems": [
     {
       "q": "Soru 1",
