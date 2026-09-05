@@ -10,7 +10,7 @@ interface ContactSectionProps {
 }
 
 export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject = '' }) => {
-  const { contactData: liveContact } = useAppImages();
+  const { contactData: liveContact, t, language } = useAppImages();
   const contact = liveContact || CONTACT_DATA;
 
   const [formData, setFormData] = useState({
@@ -62,7 +62,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
             className="inline-flex items-center gap-2 text-xs font-semibold tracking-widest text-[#0A2D6F] uppercase"
           >
             <span className="w-8 h-[1px] bg-[#0A2D6F]" />
-            <span>İletişim & Showroom Danışmanlığı</span>
+            <span>{t.contactTagline || 'İletişim & Showroom Danışmanlığı'}</span>
           </motion.div>
 
           <motion.h2
@@ -72,7 +72,13 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
             transition={{ duration: 0.7, delay: 0.1 }}
             className="text-3xl sm:text-5xl font-light tracking-tight text-[#111111]"
           >
-            Bizimle <span className="font-serif-luxury font-bold text-[#0A2D6F]">İletişime Geçin</span>.
+            {language === 'tr' ? (
+              <>Bizimle <span className="font-serif-luxury font-bold text-[#0A2D6F]">İletişime Geçin</span>.</>
+            ) : language === 'en' ? (
+              <>Get in <span className="font-serif-luxury font-bold text-[#0A2D6F]">Touch with Us</span>.</>
+            ) : (
+              <>تواصل <span className="font-serif-luxury font-bold text-[#0A2D6F]">معنا</span>.</>
+            )}
           </motion.h2>
 
           <motion.p
@@ -82,7 +88,11 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
             transition={{ duration: 0.7, delay: 0.2 }}
             className="text-base text-[#111111]/70 font-light"
           >
-            Bayan comfort hakiki deri terlik ve sandalet modellerimizi incelemek, katalog talep etmek veya Manisa Ayakkabıcılar Sitesindeki imalathanemizden sipariş vermek için bizimle iletişime geçin.
+            {language === 'tr'
+              ? 'Bayan comfort hakiki deri terlik ve sandalet modellerimizi incelemek, katalog talep etmek veya Manisa Ayakkabıcılar Sitesindeki imalathanemizden sipariş vermek için bizimle iletişime geçin.'
+              : language === 'en'
+              ? 'Reach out to examine our women’s genuine leather slippers and sandals, request a wholesale catalog, or place an order directly from our Manisa workshop.'
+              : 'تواصل معنا للاطلاع على موديلات أحذية ونعال الراحة الجلدية النسائية، أو طلب كتالوج الجملة، أو الطلب مباشرة من ورشتنا في مانيسا.'}
           </motion.p>
         </div>
 
@@ -106,15 +116,19 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
                       <span className="bg-white/20 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded tracking-wider">
-                        Online Alışveriş
+                        {language === 'tr' ? 'Online Alışveriş' : language === 'en' ? 'Online Shopping' : 'تسوق إلكتروني'}
                       </span>
-                      <span className="text-xs text-white/90 font-medium">Trendyol Mağazamız</span>
+                      <span className="text-xs text-white/90 font-medium">Trendyol</span>
                     </div>
                     <h4 className="text-lg font-bold font-serif-luxury text-white">
-                      Trendyol'da Anavelle Mağazamız
+                      Trendyol Anavelle
                     </h4>
                     <p className="text-xs text-white/90 font-light">
-                      İrem Comfort modellerimizi Trendyol'da Anavelle mağazamız güvencesiyle sipariş verin
+                      {language === 'tr'
+                        ? "İrem Comfort modellerimizi Trendyol'da Anavelle mağazamız güvencesiyle sipariş verin"
+                        : language === 'en'
+                        ? 'Order our genuine leather models with peace of mind via our Anavelle Trendyol store'
+                        : 'اطلب موديلاتنا عبر متجر أنافيل على ترينديول بكل سهولة وثقة'}
                     </p>
                   </div>
                 </div>
@@ -134,7 +148,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
               </div>
               <div>
                 <span className="text-[11px] font-bold text-[#0A2D6F] uppercase tracking-wider block">
-                  Müşteri Hizmetleri & Telefon
+                  {t.customerService || 'Müşteri Hizmetleri & Telefon'}
                 </span>
                 <span className="text-lg font-bold text-[#111111] font-serif-luxury">
                   {CONTACT_DATA.phoneDisplay}
@@ -154,7 +168,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
               </div>
               <div>
                 <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider block">
-                  WhatsApp Danışma Hattı
+                  {t.whatsappHotline || 'WhatsApp Danışma Hattı'}
                 </span>
                 <span className="text-lg font-bold text-[#111111] font-serif-luxury">
                   {CONTACT_DATA.whatsappDisplay}
@@ -172,7 +186,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
               </div>
               <div>
                 <span className="text-[11px] font-bold text-[#0A2D6F] uppercase tracking-wider block">
-                  E-Posta İletişim
+                  {t.emailUs || 'E-Posta İletişim'}
                 </span>
                 <span className="text-base font-bold text-[#111111] font-serif-luxury">
                   {CONTACT_DATA.email}
@@ -193,7 +207,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
               <div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-[11px] font-bold text-pink-600 uppercase tracking-wider block">
-                    Resmi Instagram
+                    {language === 'tr' ? 'Resmi Instagram' : language === 'en' ? 'Official Instagram' : 'إنستغرام الرسمي'}
                   </span>
                   <BadgeCheck className="w-4 h-4 fill-[#0095F6] text-white" />
                 </div>
@@ -209,10 +223,12 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <MapPin className="w-5 h-5 text-amber-300 shrink-0" />
-                  <h4 className="font-bold text-base font-serif-luxury">Showroom & Atölye Adresi</h4>
+                  <h4 className="font-bold text-base font-serif-luxury">
+                    {language === 'tr' ? 'Showroom & Atölye Adresi' : language === 'en' ? 'Showroom & Workshop Address' : 'عنوان المعرض والورشة'}
+                  </h4>
                 </div>
                 <span className="text-[10px] uppercase tracking-wider font-extrabold bg-white/10 px-2 py-0.5 rounded text-amber-300">
-                  Manisa İmalat
+                  {language === 'tr' ? 'Manisa İmalat' : language === 'en' ? 'Manisa Production' : 'إنتاج مانيسا'}
                 </span>
               </div>
 
@@ -233,7 +249,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
                   className="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-[#0A2D6F] text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shrink-0"
                 >
                   <Navigation className="w-3.5 h-3.5 text-[#0A2D6F]" />
-                  <span>Yol Tarifi Al</span>
+                  <span>{language === 'tr' ? 'Yol Tarifi Al' : language === 'en' ? 'Get Directions' : 'الاتجاهات'}</span>
                 </a>
               </div>
             </div>
@@ -255,10 +271,18 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
                   </div>
                   <div className="space-y-3">
                     <h3 className="text-2xl font-bold text-[#111111] font-serif-luxury">
-                      Teşekkür Ederiz, Sayın {formData.fullName}
+                      {language === 'tr'
+                        ? `Teşekkür Ederiz, Sayın ${formData.fullName}`
+                        : language === 'en'
+                        ? `Thank You, ${formData.fullName}`
+                        : `شكرًا لك، ${formData.fullName}`}
                     </h3>
                     <p className="text-base text-[#111111]/80 max-w-lg mx-auto font-medium leading-relaxed">
-                      Talebiniz alındı, en kısa sürede sizlere geri dönüş sağlanacaktır.
+                      {language === 'tr'
+                        ? 'Talebiniz alındı, en kısa sürede sizlere geri dönüş sağlanacaktır.'
+                        : language === 'en'
+                        ? 'Your inquiry has been received. Our team will get back to you shortly.'
+                        : 'تم استلام طلبك بنجاح، وسيقوم فريقنا بالتواصل معك في أقرب وقت.'}
                     </p>
                   </div>
 
@@ -269,17 +293,17 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
                     }}
                     className="px-6 py-3 rounded-full bg-[#0A2D6F] text-white text-xs font-semibold uppercase tracking-wider hover:bg-[#163E87] transition-all cursor-pointer shadow-md"
                   >
-                    Yeni Mesaj Gönder
+                    {language === 'tr' ? 'Yeni Mesaj Gönder' : language === 'en' ? 'Send Another Message' : 'إرسال رسالة أخرى'}
                   </button>
                 </motion.div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div>
                     <span className="text-xs font-bold text-[#0A2D6F] uppercase tracking-widest">
-                      İletişim Formu
+                      {language === 'tr' ? 'İletişim Formu' : language === 'en' ? 'Contact Form' : 'نموذج الاتصال'}
                     </span>
                     <h3 className="text-2xl font-bold text-[#111111] font-serif-luxury mt-1">
-                      Katalog & Bilgi Talebi
+                      {language === 'tr' ? 'Katalog & Bilgi Talebi' : language === 'en' ? 'Catalog & Inquiry Request' : 'طلب كتالوج واستفسار'}
                     </h3>
                   </div>
 
@@ -287,14 +311,14 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
                     {/* Full Name */}
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-[#111111] uppercase tracking-wider block">
-                        Ad Soyad *
+                        {language === 'tr' ? 'Ad Soyad *' : language === 'en' ? 'Full Name *' : 'الاسم الكامل *'}
                       </label>
                       <input
                         type="text"
                         required
                         value={formData.fullName}
                         onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                        placeholder="Örn: Ahmet Yılmaz"
+                        placeholder={language === 'tr' ? 'Örn: Ahmet Yılmaz' : language === 'en' ? 'e.g. John Doe' : 'مثال: أحمد محمد'}
                         className="w-full px-4 py-3.5 rounded-xl bg-[#F8F8F8] border border-[#0A2D6F]/10 text-sm focus:outline-none focus:border-[#0A2D6F] focus:bg-white transition-all"
                       />
                     </div>
@@ -302,14 +326,14 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
                     {/* Email */}
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-[#111111] uppercase tracking-wider block">
-                        E-Posta Adresi *
+                        {language === 'tr' ? 'E-Posta Adresi *' : language === 'en' ? 'Email Address *' : 'البريد الإلكتروني *'}
                       </label>
                       <input
                         type="email"
                         required
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="Örn: ahmet@example.com"
+                        placeholder={language === 'tr' ? 'Örn: ahmet@example.com' : 'info@example.com'}
                         className="w-full px-4 py-3.5 rounded-xl bg-[#F8F8F8] border border-[#0A2D6F]/10 text-sm focus:outline-none focus:border-[#0A2D6F] focus:bg-white transition-all"
                       />
                     </div>
@@ -319,7 +343,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
                     {/* Phone Number */}
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-[#111111] uppercase tracking-wider block">
-                        Telefon Numarası *
+                        {language === 'tr' ? 'Telefon Numarası *' : language === 'en' ? 'Phone Number *' : 'رقم الهاتف *'}
                       </label>
                       <input
                         type="tel"
@@ -334,17 +358,25 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
                     {/* Inquiry Type */}
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-[#111111] uppercase tracking-wider block">
-                        Talebiniz
+                        {language === 'tr' ? 'Talebiniz' : language === 'en' ? 'Inquiry Type' : 'نوع الطلب'}
                       </label>
                       <select
                         value={formData.inquiryType}
                         onChange={(e) => setFormData({ ...formData, inquiryType: e.target.value })}
                         className="w-full px-4 py-3.5 rounded-xl bg-[#F8F8F8] border border-[#0A2D6F]/10 text-sm focus:outline-none focus:border-[#0A2D6F] focus:bg-white transition-all"
                       >
-                        <option value="Yeni Sezon Kataloğu">Yeni Sezon Terlik & Sandalet Kataloğu</option>
-                        <option value="Toptan Sipariş">Toptan Mağaza & B2B Siparişi</option>
-                        <option value="Perakende Sipariş">Perakende Sipariş & Model Bilgisi</option>
-                        <option value="Atölye Randevusu">Manisa Atölye Ziyareti</option>
+                        <option value="Yeni Sezon Kataloğu">
+                          {language === 'tr' ? 'Yeni Sezon Terlik & Sandalet Kataloğu' : language === 'en' ? 'New Season Slipper & Sandal Catalog' : 'كتالوج الصنادل والنعال للموسم الجديد'}
+                        </option>
+                        <option value="Toptan Sipariş">
+                          {language === 'tr' ? 'Toptan Mağaza & B2B Siparişi' : language === 'en' ? 'Wholesale Store & B2B Orders' : 'طلبات الجملة والمحلات B2B'}
+                        </option>
+                        <option value="Perakende Sipariş">
+                          {language === 'tr' ? 'Perakende Sipariş & Model Bilgisi' : language === 'en' ? 'Retail Orders & Model Info' : 'طلبات التجزئة ومعلومات الموديلات'}
+                        </option>
+                        <option value="Atölye Randevusu">
+                          {language === 'tr' ? 'Manisa Atölye Ziyareti' : language === 'en' ? 'Manisa Workshop Visit' : 'زيارة ورشة مانيسا'}
+                        </option>
                       </select>
                     </div>
                   </div>
@@ -352,14 +384,20 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
                   {/* Message */}
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-[#111111] uppercase tracking-wider block">
-                      Mesajınız / Özel İstekleriniz *
+                      {language === 'tr' ? 'Mesajınız / Özel İstekleriniz *' : language === 'en' ? 'Your Message / Special Requests *' : 'رسالتك أو طلباتك الخاصة *'}
                     </label>
                     <textarea
                       required
                       rows={4}
                       value={formData.message}
                       onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      placeholder="İlgilendiğiniz modeller, katalog talebi veya özel ölçüleriniz..."
+                      placeholder={
+                        language === 'tr'
+                          ? 'İlgilendiğiniz modeller, katalog talebi veya özel ölçüleriniz...'
+                          : language === 'en'
+                          ? 'Models of interest, wholesale catalog request, or custom size queries...'
+                          : 'الموديلات المطلوبة، طلب الكتالوج، أو استفسارات المقاسات...'
+                      }
                       className="w-full px-4 py-3.5 rounded-xl bg-[#F8F8F8] border border-[#0A2D6F]/10 text-sm focus:outline-none focus:border-[#0A2D6F] focus:bg-white transition-all resize-none"
                     />
                   </div>
@@ -371,10 +409,10 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
                     className="w-full py-4 rounded-full bg-[#0A2D6F] text-white font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-3 hover:bg-[#163E87] transition-all cursor-pointer shadow-xl active:scale-98 disabled:opacity-50"
                   >
                     {isSubmitting ? (
-                      <span>Gönderiliyor...</span>
+                      <span>{language === 'tr' ? 'Gönderiliyor...' : language === 'en' ? 'Sending...' : 'جارٍ الإرسال...'}</span>
                     ) : (
                       <>
-                        <span>Talebi Gönder</span>
+                        <span>{language === 'tr' ? 'Talebi Gönder' : language === 'en' ? 'Submit Request' : 'إرسال الطلب'}</span>
                         <Send className="w-4 h-4" />
                       </>
                     )}

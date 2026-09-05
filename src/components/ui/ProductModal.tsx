@@ -20,7 +20,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   onClose,
   onInquire
 }) => {
-  const { images: storeImages, contactData } = useAppImages();
+  const { images: storeImages, contactData, language } = useAppImages();
   const { setActiveProduct } = useConversation();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -28,6 +28,15 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const modalOverlayRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const getTranslatedCategory = (cat: string) => {
+    if (language === 'tr') return cat;
+    if (cat.includes('Sandalet')) return language === 'en' ? "Women's Sandals" : 'صنادل نسائية';
+    if (cat.includes('Sabo')) return language === 'en' ? 'Clogs & Orthopedic' : 'قباقيب ونعال طبية';
+    if (cat.includes('Mantar')) return language === 'en' ? 'Cork Footbed' : 'نعل فلين';
+    if (cat.includes('Terlik')) return language === 'en' ? "Women's Slippers" : 'نعال نسائية';
+    return cat;
+  };
 
   const handleShare = () => {
     if (!item) return;
@@ -140,7 +149,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   const modalImagesMap = new Map<string, { url: string; label?: string; hex?: string }>();
   baseImages.forEach((url, i) => {
     if (url && !modalImagesMap.has(url)) {
-      modalImagesMap.set(url, { url, label: i === 0 ? 'Ana Model' : 'Detay Görseli' });
+      modalImagesMap.set(url, {
+        url,
+        label: i === 0
+          ? (language === 'tr' ? 'Ana Model' : language === 'en' ? 'Main Model' : 'الموديل الرئيسي')
+          : (language === 'tr' ? 'Detay Görseli' : language === 'en' ? 'Detail View' : 'صورة تفصيلية')
+      });
     }
   });
 
@@ -193,7 +207,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
           <button
             onClick={onClose}
             className="absolute top-3 right-3 sm:top-4 sm:right-4 z-40 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/95 hover:bg-white text-[#111111] shadow-md flex items-center justify-center transition-all cursor-pointer border border-slate-200 active:scale-90"
-            aria-label="Kapat"
+            aria-label={language === 'tr' ? 'Kapat' : language === 'en' ? 'Close' : 'إغلاق'}
           >
             <X className="w-5 h-5" />
           </button>
@@ -222,14 +236,14 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 ) : (
                   <div className="p-4 text-center text-white space-y-2">
                     <span className="text-[10px] font-bold tracking-widest uppercase text-[#D4AF37] block">
-                      Ürün Görseli Bekleniyor
+                      {language === 'tr' ? 'Ürün Görseli Bekleniyor' : language === 'en' ? 'Image Coming Soon' : 'الصورة غير متوفرة حالياً'}
                     </span>
                     <p className="text-xs text-slate-300 font-medium">{item.name}</p>
                   </div>
                 )}
                 
                 <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#0A2D6F] text-white text-[9px] sm:text-[10px] font-bold tracking-widest uppercase shadow-sm flex items-center gap-1.5">
-                  <span>{item.category}</span>
+                  <span>{getTranslatedCategory(item.category)}</span>
                   {modalImages[activeImageIndex]?.label && (
                     <span className="text-amber-300 font-normal opacity-90">• {modalImages[activeImageIndex].label}</span>
                   )}
@@ -299,7 +313,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                   <div className="space-y-2">
                     <span className="text-xs font-bold text-[#111111] uppercase tracking-wider flex items-center gap-1.5">
                       <Palette className="w-3.5 h-3.5 text-[#0A2D6F]" />
-                      <span>Deri Tonu: <strong className="text-[#0A2D6F]">{currentColor || 'Standart'}</strong></span>
+                      <span>
+                        {language === 'tr' ? 'Deri Tonu:' : language === 'en' ? 'Leather Tone:' : 'لون الجلد:'}{' '}
+                        <strong className="text-[#0A2D6F]">{currentColor || (language === 'tr' ? 'Standart' : language === 'en' ? 'Standard' : 'قياسي')}</strong>
+                      </span>
                     </span>
                     <div className="flex items-center gap-2.5 pt-0.5 flex-wrap">
                       {Array.isArray(item.colors) && item.colors.map((c, idx) => (
@@ -310,7 +327,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                             currentColor === c.name ? 'border-[#0A2D6F] scale-110 shadow-md ring-2 ring-[#0A2D6F]/20' : 'border-gray-300 hover:scale-105'
                           }`}
                           style={{ backgroundColor: c.hex }}
-                          title={c.image ? `${c.name} (Özel Fotoğraflı)` : c.name}
+                          title={c.image ? `${c.name} (${language === 'tr' ? 'Özel Fotoğraflı' : language === 'en' ? 'Photo Available' : 'صورة متوفرة'})` : c.name}
                         >
                           {currentColor === c.name && (
                             <Check className={`w-4 h-4 absolute inset-0 m-auto ${c.hex === '#EAE6DF' || c.hex === '#F0ECE1' || c.hex === '#FFFFFF' ? 'text-black' : 'text-[#0A2D6F]'}`} />
@@ -330,7 +347,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                     <div className="flex items-start gap-2">
                       <Layers className="w-4 h-4 text-[#0A2D6F] shrink-0 mt-0.5" />
                       <div>
-                        <strong className="font-semibold text-[#111111]">Kullanılan Malzemeler: </strong>
+                        <strong className="font-semibold text-[#111111]">
+                          {language === 'tr' ? 'Kullanılan Malzemeler:' : language === 'en' ? 'Materials Used:' : 'المواد المستخدمة:'}{' '}
+                        </strong>
                         <span>{Array.isArray(item.materials) ? item.materials.join(', ') : item.materials}</span>
                       </div>
                     </div>
@@ -340,7 +359,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                     <div className="flex items-start gap-2">
                       <ShieldCheck className="w-4 h-4 text-[#0A2D6F] shrink-0 mt-0.5" />
                       <div>
-                        <strong className="font-semibold text-[#111111]">Ölçüler: </strong>
+                        <strong className="font-semibold text-[#111111]">
+                          {language === 'tr' ? 'Ölçüler:' : language === 'en' ? 'Dimensions / Fit:' : 'المقاسات والمواصفات:'}{' '}
+                        </strong>
                         <span>{item.dimensions}</span>
                       </div>
                     </div>
@@ -353,7 +374,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                       className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#0A2D6F] font-extrabold text-xs border border-blue-200 transition-all cursor-pointer shadow-xs active:scale-95"
                     >
                       <Ruler className="w-4 h-4 text-[#D4AF37]" />
-                      <span>Beden & Numara Rehberi (36 - 41)</span>
+                      <span>{language === 'tr' ? 'Beden & Numara Rehberi (36 - 41)' : language === 'en' ? 'Size & Fit Guide (36 - 41)' : 'دليل المقاسات والأرقام (36 - 41)'}</span>
                     </button>
                   </div>
                 </div>
@@ -362,7 +383,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 {Array.isArray(item.features) && item.features.length > 0 && (
                   <div className="space-y-2 bg-[#F8F8F8] p-3 sm:p-4 rounded-xl border border-[#0A2D6F]/10">
                     <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#0A2D6F]">
-                      Ergonomik & Öne Çıkan Özellikler
+                      {language === 'tr' ? 'Ergonomik & Öne Çıkan Özellikler' : language === 'en' ? 'Ergonomic & Key Features' : 'الميزات والمواصفات الطبية'}
                     </span>
                     <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs text-[#111111]/80 pt-0.5">
                       {item.features.map((feat, idx) => (
@@ -381,17 +402,19 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 <button
                   onClick={handleShare}
                   className="w-full sm:w-auto py-3 sm:py-3.5 px-4 rounded-full bg-slate-100 hover:bg-slate-200 text-[#062050] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer border border-slate-200 active:scale-95 shrink-0"
-                  title="Ürünü Paylaş"
+                  title={language === 'tr' ? 'Ürünü Paylaş' : language === 'en' ? 'Share Product' : 'مشاركة المنتج'}
                 >
                   {copiedShare ? (
                     <>
                       <Check className="w-4 h-4 text-emerald-600" />
-                      <span className="text-emerald-700">Bağlantı Kopyalandı!</span>
+                      <span className="text-emerald-700">
+                        {language === 'tr' ? 'Bağlantı Kopyalandı!' : language === 'en' ? 'Link Copied!' : 'تم نسخ الرابط!'}
+                      </span>
                     </>
                   ) : (
                     <>
                       <Share2 className="w-4 h-4 text-[#062050]" />
-                      <span>Paylaş</span>
+                      <span>{language === 'tr' ? 'Paylaş' : language === 'en' ? 'Share' : 'مشاركة'}</span>
                     </>
                   )}
                 </button>
@@ -403,7 +426,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                     rel="noopener noreferrer"
                     className="w-full sm:w-auto py-3 sm:py-3.5 px-5 rounded-full bg-[#F27A1A] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-[#d9660c] transition-all cursor-pointer shadow-md active:scale-95 shrink-0"
                   >
-                    <span>Trendyol Anavelle'den Satın Al</span>
+                    <span>
+                      {language === 'tr' ? "Trendyol'dan Satın Al" : language === 'en' ? 'Buy on Trendyol' : 'شراء عبر ترينديول'}
+                    </span>
                     <ArrowRight className="w-4 h-4" />
                   </a>
                 )}
@@ -415,7 +440,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                   }}
                   className="w-full sm:w-auto flex-1 py-3 sm:py-3.5 px-5 rounded-full bg-[#082C6C] text-white font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-[#163E87] transition-all cursor-pointer shadow-md active:scale-95"
                 >
-                  <span>Fiyat & Toptan Bilgi Al</span>
+                  <span>{language === 'tr' ? 'Fiyat & Toptan Bilgi Al' : language === 'en' ? 'Price & Wholesale Info' : 'طلب الأسعار والبيع بالجملة'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>

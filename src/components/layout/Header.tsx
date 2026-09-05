@@ -260,6 +260,43 @@ export const Header: React.FC<HeaderProps> = ({
             className="fixed inset-x-0 top-20 z-30 bg-white/95 backdrop-blur-xl border-b border-[#0A2D6F]/10 shadow-2xl md:hidden px-6 py-8 max-h-[85vh] overflow-y-auto"
           >
             <div className="flex flex-col space-y-3">
+              {/* Mobile Language Selector */}
+              <div className="py-2 border-b border-[#0A2D6F]/10">
+                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-[#0A2D6F]" />
+                  <span>{language === 'tr' ? 'Dil Seçimi / Language' : language === 'en' ? 'Select Language' : 'اختيار اللغة'}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => { setLanguage('tr'); setMobileMenuOpen(false); }}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border cursor-pointer transition-all ${
+                      language === 'tr' ? 'bg-[#0A2D6F] text-white border-[#0A2D6F] shadow-sm' : 'bg-slate-50 text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    <span>🇹🇷</span>
+                    <span>TR</span>
+                  </button>
+                  <button
+                    onClick={() => { setLanguage('en'); setMobileMenuOpen(false); }}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border cursor-pointer transition-all ${
+                      language === 'en' ? 'bg-[#0A2D6F] text-white border-[#0A2D6F] shadow-sm' : 'bg-slate-50 text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    <span>🇬🇧</span>
+                    <span>EN</span>
+                  </button>
+                  <button
+                    onClick={() => { setLanguage('ar'); setMobileMenuOpen(false); }}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border cursor-pointer transition-all ${
+                      language === 'ar' ? 'bg-[#0A2D6F] text-white border-[#0A2D6F] shadow-sm' : 'bg-slate-50 text-slate-700 border-slate-200'
+                    }`}
+                  >
+                    <span>🇸🇦</span>
+                    <span>AR</span>
+                  </button>
+                </div>
+              </div>
+
               {[...primaryNavLinks, ...secondaryNavLinks].map((link) => {
                 const isActive = activeSection === link.id;
                 return (
@@ -286,7 +323,13 @@ export const Header: React.FC<HeaderProps> = ({
                     rel="noopener noreferrer"
                     className="w-full py-3.5 rounded-xl bg-[#F27A1A] text-white text-center text-sm font-bold tracking-wider uppercase shadow-md flex items-center justify-center gap-2 active:scale-98"
                   >
-                    <span>Trendyol Mağazamıza Git</span>
+                    <span>
+                      {language === 'tr'
+                        ? 'Trendyol Mağazamıza Git'
+                        : language === 'en'
+                        ? 'Visit Trendyol Store'
+                        : 'زيارة متجر ترينديول'}
+                    </span>
                     <ChevronRight className="w-4 h-4" />
                   </a>
                 )}
@@ -295,7 +338,7 @@ export const Header: React.FC<HeaderProps> = ({
                   onClick={() => handleNavClick('contact')}
                   className="w-full py-3.5 rounded-xl bg-[#082C6C] text-white text-center text-sm font-semibold tracking-wider uppercase shadow-md active:scale-98"
                 >
-                  İletişim & Atölye
+                  {language === 'tr' ? 'İletişim & Atölye' : language === 'en' ? 'Contact & Workshop' : 'الاتصال والورشة'}
                 </button>
 
                 <a

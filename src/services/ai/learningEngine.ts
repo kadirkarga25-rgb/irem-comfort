@@ -277,11 +277,11 @@ export class LearningEngine {
    * Adds a candidate from human operator response in Human Support mode
    */
   public addCandidateFromHumanResponse(question: string, adminAnswer: string, conversationId: string): LearningCandidate {
-    const cleanQ = question.trim();
-    const cleanA = adminAnswer.trim();
+    const cleanQ = (question || '').trim();
+    const cleanA = (adminAnswer || '').trim();
 
     // Quality check for duplicates
-    const isDuplicate = this.candidates.some(c => c.question.toLowerCase() === cleanQ.toLowerCase());
+    const isDuplicate = this.candidates.some(c => (c.question || '').toLowerCase() === cleanQ.toLowerCase());
 
     const candidate: LearningCandidate = {
       id: `kn-cand-${Date.now()}`,

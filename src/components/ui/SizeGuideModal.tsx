@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Ruler, CheckCircle2, Info, Sparkles, HelpCircle } from 'lucide-react';
+import { useAppImages } from '../../context/ImageContext';
 
 interface SizeGuideModalProps {
   isOpen: boolean;
@@ -8,6 +9,7 @@ interface SizeGuideModalProps {
 }
 
 export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({ isOpen, onClose }) => {
+  const { language } = useAppImages();
   const [selectedSize, setSelectedSize] = useState<number | null>(38);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const modalOverlayRef = useRef<HTMLDivElement>(null);
@@ -49,12 +51,48 @@ export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({ isOpen, onClose 
   }, [isOpen]);
 
   const sizeChart = [
-    { eu: 36, cm: '22.5', us: '5.5', uk: '3.0', note: 'Dar / Küçük Ayak' },
-    { eu: 37, cm: '23.2', us: '6.5', uk: '4.0', note: 'Standart / İnce Ayak' },
-    { eu: 38, cm: '24.0', us: '7.5', uk: '5.0', note: 'En Çok Tercih Edilen' },
-    { eu: 39, cm: '24.7', us: '8.5', uk: '6.0', note: 'Standart Ayak' },
-    { eu: 40, cm: '25.5', us: '9.0', uk: '6.5', note: 'Geniş / Taraklı Ayak' },
-    { eu: 41, cm: '26.2', us: '10.0', uk: '7.5', note: 'Büyük Numara' },
+    {
+      eu: 36,
+      cm: '22.5',
+      us: '5.5',
+      uk: '3.0',
+      note: language === 'tr' ? 'Dar / Küçük Ayak' : language === 'en' ? 'Narrow / Small Foot' : 'قدم ضيقة / صغيرة'
+    },
+    {
+      eu: 37,
+      cm: '23.2',
+      us: '6.5',
+      uk: '4.0',
+      note: language === 'tr' ? 'Standart / İnce Ayak' : language === 'en' ? 'Standard / Slim Foot' : 'قدم قياسية / رفيعة'
+    },
+    {
+      eu: 38,
+      cm: '24.0',
+      us: '7.5',
+      uk: '5.0',
+      note: language === 'tr' ? 'En Çok Tercih Edilen' : language === 'en' ? 'Most Popular Standard' : 'المقاس الأكثر طلباً'
+    },
+    {
+      eu: 39,
+      cm: '24.7',
+      us: '8.5',
+      uk: '6.0',
+      note: language === 'tr' ? 'Standart Ayak' : language === 'en' ? 'Standard Regular' : 'قدم قياسية'
+    },
+    {
+      eu: 40,
+      cm: '25.5',
+      us: '9.0',
+      uk: '6.5',
+      note: language === 'tr' ? 'Geniş / Taraklı Ayak' : language === 'en' ? 'Wide / High Arch' : 'قدم عريضة'
+    },
+    {
+      eu: 41,
+      cm: '26.2',
+      us: '10.0',
+      uk: '7.5',
+      note: language === 'tr' ? 'Büyük Numara' : language === 'en' ? 'Extended Size' : 'مقاس كبير'
+    },
   ];
 
   if (!isOpen) return null;
@@ -87,6 +125,7 @@ export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({ isOpen, onClose 
             <button
               onClick={onClose}
               className="absolute top-4 right-4 sm:top-5 sm:right-5 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+              aria-label={language === 'tr' ? 'Kapat' : language === 'en' ? 'Close' : 'إغلاق'}
             >
               <X className="w-5 h-5" />
             </button>
@@ -98,10 +137,14 @@ export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({ isOpen, onClose 
               <div>
                 <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/15 text-[#D4AF37] text-[10px] font-extrabold tracking-wider uppercase">
                   <Sparkles className="w-3 h-3" />
-                  İrem Comfort Kalıp Standartları
+                  {language === 'tr' ? 'İrem Comfort Kalıp Standartları' : language === 'en' ? 'İrem Comfort Fit Standards' : 'معايير المقاسات الطبية'}
                 </span>
                 <h3 className="text-lg sm:text-2xl font-extrabold font-serif-luxury text-white mt-0.5">
-                  Bayan Ayakkabı & Terlik Beden Rehberi
+                  {language === 'tr'
+                    ? 'Bayan Ayakkabı & Terlik Beden Rehberi'
+                    : language === 'en'
+                    ? "Women's Footwear Size Guide"
+                    : 'دليل مقاسات النعال والأحذية النسائية'}
                 </h3>
               </div>
             </div>
@@ -118,13 +161,25 @@ export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({ isOpen, onClose 
               <Info className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
               <div className="space-y-1 text-xs text-amber-900 leading-relaxed font-medium">
                 <span className="font-extrabold text-amber-950 block text-sm">
-                  💡 Kalıp Tavsiyesi & Doğru Numara Seçimi
+                  {language === 'tr'
+                    ? '💡 Kalıp Tavsiyesi & Doğru Numara Seçimi'
+                    : language === 'en'
+                    ? '💡 Size Recommendation & True-to-Fit Advice'
+                    : '💡 نصائح لاختيار المقاس الدقيق'}
                 </span>
                 <p>
-                  İrem Comfort ortopedik sabo, terlik ve sandalet modellerimizin tamamı <strong className="font-bold">tam kalıptır (True to Size)</strong>. Günlük giydiğiniz ayakkabı numaranızı güvenle tercih edebilirsiniz.
+                  {language === 'tr'
+                    ? 'İrem Comfort ortopedik sabo, terlik ve sandalet modellerimizin tamamı tam kalıptır (True to Size). Günlük giydiğiniz ayakkabı numaranızı güvenle tercih edebilirsiniz.'
+                    : language === 'en'
+                    ? 'All İrem Comfort orthopedic clogs, slippers, and sandals are standard True to Size. We recommend choosing your regular everyday footwear size.'
+                    : 'جميع موديلات إرم كومفورت من الصنادل والنعال الطبية تأتي بمقاسات قياسية دقيقة (True to Size). نوصي باختيار مقاسكم المعتاد.'}
                 </p>
                 <p className="text-amber-800 font-semibold">
-                  * İki numara arasında kararsız kalıyorsanız veya taraklı/yüksek kavisli ayak yapısına sahipseniz, ekstra rahatlık için <strong>bir numara büyük</strong> seçmenizi tavsiye ederiz.
+                  {language === 'tr'
+                    ? '* İki numara arasında kararsız kalıyorsanız veya taraklı/yüksek kavisli ayak yapısına sahipseniz, ekstra rahatlık için bir numara büyük seçmenizi tavsiye ederiz.'
+                    : language === 'en'
+                    ? '* If you are in between sizes or have wide feet / high arches, we recommend ordering one size larger for extra comfort.'
+                    : '* إذا كنتم بين مقاسين أو لديكم قدم عريضة، ننصح باختيار مقاس أكبر بنمرة واحدة لراحة إضافية.'}
                 </p>
               </div>
             </div>
@@ -133,10 +188,14 @@ export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({ isOpen, onClose 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-extrabold text-slate-900 font-serif-luxury">
-                  Numara & Santimetre Karşılıkları Tablosu
+                  {language === 'tr'
+                    ? 'Numara & Santimetre Karşılıkları Tablosu'
+                    : language === 'en'
+                    ? 'Size & Centimeter Conversion Table'
+                    : 'جدول تحويل المقاسات بالسنتيمتر'}
                 </h4>
                 <span className="text-[11px] font-bold text-slate-500">
-                  Tıklayarak inceleyin
+                  {language === 'tr' ? 'Tıklayarak inceleyin' : language === 'en' ? 'Click to inspect' : 'انقر للاختيار'}
                 </span>
               </div>
 
@@ -163,11 +222,11 @@ export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({ isOpen, onClose 
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200">
                     <tr>
-                      <th className="p-3">TR / EU Numara</th>
-                      <th className="p-3">Ayak Uzunluğu (cm)</th>
-                      <th className="p-3">US Numarası</th>
-                      <th className="p-3">UK Numarası</th>
-                      <th className="p-3">Kullanım Notu</th>
+                      <th className="p-3">{language === 'tr' ? 'TR / EU Numara' : language === 'en' ? 'TR / EU Size' : 'المقاس الأوروبي'}</th>
+                      <th className="p-3">{language === 'tr' ? 'Ayak Uzunluğu (cm)' : language === 'en' ? 'Foot Length (cm)' : 'طول القدم (سم)'}</th>
+                      <th className="p-3">{language === 'tr' ? 'US Numarası' : language === 'en' ? 'US Size' : 'المقاس الأمريكي'}</th>
+                      <th className="p-3">{language === 'tr' ? 'UK Numarası' : language === 'en' ? 'UK Size' : 'المقاس البريطاني'}</th>
+                      <th className="p-3">{language === 'tr' ? 'Kullanım Notu' : language === 'en' ? 'Fit Note' : 'ملاحظة المقاس'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -185,7 +244,7 @@ export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({ isOpen, onClose 
                           {selectedSize === row.eu && (
                             <CheckCircle2 className="w-4 h-4 text-[#062050]" />
                           )}
-                          <span>{row.eu} Numara</span>
+                          <span>{row.eu} {language === 'tr' ? 'Numara' : language === 'en' ? 'EU' : 'أوروبي'}</span>
                         </td>
                         <td className="p-3 font-mono font-bold text-slate-900">{row.cm} cm</td>
                         <td className="p-3 font-mono text-slate-600">{row.us}</td>
@@ -203,7 +262,11 @@ export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({ isOpen, onClose 
               <div className="flex items-center gap-2">
                 <HelpCircle className="w-4 h-4 text-[#062050]" />
                 <h5 className="font-extrabold text-slate-900 text-xs uppercase tracking-wider">
-                  Ayak Ölçüsü Nasıl Alınır? (3 Kolay Adım)
+                  {language === 'tr'
+                    ? 'Ayak Ölçüsü Nasıl Alınır? (3 Kolay Adım)'
+                    : language === 'en'
+                    ? 'How to Measure Your Foot? (3 Easy Steps)'
+                    : 'كيف تقيس طول قدمك؟ (3 خطوات بسيطة)'}
                 </h5>
               </div>
 
@@ -212,9 +275,15 @@ export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({ isOpen, onClose 
                   <span className="w-6 h-6 rounded-full bg-[#062050] text-[#D4AF37] font-bold text-[11px] flex items-center justify-center">
                     1
                   </span>
-                  <p className="font-bold text-slate-800">Kağıda Basın</p>
+                  <p className="font-bold text-slate-800">
+                    {language === 'tr' ? 'Kağıda Basın' : language === 'en' ? 'Step on Paper' : 'الوقوف على ورقة'}
+                  </p>
                   <p className="text-[11px] text-slate-500 font-normal">
-                    Düz bir zeminde A4 kağıdın üzerine çoraplı ayağınızı basın.
+                    {language === 'tr'
+                      ? 'Düz bir zeminde A4 kağıdın üzerine çoraplı ayağınızı basın.'
+                      : language === 'en'
+                      ? 'Place a sheet of paper on a flat hard floor and step on it.'
+                      : 'ضع ورقة بيضاء على أرضية مستوية وقف عليها بثبات.'}
                   </p>
                 </div>
 
@@ -222,9 +291,15 @@ export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({ isOpen, onClose 
                   <span className="w-6 h-6 rounded-full bg-[#062050] text-[#D4AF37] font-bold text-[11px] flex items-center justify-center">
                     2
                   </span>
-                  <p className="font-bold text-slate-800">Uçları Çizin</p>
+                  <p className="font-bold text-slate-800">
+                    {language === 'tr' ? 'Uçları Çizin' : language === 'en' ? 'Mark Edges' : 'تحديد الأطراف'}
+                  </p>
                   <p className="text-[11px] text-slate-500 font-normal">
-                    Topuk hizanız ile en uzun parmağınızın ucunu bir kalemle işaretleyin.
+                    {language === 'tr'
+                      ? 'Topuk hizanız ile en uzun parmağınızın ucunu bir kalemle işaretleyin.'
+                      : language === 'en'
+                      ? 'Mark the back of your heel and the tip of your longest toe with a pencil.'
+                      : 'حدد بقلم رصاص نقطة الكعب ونقطة أطول إصبع في قدمك.'}
                   </p>
                 </div>
 
@@ -232,9 +307,15 @@ export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({ isOpen, onClose 
                   <span className="w-6 h-6 rounded-full bg-[#062050] text-[#D4AF37] font-bold text-[11px] flex items-center justify-center">
                     3
                   </span>
-                  <p className="font-bold text-slate-800">Cetvelle Ölçün</p>
+                  <p className="font-bold text-slate-800">
+                    {language === 'tr' ? 'Cetvelle Ölçün' : language === 'en' ? 'Measure Length' : 'قياس المسافة'}
+                  </p>
                   <p className="text-[11px] text-slate-500 font-normal">
-                    İki çizgi arasındaki mesafeyi cetvelle ölçüp tablodan numaranızı bulun.
+                    {language === 'tr'
+                      ? 'İki çizgi arasındaki mesafeyi cetvelle ölçüp tablodan numaranızı bulun.'
+                      : language === 'en'
+                      ? 'Measure the distance in cm and find your size in the table above.'
+                      : 'قس المسافة بالمسطرة وقارنها بالجدول أعلاه لمعرفة مقاسك بدقة.'}
                   </p>
                 </div>
               </div>
@@ -245,13 +326,17 @@ export const SizeGuideModal: React.FC<SizeGuideModalProps> = ({ isOpen, onClose 
           {/* Footer */}
           <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3 shrink-0">
             <span className="text-[11px] font-semibold text-slate-500">
-              Manisa Hakiki Deri İmalat • Beden Danışma Destek Hattı
+              {language === 'tr'
+                ? 'Manisa Hakiki Deri İmalat • Beden Danışma Destek Hattı'
+                : language === 'en'
+                ? 'Manisa Genuine Leather Workshop • Size Consultation Support'
+                : 'ورشة مانيسا للجلد الطبيعي • خط استشارات المقاسات'}
             </span>
             <button
               onClick={onClose}
               className="px-6 py-2.5 rounded-xl bg-[#062050] hover:bg-[#163E87] text-white font-bold text-xs shadow-md transition-all cursor-pointer"
             >
-              Kapat
+              {language === 'tr' ? 'Kapat' : language === 'en' ? 'Close' : 'إغلاق'}
             </button>
           </div>
         </motion.div>

@@ -13,7 +13,7 @@ interface FairModalProps {
 }
 
 export const FairModal: React.FC<FairModalProps> = ({ isOpen, onClose }) => {
-  const { fairConfig, heroConfig, trackEvent, t } = useAppImages();
+  const { fairConfig, heroConfig, trackEvent, t, language } = useAppImages();
   const [isEnvelopeOpened, setIsEnvelopeOpened] = useState(false);
   const [cutProgress, setCutProgress] = useState(0); // 0 to 100%
   const cutTrackRef = useRef<HTMLDivElement>(null);
@@ -162,7 +162,7 @@ export const FairModal: React.FC<FairModalProps> = ({ isOpen, onClose }) => {
               <button
                 onClick={onClose}
                 className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer z-20"
-                title="Kapat"
+                aria-label={language === 'tr' ? 'Kapat' : language === 'en' ? 'Close' : 'إغلاق'}
               >
                 <X className="w-5 h-5 text-white" />
               </button>
@@ -175,9 +175,11 @@ export const FairModal: React.FC<FairModalProps> = ({ isOpen, onClose }) => {
                 <div className="flex items-center justify-between text-[11px] font-extrabold text-white uppercase tracking-widest px-1">
                   <span className="flex items-center gap-1.5">
                     <Scissors className="w-4 h-4 text-blue-300 rotate-90" />
-                    <span>Üstünü Çizgiden Kesin</span>
+                    <span>{language === 'tr' ? 'Üstünü Çizgiden Kesin' : language === 'en' ? 'Cut Along The Line' : 'قص الخط لفتح البطاقة'}</span>
                   </span>
-                  <span className="text-blue-200 font-mono">{Math.round(cutProgress)}% KESİLDİ</span>
+                  <span className="text-blue-200 font-mono">
+                    {Math.round(cutProgress)}% {language === 'tr' ? 'KESİLDİ' : language === 'en' ? 'CUT' : 'تم القص'}
+                  </span>
                 </div>
 
                 {/* Dotted Cut Track */}
@@ -199,7 +201,11 @@ export const FairModal: React.FC<FairModalProps> = ({ isOpen, onClose }) => {
 
                   {/* Watermark text */}
                   <div className="absolute inset-0 flex items-center justify-center text-[10px] sm:text-xs font-bold text-white/50 tracking-widest uppercase pointer-events-none">
-                    ─── ✂️ MAKASI SAĞA KAYDIRIN VEYA TIKLAYIN ───
+                    {language === 'tr'
+                      ? '─── ✂️ MAKASI SAĞA KAYDIRIN VEYA TIKLAYIN ───'
+                      : language === 'en'
+                      ? '─── ✂️ SLIDE SCISSORS OR TAP TO OPEN ───'
+                      : '─── ✂️ اسحب المقص أو اضغط للفتح ───'}
                   </div>
 
                   {/* Draggable Scissors Knob */}
@@ -243,7 +249,7 @@ export const FairModal: React.FC<FairModalProps> = ({ isOpen, onClose }) => {
                   <div className="w-12 h-0.5 bg-[#062050]/20 rounded-full my-0.5" />
 
                   <span className="text-[10px] text-[#062050] font-extrabold uppercase tracking-widest">
-                    Hakiki Deri & Atölye Üretimi
+                    {language === 'tr' ? 'Hakiki Deri & Atölye Üretimi' : language === 'en' ? 'Genuine Leather & Handcrafted' : 'صناعة يدوية من الجلد الطبيعي'}
                   </span>
                 </motion.div>
               </div>
@@ -257,7 +263,9 @@ export const FairModal: React.FC<FairModalProps> = ({ isOpen, onClose }) => {
               >
                 <span className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-white/15 border border-white/30 text-white text-xs font-extrabold uppercase tracking-widest shadow-sm">
                   <Mail className="w-4 h-4 text-white" />
-                  <span>SAYIN ZİYARETÇİMİZ, DAVETLİSİNİZ!</span>
+                  <span>
+                    {language === 'tr' ? 'SAYIN ZİYARETÇİMİZ, DAVETLİSİNİZ!' : language === 'en' ? 'DEAR VISITOR, YOU ARE INVITED!' : 'زائرنا الكريم، أنتم مدعوون!'}
+                  </span>
                 </span>
 
                 <h2 className="text-xl sm:text-2xl font-extrabold font-serif-luxury tracking-wide text-white pt-1">
@@ -266,7 +274,10 @@ export const FairModal: React.FC<FairModalProps> = ({ isOpen, onClose }) => {
 
                 <p className="text-xs sm:text-sm text-blue-100 font-medium flex items-center justify-center gap-1.5">
                   <MapPin className="w-4 h-4 text-blue-200 shrink-0" />
-                  <span>{fairConfig.location} — Stand: <strong className="text-[#062050] bg-white px-2 py-0.5 rounded font-mono font-bold">{fairConfig.standNumber}</strong></span>
+                  <span>
+                    {fairConfig.location} — {language === 'tr' ? 'Stand:' : language === 'en' ? 'Booth:' : 'الجناح:'}{' '}
+                    <strong className="text-[#062050] bg-white px-2 py-0.5 rounded font-mono font-bold">{fairConfig.standNumber}</strong>
+                  </span>
                 </p>
               </motion.div>
 
@@ -278,7 +289,9 @@ export const FairModal: React.FC<FairModalProps> = ({ isOpen, onClose }) => {
                 className="py-3.5 px-8 rounded-full bg-white hover:bg-blue-50 text-[#062050] font-extrabold text-xs sm:text-sm uppercase tracking-wider shadow-2xl transition-all flex items-center gap-2.5 cursor-pointer border border-white z-10"
               >
                 <Scissors className="w-4 h-4 text-[#062050]" />
-                <span>✂️ DAVETİYEYİ KESİP AÇ & İNCELE</span>
+                <span>
+                  {language === 'tr' ? '✂️ DAVETİYEYİ KESİP AÇ & İNCELE' : language === 'en' ? '✂️ OPEN & VIEW INVITATION' : '✂️ فتح واستعراض بطاقة الدعوة'}
+                </span>
                 <ChevronRight className="w-4 h-4 text-[#062050]" />
               </motion.button>
             </div>
@@ -303,7 +316,9 @@ export const FairModal: React.FC<FairModalProps> = ({ isOpen, onClose }) => {
                 <div className="flex items-center gap-2 mb-2">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-[#062050] text-[10px] font-extrabold uppercase tracking-widest shadow-sm">
                     <Sparkles className="w-3 h-3 text-[#062050]" />
-                    <span>{fairConfig.badgeText || 'ÖZEL FUAR DAVETİ'}</span>
+                    <span>
+                      {fairConfig.badgeText || (language === 'tr' ? 'ÖZEL FUAR DAVETİ' : language === 'en' ? 'SPECIAL FAIR INVITATION' : 'دعوة خاصة لمعرضنا')}
+                    </span>
                   </span>
                 </div>
 
@@ -329,39 +344,58 @@ export const FairModal: React.FC<FairModalProps> = ({ isOpen, onClose }) => {
                     <div className="space-y-1">
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-600 text-white text-xs font-bold animate-pulse">
                         <span className="w-2 h-2 rounded-full bg-white" />
-                        FUARIMIZ BAŞLADI!
+                        {language === 'tr' ? 'FUARIMIZ BAŞLADI!' : language === 'en' ? 'THE FAIR HAS STARTED!' : 'بدأ المعرض الآن!'}
                       </span>
                       <p className="text-sm font-bold text-[#062050] mt-2">
-                        Standımıza Davetlisiniz: <span className="bg-[#062050] text-white px-2.5 py-0.5 rounded ml-1 font-mono">{fairConfig.standNumber}</span>
+                        {language === 'tr' ? 'Standımıza Davetlisiniz:' : language === 'en' ? 'You are invited to our booth:' : 'أنتم مدعوون لجناحنا:'}{' '}
+                        <span className="bg-[#062050] text-white px-2.5 py-0.5 rounded ml-1 font-mono">{fairConfig.standNumber}</span>
                       </p>
                     </div>
                   ) : timeLeft.isEnded ? (
                     <p className="text-xs font-bold text-slate-600">
-                      Bu fuar etkinliği tamamlanmıştır. Gelecek fuarlarımız için bizi takip edin!
+                      {language === 'tr'
+                        ? 'Bu fuar etkinliği tamamlanmıştır. Gelecek fuarlarımız için bizi takip edin!'
+                        : language === 'en'
+                        ? 'This fair has concluded. Follow us for upcoming exhibitions!'
+                        : 'انتهت فعاليات هذا المعرض. تابعونا للمعارض القادمة!'}
                     </p>
                   ) : (
                     <div>
                       <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#062050] uppercase tracking-wider mb-2">
                         <Clock className="w-4 h-4 text-blue-600" />
-                        <span>Fuara Kalan Süre — Yerinizi Hemen Alın!</span>
+                        <span>
+                          {language === 'tr'
+                            ? 'Fuara Kalan Süre — Yerinizi Hemen Alın!'
+                            : language === 'en'
+                            ? 'Countdown to Fair — Book Your Visit!'
+                            : 'الوقت المتبقي للمعرض — احجز موعدك الآن!'}
+                        </span>
                       </div>
 
                       <div className="grid grid-cols-4 gap-2 max-w-sm mx-auto text-center">
                         <div className="bg-white p-2 rounded-xl border border-blue-200 shadow-xs">
                           <span className="block text-lg font-extrabold text-[#062050] font-mono">{timeLeft.days}</span>
-                          <span className="text-[10px] text-slate-500 font-medium">GÜN</span>
+                          <span className="text-[10px] text-slate-500 font-medium">
+                            {language === 'tr' ? 'GÜN' : language === 'en' ? 'DAYS' : 'يوم'}
+                          </span>
                         </div>
                         <div className="bg-white p-2 rounded-xl border border-blue-200 shadow-xs">
                           <span className="block text-lg font-extrabold text-[#062050] font-mono">{timeLeft.hours}</span>
-                          <span className="text-[10px] text-slate-500 font-medium">SAAT</span>
+                          <span className="text-[10px] text-slate-500 font-medium">
+                            {language === 'tr' ? 'SAAT' : language === 'en' ? 'HOURS' : 'ساعة'}
+                          </span>
                         </div>
                         <div className="bg-white p-2 rounded-xl border border-blue-200 shadow-xs">
                           <span className="block text-lg font-extrabold text-[#062050] font-mono">{timeLeft.minutes}</span>
-                          <span className="text-[10px] text-slate-500 font-medium">DAKİKA</span>
+                          <span className="text-[10px] text-slate-500 font-medium">
+                            {language === 'tr' ? 'DAKİKA' : language === 'en' ? 'MINUTES' : 'دقيقة'}
+                          </span>
                         </div>
                         <div className="bg-white p-2 rounded-xl border border-blue-200 shadow-xs">
                           <span className="block text-lg font-extrabold text-[#062050] font-mono">{timeLeft.seconds}</span>
-                          <span className="text-[10px] text-slate-500 font-medium">SANİYE</span>
+                          <span className="text-[10px] text-slate-500 font-medium">
+                            {language === 'tr' ? 'SANİYE' : language === 'en' ? 'SECONDS' : 'ثانية'}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -392,7 +426,9 @@ export const FairModal: React.FC<FairModalProps> = ({ isOpen, onClose }) => {
                     
                     {/* Stand Card */}
                     <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Stand & Konum Bilgisi</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        {language === 'tr' ? 'Stand & Konum Bilgisi' : language === 'en' ? 'Booth & Location Info' : 'معلومات الجناح والموقع'}
+                      </span>
                       <div className="text-sm font-extrabold text-[#062050] flex items-center gap-2">
                         <Navigation className="w-4 h-4 text-blue-600 shrink-0" />
                         <span>{fairConfig.standNumber}</span>
@@ -406,7 +442,7 @@ export const FairModal: React.FC<FairModalProps> = ({ isOpen, onClose }) => {
                     <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-700 pt-1">
                       <span className="inline-flex items-center gap-1 bg-blue-50 text-[#062050] px-2.5 py-1 rounded-lg border border-blue-100">
                         <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                        Tarih: {fairConfig.startDate} - {fairConfig.endDate}
+                        {language === 'tr' ? 'Tarih:' : language === 'en' ? 'Date:' : 'التاريخ:'} {fairConfig.startDate} - {fairConfig.endDate}
                       </span>
                     </div>
                   </div>
@@ -417,10 +453,20 @@ export const FairModal: React.FC<FairModalProps> = ({ isOpen, onClose }) => {
                   <div className="space-y-1 text-center sm:text-left">
                     <div className="inline-flex items-center gap-1.5 text-xs font-bold text-white">
                       <QrCode className="w-4 h-4 text-blue-300" />
-                      <span>Katılım & Stand Ziyareti QR Kodu</span>
+                      <span>
+                        {language === 'tr'
+                          ? 'Katılım & Stand Ziyareti QR Kodu'
+                          : language === 'en'
+                          ? 'Attendance & Booth Visit QR Code'
+                          : 'رمز الاستجابة السريعة لزيارة الجناح'}
+                      </span>
                     </div>
                     <p className="text-xs text-blue-100/90 max-w-xs leading-snug">
-                      Kameranızla QR kodunu okutarak stand konumumuzu kaydedin ve WhatsApp üzerinden doğrudan randevu alın.
+                      {language === 'tr'
+                        ? 'Kameranızla QR kodunu okutarak stand konumumuzu kaydedin ve WhatsApp üzerinden doğrudan randevu alın.'
+                        : language === 'en'
+                        ? 'Scan the QR code with your camera to save our booth location and book an appointment directly via WhatsApp.'
+                        : 'امسح الرمز بكاميرا هاتفك لحفظ موقع الجناح وحجز موعد مباشرة عبر واتساب.'}
                     </p>
                   </div>
 
@@ -436,7 +482,9 @@ export const FairModal: React.FC<FairModalProps> = ({ isOpen, onClose }) => {
                     className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                   >
                     <Send className="w-4 h-4" />
-                    <span>WhatsApp'tan Randevu Al</span>
+                    <span>
+                      {language === 'tr' ? "WhatsApp'tan Randevu Al" : language === 'en' ? 'Book via WhatsApp' : 'حجز موعد عبر واتساب'}
+                    </span>
                   </button>
 
                   <button
@@ -444,7 +492,9 @@ export const FairModal: React.FC<FairModalProps> = ({ isOpen, onClose }) => {
                     className="py-3 px-4 rounded-xl bg-[#062050] hover:bg-[#082C6C] text-white text-xs font-bold uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 border border-white/20"
                   >
                     <ExternalLink className="w-4 h-4 text-white" />
-                    <span>Haritada Konumu Aç</span>
+                    <span>
+                      {language === 'tr' ? 'Haritada Konumu Aç' : language === 'en' ? 'Open in Maps' : 'فتح الموقع على الخريطة'}
+                    </span>
                   </button>
                 </div>
 
@@ -452,12 +502,18 @@ export const FairModal: React.FC<FairModalProps> = ({ isOpen, onClose }) => {
 
               {/* Footer Note */}
               <div className="bg-slate-50 px-6 py-3 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-500 shrink-0">
-                <span>İrem Comfort Manisa Ayakkabıcılar Sitesi</span>
+                <span>
+                  {language === 'tr'
+                    ? 'İrem Comfort Manisa Ayakkabıcılar Sitesi'
+                    : language === 'en'
+                    ? 'İrem Comfort Manisa Footwear Industry Park'
+                    : 'إرم كومفورت - مجمع مصنعي الأحذية بمانيسا'}
+                </span>
                 <button
                   onClick={onClose}
                   className="text-[#062050] font-bold hover:underline cursor-pointer"
                 >
-                  Siteye Devam Et
+                  {language === 'tr' ? 'Siteye Devam Et' : language === 'en' ? 'Continue to Website' : 'المتابعة إلى الموقع'}
                 </button>
               </div>
             </motion.div>

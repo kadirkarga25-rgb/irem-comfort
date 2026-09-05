@@ -13,7 +13,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   onDiscoverClick,
   onCraftsmanshipClick
 }) => {
-  const { images, heroConfig } = useAppImages();
+  const { images, heroConfig, t, language } = useAppImages();
 
   return (
     <section id="hero" className="relative min-h-screen pt-44 sm:pt-48 md:pt-44 lg:pt-36 pb-16 sm:pb-20 flex flex-col justify-between overflow-hidden bg-white">
@@ -36,7 +36,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             >
               <Sparkles className="w-4 h-4 text-[#0A2D6F]" />
               <span className="text-xs font-semibold tracking-widest uppercase text-[#0A2D6F]">
-                {heroConfig?.badgeText || `Kuruluş ${BRAND_ESTABLISHED} • Manisa Ayakkabıcılar Sitesi İmalatı`}
+                {heroConfig?.badgeText || (language === 'tr' ? `Kuruluş ${BRAND_ESTABLISHED} • Manisa Ayakkabıcılar Sitesi İmalatı` : language === 'en' ? `Est. ${BRAND_ESTABLISHED} • Handcrafted in Manisa Workshop` : `تأسست ${BRAND_ESTABLISHED} • صناعة يدوية في ورشة مانيسا`)}
               </span>
             </motion.div>
 
@@ -48,11 +48,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               className="space-y-4"
             >
               <h1 className="text-3xl sm:text-5xl xl:text-6xl font-light tracking-tight text-[#111111] leading-[1.15]">
-                {heroConfig?.title || 'Bayan Comfort Deri Sandalet & Terlik.'}
+                {heroConfig?.title || (language === 'tr' ? 'Bayan Comfort Deri Sandalet & Terlik.' : language === 'en' ? "Women's Comfort Leather Sandals & Slippers." : 'صنادل ونعال جلدية نسائية مريحة.')}
               </h1>
 
               <p className="text-base sm:text-lg lg:text-xl text-[#111111]/70 font-light max-w-2xl leading-relaxed">
-                {heroConfig?.description || '%100 Hakiki deri saya, ortopedik kavisli anatomik taban ve Manisa atölyemizin usta el işçiliği.'}
+                {heroConfig?.description || (language === 'tr' ? '%100 Hakiki deri saya, ortopedik kavisli anatomik taban ve Manisa atölyemizin usta el işçiliği.' : language === 'en' ? '100% Genuine leather upper, ergonomic anatomical footbed, and master craftsmanship from our Manisa workshop.' : 'وجه من الجلد الطبيعي 100%، نعل تشريحي مقوس مريح وصناعة يدوية من ورشتنا في مانيسا.')}
               </p>
             </motion.div>
 
@@ -67,7 +67,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 onClick={onDiscoverClick}
                 className="group inline-flex items-center gap-3 px-8 py-4 rounded-full bg-[#082C6C] text-white font-semibold text-sm tracking-wider uppercase transition-all duration-300 hover:bg-[#163E87] hover:shadow-xl hover:shadow-[#082C6C]/25 active:scale-95 cursor-pointer"
               >
-                <span>{heroConfig?.primaryBtnText || 'Koleksiyonu Keşfet'}</span>
+                <span>{heroConfig?.primaryBtnText || (language === 'tr' ? 'Koleksiyonu Keşfet' : language === 'en' ? 'Explore Collection' : 'استكشف التشكيلة')}</span>
                 <ArrowDownRight className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:translate-y-1" />
               </button>
 
@@ -79,7 +79,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   className="inline-flex items-center gap-2.5 px-7 py-4 rounded-full bg-[#F27A1A] text-white font-bold text-sm tracking-wider uppercase transition-all duration-300 hover:bg-[#d9660c] hover:shadow-xl hover:shadow-[#F27A1A]/30 active:scale-95 cursor-pointer"
                 >
                   <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
-                  <span>Trendyol Anavelle'den Satın Al</span>
+                  <span>{t.buyOnTrendyol || (language === 'tr' ? "Trendyol'dan Satın Al" : language === 'en' ? 'Buy on Trendyol' : 'شراء عبر ترينديول')}</span>
                 </a>
               )}
 
@@ -87,7 +87,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 onClick={onCraftsmanshipClick}
                 className="inline-flex items-center gap-2 px-6 py-4 rounded-full border border-[#082C6C]/20 text-[#082C6C] font-semibold text-sm tracking-wider uppercase transition-all duration-300 hover:bg-[#082C6C]/5 hover:border-[#082C6C] cursor-pointer"
               >
-                <span>{heroConfig?.secondaryBtnText || 'Atölyemiz'}</span>
+                <span>{heroConfig?.secondaryBtnText || (language === 'tr' ? 'Atölyemiz' : language === 'en' ? 'Our Workshop' : 'ورشتنا')}</span>
               </button>
             </motion.div>
 
@@ -103,22 +103,22 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   <ShieldCheck className="w-4 h-4" />
                   <span>%100</span>
                 </div>
-                <p className="text-xs text-[#111111]/60 uppercase tracking-wider font-medium">Hakiki Deri</p>
+                <p className="text-xs text-[#111111]/60 uppercase tracking-wider font-medium">{t.genuineLeather || 'Hakiki Deri'}</p>
               </div>
 
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-[#0A2D6F] font-bold text-base sm:text-xl font-serif-luxury">
                   <Award className="w-4 h-4" />
-                  <span>Anatomik</span>
+                  <span>{t.anatomical || 'Anatomik'}</span>
                 </div>
-                <p className="text-xs text-[#111111]/60 uppercase tracking-wider font-medium">Konfor Taban</p>
+                <p className="text-xs text-[#111111]/60 uppercase tracking-wider font-medium">{t.comfortSole || 'Konfor Taban'}</p>
               </div>
 
               <div className="space-y-1">
                 <div className="text-[#0A2D6F] font-bold text-base sm:text-xl font-serif-luxury">
-                  Yerli
+                  {t.localProduction || 'Yerli'}
                 </div>
-                <p className="text-xs text-[#111111]/60 uppercase tracking-wider font-medium">Manisa İmalatı</p>
+                <p className="text-xs text-[#111111]/60 uppercase tracking-wider font-medium">{t.manisaWorkshop || 'Manisa İmalatı'}</p>
               </div>
             </motion.div>
 
@@ -155,11 +155,17 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   </div>
                   <div>
                     <span className="text-[10px] font-bold tracking-widest uppercase text-[#D4AF37] bg-[#D4AF37]/10 px-3 py-1 rounded-full border border-[#D4AF37]/20">
-                      Fotoğraf Bekleniyor
+                      {language === 'tr' ? 'Fotoğraf Bekleniyor' : language === 'en' ? 'Photo Pending' : 'في انتظار الصورة'}
                     </span>
-                    <h4 className="text-lg font-serif font-bold mt-2">Kendi Fotoğraflarınızı Ekleyin</h4>
+                    <h4 className="text-lg font-serif font-bold mt-2">
+                      {language === 'tr' ? 'Kendi Fotoğraflarınızı Ekleyin' : language === 'en' ? 'Add Your Own Photos' : 'أضف صورك الخاصة'}
+                    </h4>
                     <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                      Lütfen Yönetim Paneline (Admin) giriş yaparak kendi hakiki deri terlik ve sandalet ürün görsellerinizi yükleyin.
+                      {language === 'tr'
+                        ? 'Lütfen Yönetim Paneline (Admin) giriş yaparak kendi hakiki deri terlik ve sandalet ürün görsellerinizi yükleyin.'
+                        : language === 'en'
+                        ? 'Please log in to the Admin Panel to upload your genuine leather slippers and sandals images.'
+                        : 'يرجى تسجيل الدخول إلى لوحة التحكم لتحميل صور النعال والصنادل المصنوعة من الجلد الطبيعي.'}
                     </p>
                   </div>
                 </div>
@@ -169,15 +175,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <div className="absolute bottom-6 left-6 right-6 p-5 rounded-2xl glass-card border border-white/40 shadow-lg space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold tracking-widest text-[#0A2D6F] uppercase">
-                    İmza Modelimiz
+                    {t.signatureModel || (language === 'tr' ? 'İmza Modelimiz' : language === 'en' ? 'Signature Model' : 'موديلنا المميز')}
                   </span>
                   <span className="inline-block w-2 h-2 rounded-full bg-[#0A2D6F] animate-ping" />
                 </div>
                 <h3 className="text-lg font-bold text-[#111111] font-serif-luxury">
-                  {heroConfig?.signatureModelTitle || 'Çift Tokalı Hakiki Deri Terlik'}
+                  {heroConfig?.signatureModelTitle || (language === 'tr' ? 'Çift Tokalı Hakiki Deri Terlik' : language === 'en' ? 'Double Buckle Genuine Leather Slippers' : 'نعال جلد طبيعي بإبزيم مزدوج')}
                 </h3>
                 <p className="text-xs text-[#111111]/70 line-clamp-1">
-                  {heroConfig?.signatureModelSub || 'Yumuşak Dana Derisi Saya • Anatomik Yumuşak Konfor Taban'}
+                  {heroConfig?.signatureModelSub || (language === 'tr' ? 'Yumuşak Dana Derisi Saya • Anatomik Yumuşak Konfor Taban' : language === 'en' ? 'Soft Calfskin Leather Upper • Soft Anatomical Comfort Footbed' : 'جلد عجل ناعم • نعل طبي مريح')}
                 </p>
               </div>
             </motion.div>

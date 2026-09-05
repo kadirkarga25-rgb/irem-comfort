@@ -70,7 +70,7 @@ export class ConversationEngine {
    * Pipeline Step 1 & 2: Understand visitor's intent & identify primary topic
    */
   private analyzeIntentAndTopic(query: string, context: ConversationContextState): IntentAnalysis {
-    const qLower = query.toLowerCase().trim();
+    const qLower = (query || '').toLowerCase().trim();
 
     const isExplicitPurchaseRequested = 
       qLower.includes('trendyol') || 
@@ -83,8 +83,8 @@ export class ConversationEngine {
 
     // Extract product keywords if mentioned
     const targetProductKeywords: string[] = [];
-    if (context.activeProduct) {
-      targetProductKeywords.push(context.activeProduct.name.toLowerCase());
+    if (context.activeProduct?.name) {
+      targetProductKeywords.push((context.activeProduct.name || '').toLowerCase());
     }
 
     // Determine Intent
@@ -142,7 +142,7 @@ export class ConversationEngine {
     const combinedSentences: string[] = [];
 
     const addUniqueSentence = (sentence: string) => {
-      const clean = sentence.trim();
+      const clean = (sentence || '').trim();
       const norm = clean.toLowerCase();
       if (norm.length > 5 && !seenLineSetHas(seenSentences, norm)) {
         seenSentences.add(norm);
@@ -153,8 +153,8 @@ export class ConversationEngine {
     // Priority 1: Current Active Product Context
     if (activeProd) {
       if (intent.primaryIntent === 'color_variants') {
-        const availableColors = activeProd.colors?.map(c => c.name).join(', ') || 'Standart Deri Tonları';
-        const hasBlack = activeProd.colors?.some(c => c.name.toLowerCase().includes('siyah'));
+        const availableColors = activeProd.colors?.map(c => c.name).filter(Boolean).join(', ') || 'Standart Deri Tonları';
+        const hasBlack = activeProd.colors?.some(c => (c.name || '').toLowerCase().includes('siyah'));
         addUniqueSentence(`İncelemekte olduğunuz "${activeProd.name}" modelimizin renk seçenekleri: ${availableColors}.`);
         if (intent.topic.includes('siyah')) {
           addUniqueSentence(hasBlack ? `Evet, bu modelimizin Siyah renk seçeneği üretilmektedir.` : `Bu modelimizde siyah renk tükenmiş olabilir. Dilerseniz siyah renkteki diğer hakiki deri modellerimizi sunabilirim.`);
@@ -270,7 +270,7 @@ export class ConversationEngine {
     const seenLineSet = new Set<string>();
 
     lines.forEach(line => {
-      const trimmed = line.trim();
+      const trimmed = (line || '').trim();
       const norm = trimmed.toLowerCase();
       if (norm.length < 5) {
         uniqueLines.push(line);

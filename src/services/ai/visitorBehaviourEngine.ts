@@ -100,7 +100,7 @@ export class VisitorBehaviourEngine {
     this.state.shoppingJourney.push(`Ürün İnceleme: ${product.name}`);
 
     // Detect Shopping Interest Category
-    this.detectShoppingInterests(product.name + ' ' + product.features.join(' ') + ' ' + product.category);
+    this.detectShoppingInterests(`${product.name || ''} ${(product.features || []).join(' ')} ${product.category || ''}`);
 
     this.recalculateScores();
     return this.getBehaviourState();
@@ -114,7 +114,7 @@ export class VisitorBehaviourEngine {
   }
 
   public recordUserQuery(queryText: string): VisitorBehaviourState {
-    this.detectShoppingInterests(queryText);
+    this.detectShoppingInterests(queryText || '');
     this.recalculateScores();
     return this.getBehaviourState();
   }
@@ -123,7 +123,7 @@ export class VisitorBehaviourEngine {
    * Detects shopping interest categories based on text signals
    */
   private detectShoppingInterests(text: string) {
-    const lower = text.toLowerCase();
+    const lower = (text || '').toLowerCase();
     const interests = new Set<ShoppingInterestCategory>(this.state.shoppingInterests);
 
     if (lower.includes('günlük') || lower.includes('yürüyüş')) interests.add('Daily Comfort');

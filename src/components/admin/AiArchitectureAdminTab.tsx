@@ -47,9 +47,12 @@ export const AiArchitectureAdminTab: React.FC = () => {
 
   const filteredDocs = indexedDocs.filter(doc => {
     const matchesCategory = docFilterCategory === 'all' || doc.category === docFilterCategory;
-    const matchesSearch = doc.title.toLowerCase().includes(docSearchTerm.toLowerCase()) ||
-                          doc.content.toLowerCase().includes(docSearchTerm.toLowerCase()) ||
-                          doc.keywords.some(k => k.toLowerCase().includes(docSearchTerm.toLowerCase()));
+    const sTerm = (docSearchTerm || '').toLowerCase();
+    const dTitle = (doc.title || '').toLowerCase();
+    const dContent = (doc.content || '').toLowerCase();
+    const matchesSearch = dTitle.includes(sTerm) ||
+                          dContent.includes(sTerm) ||
+                          (doc.keywords || []).some(k => (k || '').toLowerCase().includes(sTerm));
     return matchesCategory && matchesSearch;
   });
 

@@ -111,8 +111,10 @@ export const FaqAdminTab: React.FC<{ showToast: (msg: string) => void }> = ({ sh
   const filteredItems = faqItems.filter(item => {
     if (categoryFilter !== 'hepsi' && item.category !== categoryFilter) return false;
     if (searchQuery.trim() !== '') {
-      const q = searchQuery.toLowerCase();
-      return item.question.toLowerCase().includes(q) || item.answer.toLowerCase().includes(q);
+      const q = (searchQuery || '').toLowerCase();
+      const qText = (item?.question || '').toLowerCase();
+      const aText = (item?.answer || '').toLowerCase();
+      return qText.includes(q) || aText.includes(q);
     }
     return true;
   });

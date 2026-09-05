@@ -72,7 +72,13 @@ export const CollectionSection: React.FC<CollectionSectionProps> = ({
               transition={{ duration: 0.7, delay: 0.1 }}
               className="text-3xl sm:text-5xl font-light tracking-tight text-[#111111]"
             >
-              Bayan Comfort <span className="font-serif-luxury font-bold text-[#0A2D6F]">Sandalet & Terlik</span>.
+              {language === 'tr' ? (
+                <>Bayan Comfort <span className="font-serif-luxury font-bold text-[#0A2D6F]">Sandalet & Terlik</span>.</>
+              ) : language === 'en' ? (
+                <>Women’s Comfort <span className="font-serif-luxury font-bold text-[#0A2D6F]">Sandals & Slippers</span>.</>
+              ) : (
+                <>راحة نسائية <span className="font-serif-luxury font-bold text-[#0A2D6F]">صنادل ونعال</span>.</>
+              )}
             </motion.h2>
 
             <motion.p
@@ -82,7 +88,11 @@ export const CollectionSection: React.FC<CollectionSectionProps> = ({
               transition={{ duration: 0.7, delay: 0.2 }}
               className="text-xs sm:text-sm text-[#111111]/70 font-medium leading-relaxed"
             >
-              Manisa atölyemizde imal edilen %100 hakiki deri bayan terlik, sandalet ve ortopedik sabo modellerimizden öne çıkanlar. Tüm kataloğumuzu detaylı filtrelerle incelemek için Ürünler Sayfamıza geçiş yapabilirsiniz.
+              {language === 'tr'
+                ? 'Manisa atölyemizde imal edilen %100 hakiki deri bayan terlik, sandalet ve ortopedik sabo modellerimizden öne çıkanlar. Tüm kataloğumuzu detaylı filtrelerle incelemek için Ürünler Sayfamıza geçiş yapabilirsiniz.'
+                : language === 'en'
+                ? 'Highlights from our 100% genuine leather women’s slippers, sandals, and orthotic sabots manufactured in Manisa. Explore our full catalog with advanced filters on our Products Page.'
+                : 'أبرز تصاميمنا المصنوعة من جلد طبيعي 100% من النعال والصنادل والقباقيب الطبية النسائية المصنوعة في مانيسا. يمكنك استعراض الكتالوج الكامل في صفحة المنتجات.'}
             </motion.p>
           </div>
 
@@ -147,10 +157,18 @@ export const CollectionSection: React.FC<CollectionSectionProps> = ({
         <div className="mt-12 bg-gradient-to-r from-[#062050] via-[#0A2D6F] to-[#163E87] rounded-3xl p-6 sm:p-10 text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-6 border border-white/10">
           <div className="space-y-2 text-center sm:text-left">
             <h3 className="text-xl sm:text-2xl font-bold font-serif-luxury">
-              Tüm Bayan Comfort Koleksiyonumuzu & Kataloğumuzu İnceleyin
+              {language === 'tr'
+                ? 'Tüm Bayan Comfort Koleksiyonumuzu & Kataloğumuzu İnceleyin'
+                : language === 'en'
+                ? 'Explore Our Full Women’s Comfort Collection & Catalog'
+                : 'استكشف تشكيلة وكتالوج أحذية الراحة النسائية بالكامل'}
             </h3>
             <p className="text-xs sm:text-sm text-blue-100/80 font-medium">
-              Manisa imalatımız ortopedik sabo, mantar taban ve hakiki deri sandalet modellerimizin tamamı ayrı ürünler sayfamızda!
+              {language === 'tr'
+                ? 'Manisa imalatımız ortopedik sabo, mantar taban ve hakiki deri sandalet modellerimizin tamamı ayrı ürünler sayfamızda!'
+                : language === 'en'
+                ? 'Our entire range of Manisa-crafted orthotic sabots, cork soles, and genuine leather sandals is available on our products page!'
+                : 'جميع موديلاتنا المصنوعة في مانيسا من قباقيب طبية ونعال فلين وصنادل جلد طبيعي متوفرة في صفحة المنتجات!'}
             </p>
           </div>
 
@@ -159,7 +177,7 @@ export const CollectionSection: React.FC<CollectionSectionProps> = ({
               onClick={onOpenProductsPage}
               className="px-8 py-4 rounded-full bg-[#D4AF37] hover:bg-amber-400 text-[#062050] font-black text-xs uppercase tracking-widest shadow-2xl transition-all cursor-pointer whitespace-nowrap active:scale-95 shrink-0 flex items-center gap-2"
             >
-              <span>Ürünler Sayfasına Git</span>
+              <span>{language === 'tr' ? 'Ürünler Sayfasına Git' : language === 'en' ? 'Go to Products Page' : 'الذهاب لصفحة المنتجات'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           )}

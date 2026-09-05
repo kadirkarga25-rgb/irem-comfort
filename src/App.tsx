@@ -43,23 +43,31 @@ function MainAppContent() {
   // Preview route state: standard root / route now renders the complete live site directly
   const [isPreviewView, setIsPreviewView] = useState<boolean>(true);
 
+  // Helper for safe location string extraction
+  const getSafeLocation = () => {
+    if (typeof window === 'undefined' || !window.location) {
+      return { path: '', hash: '', search: '' };
+    }
+    return {
+      path: (window.location.pathname || '').toLowerCase(),
+      hash: (window.location.hash || '').toLowerCase(),
+      search: (window.location.search || '').toLowerCase()
+    };
+  };
+
   // Route state: check if URL contains /admin, #admin, or ?admin
   const [isAdminView, setIsAdminView] = useState<boolean>(() => {
-    const path = window.location.pathname.toLowerCase();
-    const hash = window.location.hash.toLowerCase();
-    const search = window.location.search.toLowerCase();
+    const { path, hash, search } = getSafeLocation();
     const isStandalone = typeof window !== 'undefined' && (
-      window.matchMedia('(display-mode: standalone)').matches || 
-      (window.navigator as any).standalone === true
+      window.matchMedia?.('(display-mode: standalone)')?.matches || 
+      (window.navigator as any)?.standalone === true
     );
-    return path === '/admin' || hash === '#admin' || search.includes('admin') || search.includes('pwa') || isStandalone;
+    return path === '/admin' || hash === '#admin' || search.includes('admin') || search.includes('pwa') || !!isStandalone;
   });
 
   // Password reset route state: check if URL contains /sifre-sifirla, /sifre-sifirla-html, #sifre-sifirla, etc.
   const [isResetView, setIsResetView] = useState<boolean>(() => {
-    const path = window.location.pathname.toLowerCase();
-    const hash = window.location.hash.toLowerCase();
-    const search = window.location.search.toLowerCase();
+    const { path, hash, search } = getSafeLocation();
     return (
       path.includes('sifre-sifirla') || 
       path.includes('sifre_sifirla') || 
@@ -70,9 +78,7 @@ function MainAppContent() {
 
   // Remote Management route state: check if URL contains /uzak-yonetim, #uzak-yonetim, etc.
   const [isRemoteView, setIsRemoteView] = useState<boolean>(() => {
-    const path = window.location.pathname.toLowerCase();
-    const hash = window.location.hash.toLowerCase();
-    const search = window.location.search.toLowerCase();
+    const { path, hash, search } = getSafeLocation();
     return (
       path.includes('uzak-yonetim') || 
       path.includes('uzak_yonetim') || 
@@ -83,9 +89,7 @@ function MainAppContent() {
 
   // Survey route state: check if URL contains /anket, /anket-html, #anket, etc.
   const [isSurveyView, setIsSurveyView] = useState<boolean>(() => {
-    const path = window.location.pathname.toLowerCase();
-    const hash = window.location.hash.toLowerCase();
-    const search = window.location.search.toLowerCase();
+    const { path, hash, search } = getSafeLocation();
     return (
       path.includes('anket') || 
       hash.includes('anket') || 
@@ -95,9 +99,7 @@ function MainAppContent() {
 
   // 404 Not Found route state: check if pathname is not root and not matching any known route
   const [isNotFoundView, setIsNotFoundView] = useState<boolean>(() => {
-    const path = window.location.pathname.toLowerCase();
-    const hash = window.location.hash.toLowerCase();
-    const search = window.location.search.toLowerCase();
+    const { path, hash, search } = getSafeLocation();
     if (path === '/' || path === '' || path === '/index.html') return false;
     const isKnown = (
       path.includes('admin') || hash.includes('admin') || search.includes('admin') ||
@@ -111,15 +113,13 @@ function MainAppContent() {
   // Listen for hash and popstate changes
   useEffect(() => {
     const checkRoutes = () => {
-      const path = window.location.pathname.toLowerCase();
-      const hash = window.location.hash.toLowerCase();
-      const search = window.location.search.toLowerCase();
+      const { path, hash, search } = getSafeLocation();
 
       const isStandalone = typeof window !== 'undefined' && (
-        window.matchMedia('(display-mode: standalone)').matches || 
-        (window.navigator as any).standalone === true
+        window.matchMedia?.('(display-mode: standalone)')?.matches || 
+        (window.navigator as any)?.standalone === true
       );
-      const admin = path === '/admin' || hash === '#admin' || search.includes('admin') || search.includes('pwa') || isStandalone;
+      const admin = path === '/admin' || hash === '#admin' || search.includes('admin') || search.includes('pwa') || !!isStandalone;
       const reset = (
         path.includes('sifre-sifirla') || 
         path.includes('sifre_sifirla') || 

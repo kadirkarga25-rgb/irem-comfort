@@ -31,19 +31,19 @@ export class ProductMatchingEngine {
    * Returns top matching products sorted by recommendation score (Max 3).
    */
   public matchProducts(userQuery: string, activeProduct?: CollectionItem | null): ProductMatchResult[] {
-    const qLower = userQuery.toLowerCase().trim();
+    const qLower = (userQuery || '').toLowerCase().trim();
     const scoredList: ProductMatchResult[] = [];
 
     COLLECTION_ITEMS.forEach((item) => {
       let score = 50; // Base score
       const reasons: string[] = [];
 
-      const name = item.name.toLowerCase();
-      const cat = item.category.toLowerCase();
-      const desc = item.description.toLowerCase();
-      const tagline = item.tagline.toLowerCase();
-      const featuresStr = item.features.join(' ').toLowerCase();
-      const materialsStr = item.materials.join(' ').toLowerCase();
+      const name = (item.name || '').toLowerCase();
+      const cat = (item.category || '').toLowerCase();
+      const desc = (item.description || '').toLowerCase();
+      const tagline = (item.tagline || '').toLowerCase();
+      const featuresStr = (item.features || []).join(' ').toLowerCase();
+      const materialsStr = (item.materials || []).join(' ').toLowerCase();
 
       // 1. Foot Ergonomics & Fit Matching
       if (qLower.includes('taraklı') || qLower.includes('ödem') || qLower.includes('geniş') || qLower.includes('rahat kalıp')) {

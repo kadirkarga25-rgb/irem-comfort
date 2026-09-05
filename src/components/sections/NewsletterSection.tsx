@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Mail, CheckCircle2, AlertCircle, Send, Sparkles, BookOpen } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useAppImages } from '../../context/ImageContext';
 
 export const NewsletterSection: React.FC = () => {
+  const { language } = useAppImages();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
@@ -11,7 +13,13 @@ export const NewsletterSection: React.FC = () => {
     e.preventDefault();
     if (!email || !email.includes('@')) {
       setStatus('error');
-      setMessage('Lütfen geçerli bir e-posta adresi yazınız.');
+      setMessage(
+        language === 'tr'
+          ? 'Lütfen geçerli bir e-posta adresi yazınız.'
+          : language === 'en'
+          ? 'Please enter a valid email address.'
+          : 'يرجى إدخال عنوان بريد إلكتروني صحيح.'
+      );
       return;
     }
 
@@ -28,15 +36,33 @@ export const NewsletterSection: React.FC = () => {
       const data = await res.json();
       if (data.success) {
         setStatus('success');
-        setMessage(data.message || 'Bültenimize kaydınız başarıyla alındı. Teşekkür ederiz!');
+        setMessage(
+          language === 'tr'
+            ? (data.message || 'Bültenimize kaydınız başarıyla alındı. Teşekkür ederiz!')
+            : language === 'en'
+            ? 'You have successfully subscribed to our newsletter. Thank you!'
+            : 'تم اشتراكك في النشرة البريدية بنجاح. شكراً لك!'
+        );
         setEmail('');
       } else {
         setStatus('error');
-        setMessage(data.error || 'Abonelik kaydı oluşturulamadı.');
+        setMessage(
+          language === 'tr'
+            ? (data.error || 'Abonelik kaydı oluşturulamadı.')
+            : language === 'en'
+            ? 'Unable to complete newsletter subscription.'
+            : 'تعذر إتمام الاشتراك في النشرة.'
+        );
       }
     } catch (err) {
       setStatus('error');
-      setMessage('Bir bağlantı hatası oluştu, lütfen tekrar deneyin.');
+      setMessage(
+        language === 'tr'
+          ? 'Bir bağlantı hatası oluştu, lütfen tekrar deneyin.'
+          : language === 'en'
+          ? 'A connection error occurred. Please try again.'
+          : 'حدث خطأ في الاتصال، يرجى المحاولة مرة أخرى.'
+      );
     }
   };
 
@@ -52,16 +78,30 @@ export const NewsletterSection: React.FC = () => {
         {/* Top Pill */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-xs font-semibold text-amber-300 uppercase tracking-widest">
           <BookOpen className="w-3.5 h-3.5" />
-          <span>E-Bülten & Yeni Sezon Kataloğu</span>
+          <span>
+            {language === 'tr'
+              ? 'E-Bülten & Yeni Sezon Kataloğu'
+              : language === 'en'
+              ? 'Newsletter & New Season Catalog'
+              : 'النشرة البريدية وكتالوج الموسم الجديد'}
+          </span>
         </div>
 
         {/* Heading & Subtitle */}
         <div className="space-y-3">
           <h2 className="text-2xl sm:text-4xl font-extrabold font-serif-luxury tracking-tight text-white">
-            Yeni Koleksiyon ve Fuar Haberlerinden Haberdar Olun
+            {language === 'tr'
+              ? 'Yeni Koleksiyon ve Fuar Haberlerinden Haberdar Olun'
+              : language === 'en'
+              ? 'Stay Updated with New Collections & Fairs'
+              : 'ابق على اطلاع بالتشكيلات الجديدة ومعارضنا'}
           </h2>
           <p className="text-sm sm:text-base text-white/80 max-w-2xl mx-auto font-light leading-relaxed">
-            İrem Comfort hakiki deri terlik ve sandalet yeni sezon modellerimizi, fuar davetiyelerini ve toptan katalog güncellemelerini e-posta adresinize gönderelim.
+            {language === 'tr'
+              ? 'İrem Comfort hakiki deri terlik ve sandalet yeni sezon modellerimizi, fuar davetiyelerini ve toptan katalog güncellemelerini e-posta adresinize gönderelim.'
+              : language === 'en'
+              ? 'Receive updates about new season genuine leather footwear, trade fair invitations, and wholesale catalogs straight to your inbox.'
+              : 'احصل على تحديثات الموديلات الجديدة من النعال والصنادل الجلدية ودعوات المعارض وكتالوج الجملة مباشرة إلى بريدك الإلكتروني.'}
           </p>
         </div>
 
@@ -80,7 +120,13 @@ export const NewsletterSection: React.FC = () => {
                   setEmail(e.target.value);
                   if (status === 'error') setStatus('idle');
                 }}
-                placeholder="E-posta adresinizi giriniz..."
+                placeholder={
+                  language === 'tr'
+                    ? 'E-posta adresinizi giriniz...'
+                    : language === 'en'
+                    ? 'Enter your email address...'
+                    : 'أدخل بريدك الإلكتروني...'
+                }
                 className="w-full pl-10 pr-4 py-3 bg-transparent text-white placeholder-white/50 text-sm font-medium focus:outline-none"
               />
             </div>
@@ -91,10 +137,10 @@ export const NewsletterSection: React.FC = () => {
               className="px-6 py-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 cursor-pointer flex items-center justify-center gap-2 shrink-0 disabled:opacity-70"
             >
               {status === 'loading' ? (
-                <span>Kaydediliyor...</span>
+                <span>{language === 'tr' ? 'Kaydediliyor...' : language === 'en' ? 'Subscribing...' : 'جارٍ التسجيل...'}</span>
               ) : (
                 <>
-                  <span>Bültene Abone Ol</span>
+                  <span>{language === 'tr' ? 'Bültene Abone Ol' : language === 'en' ? 'Subscribe' : 'اشترك في النشرة'}</span>
                   <Send className="w-3.5 h-3.5" />
                 </>
               )}

@@ -5,7 +5,7 @@ import { ShieldCheck, Cpu, Sparkles, Award, CheckCircle2 } from 'lucide-react';
 import { useAppImages } from '../../context/ImageContext';
 
 export const CraftsmanshipSection: React.FC = () => {
-  const { images, craftsmanshipSteps } = useAppImages();
+  const { images, craftsmanshipSteps, t, language } = useAppImages();
   const [activeStepIndex, setActiveStepIndex] = useState(0);
 
   const stepsToDisplay = craftsmanshipSteps && craftsmanshipSteps.length > 0 ? craftsmanshipSteps : CRAFTSMANSHIP_STEPS;
@@ -35,7 +35,7 @@ export const CraftsmanshipSection: React.FC = () => {
             className="inline-flex items-center gap-2 text-xs font-semibold tracking-widest text-[#0A2D6F] uppercase"
           >
             <span className="w-8 h-[1px] bg-[#0A2D6F]" />
-            <span>Dikişlerin Arkasındaki Sanat</span>
+            <span>{t.craftsmanshipTagline || 'Dikişlerin Arkasındaki Sanat'}</span>
           </motion.div>
 
           <motion.h2
@@ -45,7 +45,13 @@ export const CraftsmanshipSection: React.FC = () => {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="text-3xl sm:text-5xl font-light tracking-tight text-[#111111]"
           >
-            Tavizsiz Zanaat ve <span className="font-serif-luxury font-bold text-[#0A2D6F]">Aşamaları</span>.
+            {language === 'tr' ? (
+              <>Tavizsiz Zanaat ve <span className="font-serif-luxury font-bold text-[#0A2D6F]">Aşamaları</span>.</>
+            ) : language === 'en' ? (
+              <>Uncompromising Craft &amp; <span className="font-serif-luxury font-bold text-[#0A2D6F]">Stages</span>.</>
+            ) : (
+              <>حرفية متقنة و<span className="font-serif-luxury font-bold text-[#0A2D6F]">مراحلها</span>.</>
+            )}
           </motion.h2>
 
           <motion.p
@@ -55,7 +61,11 @@ export const CraftsmanshipSection: React.FC = () => {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="text-base text-[#111111]/70 font-light"
           >
-            İlk deri seçiminden son cila dokunuşuna kadar her bir İrem Comfort tasarımı dört hassas zanaat aşamasından geçer.
+            {language === 'tr'
+              ? 'İlk deri seçiminden son cila dokunuşuna kadar her bir İrem Comfort tasarımı dört hassas zanaat aşamasından geçer.'
+              : language === 'en'
+              ? 'From the first leather selection to the final touch, every İrem Comfort design passes through four precise craftsmanship stages.'
+              : 'من اختيار الجلد الأول حتى اللمسة الأخيرة، يمر كل تصميم من إيرم كومفورت بأربع مراحل حرفية دقيقة.'}
           </motion.p>
         </div>
 
@@ -130,14 +140,16 @@ export const CraftsmanshipSection: React.FC = () => {
                   ) : (
                     <div className="p-6 text-center text-white space-y-2">
                       <span className="text-xs font-bold uppercase tracking-widest text-[#D4AF37] block">
-                        Manisa Atölye Üretimi
+                        {language === 'tr' ? 'Manisa Atölye Üretimi' : language === 'en' ? 'Manisa Workshop Production' : 'إنتاج ورشة مانيسا'}
                       </span>
                       <h4 className="text-lg font-serif font-bold">{activeStep.title}</h4>
-                      <p className="text-xs text-slate-300">Görsel Bekleniyor</p>
+                      <p className="text-xs text-slate-300">
+                        {language === 'tr' ? 'Görsel Bekleniyor' : language === 'en' ? 'Image Pending' : 'في انتظار الصورة'}
+                      </p>
                     </div>
                   )}
                   <div className="absolute top-4 right-4 px-4 py-1.5 rounded-full bg-[#0A2D6F] text-white text-xs font-bold tracking-widest uppercase">
-                    Aşama {activeStep.number} / 04
+                    {language === 'tr' ? `Aşama ${activeStep.number} / 04` : language === 'en' ? `Stage ${activeStep.number} / 04` : `المرحلة ${activeStep.number} / 04`}
                   </div>
                 </div>
 
@@ -159,7 +171,7 @@ export const CraftsmanshipSection: React.FC = () => {
                 {/* Detail Points Checklist */}
                 <div className="pt-6 border-t border-[#0A2D6F]/10">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#0A2D6F] mb-4">
-                    Kalite Kriterleri
+                    {t.craftsmanshipQualityCriteria || 'Kalite Kriterleri'}
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {(activeStep.detailPoints || []).map((pt, idx) => (

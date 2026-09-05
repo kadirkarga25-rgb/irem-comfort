@@ -239,7 +239,7 @@ export const TestimonialsSection: React.FC = () => {
                       </p>
                       {language !== 'tr' && (
                         <span className="inline-block mt-1 text-[10px] text-slate-400 font-mono">
-                          (Orijinal Türkçe Metin)
+                          {language === 'en' ? '(Original Turkish Text)' : '(النص الأصلي بالتركية)'}
                         </span>
                       )}
                     </div>
@@ -324,7 +324,11 @@ export const TestimonialsSection: React.FC = () => {
                 </h3>
               </div>
               <p className="text-xs text-slate-500 mb-6">
-                İrem Comfort kalitesi ve müşteri deneyimi hakkındaki değerli görüşlerinizi paylaşın.
+                {language === 'tr'
+                  ? 'İrem Comfort kalitesi ve müşteri deneyimi hakkındaki değerli görüşlerinizi paylaşın.'
+                  : language === 'en'
+                  ? 'Share your valuable thoughts on Irem Comfort quality and experience.'
+                  : 'شاركنا تقييمك حول جودة إيريم كومفورت وتجربة عملائنا.'}
               </p>
 
               {formSubmitted ? (
@@ -332,14 +336,22 @@ export const TestimonialsSection: React.FC = () => {
                   <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto animate-bounce">
                     <CheckCircle2 className="w-7 h-7" />
                   </div>
-                  <h4 className="text-base font-bold text-[#062050]">Teşekkür Ederiz!</h4>
-                  <p className="text-xs text-slate-600">Değerlendirmeniz başarıyla eklenmiştir.</p>
+                  <h4 className="text-base font-bold text-[#062050]">
+                    {language === 'tr' ? 'Teşekkür Ederiz!' : language === 'en' ? 'Thank You!' : 'شكراً جزيلاً!'}
+                  </h4>
+                  <p className="text-xs text-slate-600">
+                    {language === 'tr'
+                      ? 'Değerlendirmeniz başarıyla eklenmiştir.'
+                      : language === 'en'
+                      ? 'Your review has been successfully submitted.'
+                      : 'تم إرسال تقييمك بنجاح.'}
+                  </p>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Müşteri Tipi
+                      {language === 'tr' ? 'Müşteri Tipi' : language === 'en' ? 'Customer Type' : 'نوع العميل'}
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
@@ -351,7 +363,7 @@ export const TestimonialsSection: React.FC = () => {
                             : 'bg-slate-50 text-slate-700 border-slate-200'
                         }`}
                       >
-                        Perakende Müşteri
+                        {language === 'tr' ? 'Perakende Müşteri' : language === 'en' ? 'Retail Customer' : 'عميل تجزئة'}
                       </button>
                       <button
                         type="button"
@@ -362,21 +374,21 @@ export const TestimonialsSection: React.FC = () => {
                             : 'bg-slate-50 text-slate-700 border-slate-200'
                         }`}
                       >
-                        Toptan / Butik Müşterisi
+                        {language === 'tr' ? 'Toptan / Butik Müşterisi' : language === 'en' ? 'Wholesale / Boutique' : 'عميل جملة / بوتيك'}
                       </button>
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {t.testimonialsFormName || 'Adınız Soyadınız / Mağaza Adınız'}
+                      {t.testimonialsFormName || (language === 'tr' ? 'Adınız Soyadınız / Mağaza Adınız' : language === 'en' ? 'Full Name / Store Name' : 'الاسم الكامل / اسم المتجر')}
                     </label>
                     <input
                       type="text"
                       required
                       value={newReview.name}
                       onChange={e => setNewReview({ ...newReview, name: e.target.value })}
-                      placeholder="Örn: Ayşe Y. veya Kardelen Butik"
+                      placeholder={language === 'tr' ? 'Örn: Ayşe Y. veya Kardelen Butik' : language === 'en' ? 'e.g. John D. or Rose Boutique' : 'مثال: محمد ع. أو بوتيك الورد'}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#062050]"
                     />
                   </div>
@@ -384,20 +396,20 @@ export const TestimonialsSection: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Şehir / Konum
+                        {language === 'tr' ? 'Şehir / Konum' : language === 'en' ? 'City / Location' : 'المدينة / الموقع'}
                       </label>
                       <input
                         type="text"
                         value={newReview.location}
                         onChange={e => setNewReview({ ...newReview, location: e.target.value })}
-                        placeholder="Örn: İzmir"
+                        placeholder={language === 'tr' ? 'Örn: İzmir' : language === 'en' ? 'e.g. London' : 'مثال: دبي'}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#062050]"
                       />
                     </div>
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Değerlendirme Puanı
+                        {language === 'tr' ? 'Değerlendirme Puanı' : language === 'en' ? 'Rating' : 'التقييم'}
                       </label>
                       <select
                         value={newReview.rating}
@@ -413,33 +425,39 @@ export const TestimonialsSection: React.FC = () => {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Satın Alınan / Değerlendirilen Ürün Modeli
+                      {language === 'tr' ? 'Satın Alınan / Değerlendirilen Ürün Modeli' : language === 'en' ? 'Purchased Product Model' : 'موديل المنتج المجرّب'}
                     </label>
                     <select
                       value={newReview.productName}
                       onChange={e => setNewReview({ ...newReview, productName: e.target.value })}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#062050] bg-white font-medium"
                     >
-                      <option value="">-- Ürün Modeli Seçin --</option>
+                      <option value="">{language === 'tr' ? '-- Ürün Modeli Seçin --' : language === 'en' ? '-- Select Product Model --' : '-- اختر الموديل --'}</option>
                       {(collectionItems || []).map((prod) => (
                         <option key={prod.id} value={prod.name}>
                           {prod.name} ({prod.category})
                         </option>
                       ))}
-                      <option value="İrem Comfort Genel Koleksiyon">İrem Comfort Genel Koleksiyon</option>
+                      <option value="İrem Comfort Genel Koleksiyon">İrem Comfort General Collection</option>
                     </select>
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Yorumunuz
+                      {language === 'tr' ? 'Yorumunuz' : language === 'en' ? 'Your Review' : 'تعليقك'}
                     </label>
                     <textarea
                       required
                       rows={3}
                       value={newReview.comment}
                       onChange={e => setNewReview({ ...newReview, comment: e.target.value })}
-                      placeholder="Ürün kalitesi, konforu, deri dokusu veya teslimat süreci hakkındaki düşünceleriniz..."
+                      placeholder={
+                        language === 'tr'
+                          ? 'Ürün kalitesi, konforu, deri dokusu veya teslimat süreci hakkındaki düşünceleriniz...'
+                          : language === 'en'
+                          ? 'Your feedback about comfort, leather texture, craft or delivery...'
+                          : 'رأيك حول الراحة، جودة الجلد، الحرفية أو سرعة التوصيل...'
+                      }
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#062050]"
                     />
                   </div>
@@ -449,7 +467,7 @@ export const TestimonialsSection: React.FC = () => {
                     className="w-full py-3 rounded-xl bg-[#062050] hover:bg-[#082C6C] text-white font-bold text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
                   >
                     <Send className="w-4 h-4 text-amber-300" />
-                    <span>{t.testimonialsFormSubmit || 'Yorumu Yayınla'}</span>
+                    <span>{t.testimonialsFormSubmit || (language === 'tr' ? 'Yorumu Yayınla' : language === 'en' ? 'Submit Review' : 'إرسال التقييم')}</span>
                   </button>
                 </form>
               )}

@@ -53,7 +53,7 @@ export const DeploymentExperienceAdminTab: React.FC<Props> = ({ onTestDeployment
       const data = await res.json();
       if (data.success && Array.isArray(data.files)) {
         const vids = data.files.filter((f: MediaFile) => {
-          const p = (f.path || f.name).toLowerCase();
+          const p = (f.path || f.name || '').toLowerCase();
           return p.endsWith('.mp4') || p.endsWith('.webm') || f.folder === 'videos';
         });
         setMediaVideos(vids);

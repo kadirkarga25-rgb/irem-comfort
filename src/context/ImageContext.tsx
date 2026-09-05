@@ -8,8 +8,72 @@ import {
   DEFAULT_TESTIMONIALS
 } from '../constants/data';
 import { TRANSLATIONS, TranslationDictionary } from '../constants/i18n';
-import { CollectionItem, CraftsmanshipStep, ContactInfo, FaqItem, AboutSlide, SystemConfig, SeoConfig, ThemeConfig, ThemePreset, SectionOrderItem, TestimonialItem, Language, AnalyticsMetrics } from '../types';
+import { CollectionItem, CraftsmanshipStep, ContactInfo, FaqItem, AboutSlide, SystemConfig, SeoConfig, ThemeConfig, ThemePreset, SectionOrderItem, TestimonialItem, Language, AnalyticsMetrics, HeroConfig, FairConfig } from '../types';
+export type { HeroConfig, FairConfig };
 import { deepMerge } from '../utils/deepMerge';
+import { 
+  getTranslatedHero, 
+  getTranslatedCraftsmanshipSteps, 
+  getTranslatedFaqItems, 
+  getTranslatedAboutSlides, 
+  getTranslatedAnnouncements 
+} from '../utils/dynamicTranslator';
+
+export const detectInitialLanguage = (): Language => {
+  if (typeof window === 'undefined' || !window.location) return 'tr';
+
+  const hostname = (window.location.hostname || '').toLowerCase();
+  const search = (window.location.search || '').toLowerCase();
+  const hash = (window.location.hash || '').toLowerCase();
+  const pathname = (window.location.pathname || '').toLowerCase();
+
+  // 1. Explicit query or hash parameter
+  if (search.includes('lang=en') || hash.includes('lang=en') || search.includes('locale=en')) return 'en';
+  if (search.includes('lang=ar') || hash.includes('lang=ar') || search.includes('locale=ar')) return 'ar';
+  if (search.includes('lang=tr') || hash.includes('lang=tr') || search.includes('locale=tr')) return 'tr';
+
+  // 2. English domain or subdomain (iremcomfort.en, iremcomfrot.en, *.en, en.iremcomfort.com, en.*)
+  if (
+    hostname.endsWith('.en') || 
+    hostname.startsWith('en.') || 
+    hostname.includes('.en.') || 
+    hostname.includes('iremcomfort.en') ||
+    hostname.includes('iremcomfrot.en') ||
+    hostname.includes('iremcomfort-en')
+  ) {
+    return 'en';
+  }
+
+  // 3. Arabic domain / subdomain / path (ocm, *.ar, ar.*, com.ar, iremcomfort.ar, iremcomfrot.ar, /ar)
+  if (
+    hostname.endsWith('.ar') || 
+    hostname.startsWith('ar.') || 
+    hostname.includes('.ar.') || 
+    hostname.includes('com.ar') || 
+    hostname.includes('iremcomfort.ar') ||
+    hostname.includes('iremcomfrot.ar') ||
+    hostname.includes('ocm') ||
+    hostname.includes('ar-') ||
+    pathname.includes('ocm') ||
+    pathname === '/ar' ||
+    pathname.startsWith('/ar/')
+  ) {
+    return 'ar';
+  }
+
+  // 4. Path prefix
+  if (pathname === '/en' || pathname.startsWith('/en/')) return 'en';
+
+  // 5. Stored preference
+  try {
+    const saved = localStorage.getItem('irem_comfort_lang');
+    if (saved === 'en' || saved === 'ar' || saved === 'tr') {
+      return saved as Language;
+    }
+  } catch (e) {}
+
+  return 'tr';
+};
 
 async function uploadImageToGithub(dataUrl: string, folder: string = "site_images"): Promise<string> {
   if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith("data:image/")) {
@@ -29,30 +93,6 @@ async function uploadImageToGithub(dataUrl: string, folder: string = "site_image
     console.error("Error uploading image to GitHub via API:", err);
   }
   return dataUrl;
-}
-
-export interface HeroConfig {
-  badgeText: string;
-  title: string;
-  description: string;
-  primaryBtnText: string;
-  secondaryBtnText: string;
-  signatureModelTitle: string;
-  signatureModelSub: string;
-}
-
-export interface FairConfig {
-  enabled: boolean;
-  name: string;
-  location: string;
-  standNumber: string;
-  startDate: string; // YYYY-MM-DD
-  endDate: string; // YYYY-MM-DD
-  description: string;
-  posterUrl: string;
-  qrCodeUrl: string;
-  badgeText: string;
-  whatsappContact: string;
 }
 
 export interface AppImages {
@@ -165,6 +205,7 @@ interface ImageContextType {
   
   // Hero Text & Banner Config
   heroConfig: HeroConfig;
+  rawHeroConfig?: HeroConfig;
   updateHeroConfig: (newConfig: Partial<HeroConfig>) => void;
   resetHeroConfig: () => void;
 
@@ -180,6 +221,7 @@ interface ImageContextType {
 
   // Announcements Ticker Config
   announcements: string[];
+  rawAnnouncements?: string[];
   updateAnnouncements: (list: string[]) => void;
   resetAnnouncements: () => void;
 
@@ -192,11 +234,13 @@ interface ImageContextType {
 
   // Craftsmanship Steps Dynamic Store
   craftsmanshipSteps: CraftsmanshipStep[];
+  rawCraftsmanshipSteps?: CraftsmanshipStep[];
   updateCraftsmanshipStep: (stepNumber: string, newStep: Partial<CraftsmanshipStep>) => void;
   resetCraftsmanshipSteps: () => void;
 
   // FAQ Items Dynamic Store
   faqItems: FaqItem[];
+  rawFaqItems?: FaqItem[];
   updateFaqItem: (id: string, newFaq: Partial<FaqItem>) => void;
   addFaqItem: (newFaq: Omit<FaqItem, 'id'>) => void;
   deleteFaqItem: (id: string) => void;
@@ -204,6 +248,7 @@ interface ImageContextType {
 
   // About Section Slides Dynamic Store
   aboutSlides: AboutSlide[];
+  rawAboutSlides?: AboutSlide[];
   updateAboutSlide: (id: string, newSlide: Partial<AboutSlide>) => void;
   addAboutSlide: (newSlide: Omit<AboutSlide, 'id'>) => void;
   deleteAboutSlide: (id: string) => void;
@@ -407,7 +452,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [themeConfig, setThemeConfig] = useState<ThemeConfig>(DEFAULT_THEME_CONFIG);
   const [sectionOrder, setSectionOrder] = useState<SectionOrderItem[]>(DEFAULT_SECTION_ORDER);
   const [testimonials, setTestimonials] = useState<TestimonialItem[]>(DEFAULT_TESTIMONIALS);
-  const [language, setLanguageState] = useState<Language>('tr');
+  const [language, setLanguageState] = useState<Language>(() => detectInitialLanguage());
   const [analytics, setAnalytics] = useState<AnalyticsMetrics>(() => {
     try {
       const saved = localStorage.getItem('irem_analytics_metrics_v1');
@@ -423,13 +468,29 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
   const [isManagerOpen, setIsManagerOpen] = useState(false);
 
-  const setLanguage = (lang: Language) => {
+  const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
+    try {
+      localStorage.setItem('irem_comfort_lang', lang);
+    } catch (e) {}
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-  };
+  }, []);
+
+  // Synchronize document lang & dir with current language
+  useEffect(() => {
+    document.documentElement.lang = language;
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+  }, [language]);
 
   const t = TRANSLATIONS[language] || TRANSLATIONS.tr;
+
+  // Dynamically translated data based on current active language
+  const displayHeroConfig = React.useMemo(() => getTranslatedHero(heroConfig, language), [heroConfig, language]);
+  const displayCraftsmanshipSteps = React.useMemo(() => getTranslatedCraftsmanshipSteps(craftsmanshipSteps, language), [craftsmanshipSteps, language]);
+  const displayFaqItems = React.useMemo(() => getTranslatedFaqItems(faqItems, language), [faqItems, language]);
+  const displayAboutSlides = React.useMemo(() => getTranslatedAboutSlides(aboutSlides, language), [aboutSlides, language]);
+  const displayAnnouncements = React.useMemo(() => getTranslatedAnnouncements(announcements, language), [announcements, language]);
 
   const trackEvent = useCallback((event: keyof AnalyticsMetrics) => {
     setAnalytics(prev => {
@@ -1250,7 +1311,8 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateCraftsmanshipImage,
         updateCollectionImage,
         resetAllImages,
-        heroConfig,
+        heroConfig: displayHeroConfig,
+        rawHeroConfig: heroConfig,
         updateHeroConfig,
         resetHeroConfig,
         fairConfig,
@@ -1259,7 +1321,8 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         contactData,
         updateContactData,
         resetContactData,
-        announcements,
+        announcements: displayAnnouncements,
+        rawAnnouncements: announcements,
         updateAnnouncements,
         resetAnnouncements,
         collectionItems,
@@ -1267,15 +1330,18 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         addCollectionItem,
         deleteCollectionItem,
         resetCollectionItems,
-        craftsmanshipSteps,
+        craftsmanshipSteps: displayCraftsmanshipSteps,
+        rawCraftsmanshipSteps: craftsmanshipSteps,
         updateCraftsmanshipStep,
         resetCraftsmanshipSteps,
-        faqItems,
+        faqItems: displayFaqItems,
+        rawFaqItems: faqItems,
         updateFaqItem,
         addFaqItem,
         deleteFaqItem,
         resetFaqItems,
-        aboutSlides,
+        aboutSlides: displayAboutSlides,
+        rawAboutSlides: aboutSlides,
         updateAboutSlide,
         addAboutSlide,
         deleteAboutSlide,

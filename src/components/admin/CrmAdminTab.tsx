@@ -56,10 +56,15 @@ export const CrmAdminTab: React.FC = () => {
   }, []);
 
   const filteredCustomers = customers.filter(c => {
-    const matchesSearch = c.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          c.phone.includes(searchTerm) ||
-                          (c.companyName && c.companyName.toLowerCase().includes(searchTerm.toLowerCase()));
+    const sTerm = (searchTerm || '').toLowerCase();
+    const fName = (c.fullName || '').toLowerCase();
+    const email = (c.email || '').toLowerCase();
+    const phone = c.phone || '';
+    const comp = (c.companyName || '').toLowerCase();
+    const matchesSearch = fName.includes(sTerm) ||
+                          email.includes(sTerm) ||
+                          phone.includes(searchTerm) ||
+                          comp.includes(sTerm);
     const matchesType = selectedType === 'all' || c.customerType === selectedType;
     return matchesSearch && matchesType;
   });

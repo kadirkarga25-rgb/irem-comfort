@@ -98,22 +98,25 @@ export class KnowledgeEngine {
       const colorsStr = item.colors?.map(c => c.name).join(', ') || '';
       const materialsStr = item.materials?.join(', ') || '';
       const featuresStr = item.features?.join('. ') || '';
-      const content = `${item.name}. ${item.subtitle}. Kategori: ${item.category}. ${item.tagline}. ${item.description}. Malzemeler: ${materialsStr}. Özellikler: ${featuresStr}. Renkler: ${colorsStr}. Ebat/Numara: ${item.dimensions}.`;
+      const iName = (item.name || '').toLowerCase();
+      const iDesc = (item.description || '').toLowerCase();
+      const iCat = (item.category || '').toLowerCase();
+      const content = `${item.name || ''}. ${item.subtitle || ''}. Kategori: ${item.category || ''}. ${item.tagline || ''}. ${item.description || ''}. Malzemeler: ${materialsStr}. Özellikler: ${featuresStr}. Renkler: ${colorsStr}. Ebat/Numara: ${item.dimensions || ''}.`;
 
-      const isWideFoot = item.description.toLowerCase().includes('tarak') || item.description.toLowerCase().includes('cırt') || item.name.toLowerCase().includes('geniş');
-      const isSabo = item.category.toLowerCase().includes('sabo') || item.name.toLowerCase().includes('sabo');
-      const isSandal = item.category.toLowerCase().includes('sandalet');
+      const isWideFoot = iDesc.includes('tarak') || iDesc.includes('cırt') || iName.includes('geniş');
+      const isSabo = iCat.includes('sabo') || iName.includes('sabo');
+      const isSandal = iCat.includes('sandalet');
 
       documents.push({
         id: `doc-prod-${item.id}`,
         category: 'product',
-        title: item.name,
+        title: item.name || '',
         content,
         keywords: [
-          item.name.toLowerCase(),
-          item.category.toLowerCase(),
-          ...(Array.isArray(item.materials) ? item.materials.map(m => m.toLowerCase()) : []),
-          ...(Array.isArray(item.features) ? item.features.map(f => f.toLowerCase()) : []),
+          iName,
+          iCat,
+          ...(Array.isArray(item.materials) ? item.materials.filter(Boolean).map(m => (m || '').toLowerCase()) : []),
+          ...(Array.isArray(item.features) ? item.features.filter(Boolean).map(f => (f || '').toLowerCase()) : []),
           ...(isWideFoot ? ['taraklı', 'geniş', 'ödem', 'cırt cırtlı'] : []),
           ...(isSabo ? ['sabo', 'hemşire', 'doktor', 'hastane', 'medikal'] : []),
           ...(isSandal ? ['sandalet', 'yazlık'] : ['terlik'])
@@ -133,12 +136,14 @@ export class KnowledgeEngine {
 
     // 2. Index FAQs
     faqs.forEach((faq) => {
+      const q = (faq.question || '').toLowerCase();
+      const a = (faq.answer || '').toLowerCase();
       documents.push({
         id: `doc-faq-${faq.id}`,
         category: 'faq',
-        title: faq.question,
-        content: `Soru: ${faq.question} Cevap: ${faq.answer}`,
-        keywords: [faq.question.toLowerCase(), ...faq.answer.toLowerCase().split(' ')],
+        title: faq.question || '',
+        content: `Soru: ${faq.question || ''} Cevap: ${faq.answer || ''}`,
+        keywords: [q, ...a.split(' ').filter(Boolean)],
         metadata: {
           sectionUrl: `#sss`
         },
@@ -149,12 +154,13 @@ export class KnowledgeEngine {
     // 3. Index Craftsmanship & Brand Facts
     craftsmanship.forEach((step) => {
       const points = step.detailPoints?.join('. ') || '';
+      const stepTitle = (step.title || '').toLowerCase();
       documents.push({
         id: `doc-craft-${step.number}`,
         category: 'brand_craft',
-        title: `Manisa Zanaatı Step ${step.number}: ${step.title}`,
-        content: `${step.title} - ${step.subtitle}. ${step.description}. Detaylar: ${points}`,
-        keywords: ['zanaat', 'atölye', 'manisa', 'üretim', 'el işçiliği', step.title.toLowerCase()],
+        title: `Manisa Zanaatı Step ${step.number}: ${step.title || ''}`,
+        content: `${step.title || ''} - ${step.subtitle || ''}. ${step.description || ''}. Detaylar: ${points}`,
+        keywords: ['zanaat', 'atölye', 'manisa', 'üretim', 'el işçiliği', stepTitle],
         metadata: {
           sectionUrl: `#sanat`
         },
@@ -203,12 +209,13 @@ export class KnowledgeEngine {
 
     // 7. Index Fair & Event info
     if (fair.enabled) {
+      const fairName = (fair.name || '').toLowerCase();
       documents.push({
         id: 'doc-fair-event',
         category: 'fair_event',
-        title: `Fuar ve Etkinlik Katılımı: ${fair.name}`,
-        content: `İrem Comfort ${fair.name} fuarına katılıyor! Lokasyon: ${fair.location}. Stant Numarası: ${fair.standNumber}. Tarihler: ${fair.startDate} - ${fair.endDate}. Açıklama: ${fair.description}.`,
-        keywords: ['fuar', 'aymod', 'istanbul fuar merkezi', 'stant', fair.name.toLowerCase()],
+        title: `Fuar ve Etkinlik Katılımı: ${fair.name || ''}`,
+        content: `İrem Comfort ${fair.name || ''} fuarına katılıyor! Lokasyon: ${fair.location || ''}. Stant Numarası: ${fair.standNumber || ''}. Tarihler: ${fair.startDate || ''} - ${fair.endDate || ''}. Açıklama: ${fair.description || ''}.`,
+        keywords: ['fuar', 'aymod', 'istanbul fuar merkezi', 'stant', fairName],
         metadata: {
           sectionUrl: `#fuar`
         },
@@ -225,9 +232,9 @@ export class KnowledgeEngine {
    * Search indexed documents using TF-IDF + Synonym Intent Expansion + Keyword Overlap
    */
   public search(query: string, maxResults = 4): SearchResult[] {
-    if (!query.trim()) return [];
+    if (!query || typeof query !== 'string' || !query.trim()) return [];
 
-    const qLower = query.toLowerCase().trim();
+    const qLower = (query || '').toLowerCase().trim();
     const queryTokens = qLower.split(/\s+/).filter(t => t.length > 1);
 
     // Expand query with synonyms
@@ -245,10 +252,10 @@ export class KnowledgeEngine {
       let matchedTerms: string[] = [];
       let intentBoost = 0;
 
-      const docText = `${doc.title} ${doc.content} ${doc.keywords.join(' ')}`.toLowerCase();
+      const docText = `${doc.title || ''} ${doc.content || ''} ${(doc.keywords || []).join(' ')}`.toLowerCase();
 
       // Title Exact Match Bonus
-      if (doc.title.toLowerCase().includes(qLower)) {
+      if ((doc.title || '').toLowerCase().includes(qLower)) {
         score += 0.45;
         matchedTerms.push('Title Match');
       }
@@ -290,25 +297,29 @@ export class KnowledgeEngine {
    * Smart Product Search by Natural Intent (e.g. "wide feet", "black sandals", "hospital sabo")
    */
   public searchProductsByIntent(query: string, allItems: CollectionItem[] = COLLECTION_ITEMS): CollectionItem[] {
-    const qLower = query.toLowerCase();
+    const qLower = (query || '').toLowerCase();
 
     return allItems.filter(item => {
-      const isBlack = (qLower.includes('siyah') || qLower.includes('black')) && item.colors?.some(c => c.name.toLowerCase().includes('siyah'));
-      const isWhite = (qLower.includes('beyaz') || qLower.includes('white')) && item.colors?.some(c => c.name.toLowerCase().includes('beyaz'));
-      const isTan = (qLower.includes('taba') || qLower.includes('bronz') || qLower.includes('kahve')) && item.colors?.some(c => c.name.toLowerCase().includes('taba') || c.name.toLowerCase().includes('bronz'));
+      const iName = (item.name || '').toLowerCase();
+      const iDesc = (item.description || '').toLowerCase();
+      const iCat = (item.category || '').toLowerCase();
+
+      const isBlack = (qLower.includes('siyah') || qLower.includes('black')) && item.colors?.some(c => (c.name || '').toLowerCase().includes('siyah'));
+      const isWhite = (qLower.includes('beyaz') || qLower.includes('white')) && item.colors?.some(c => (c.name || '').toLowerCase().includes('beyaz'));
+      const isTan = (qLower.includes('taba') || qLower.includes('bronz') || qLower.includes('kahve')) && item.colors?.some(c => (c.name || '').toLowerCase().includes('taba') || (c.name || '').toLowerCase().includes('bronz'));
       
       const isWideFoot = (qLower.includes('geniş') || qLower.includes('taraklı') || qLower.includes('ödem')) && 
-        (item.name.toLowerCase().includes('geniş') || item.description.toLowerCase().includes('tarak') || item.description.toLowerCase().includes('cırt'));
+        (iName.includes('geniş') || iDesc.includes('tarak') || iDesc.includes('cırt'));
       
       const isSabo = (qLower.includes('sabo') || qLower.includes('hemşire') || qLower.includes('doktor') || qLower.includes('hastane')) &&
-        (item.category.toLowerCase().includes('sabo') || item.name.toLowerCase().includes('sabo'));
+        (iCat.includes('sabo') || iName.includes('sabo'));
 
       const isSandal = (qLower.includes('sandalet') || qLower.includes('yazlık')) &&
-        (item.category.toLowerCase().includes('sandalet') || item.name.toLowerCase().includes('sandalet'));
+        (iCat.includes('sandalet') || iName.includes('sandalet'));
 
-      const generalMatch = item.name.toLowerCase().includes(qLower) || 
-                           item.description.toLowerCase().includes(qLower) || 
-                           item.category.toLowerCase().includes(qLower);
+      const generalMatch = iName.includes(qLower) || 
+                           iDesc.includes(qLower) || 
+                           iCat.includes(qLower);
 
       return isBlack || isWhite || isTan || isWideFoot || isSabo || isSandal || generalMatch;
     });
@@ -364,7 +375,7 @@ export class KnowledgeEngine {
         // Split into sentences and deduplicate
         const sentences = cleanContent.split(/(?<=[.!?])\s+/);
         sentences.forEach(s => {
-          const norm = s.toLowerCase().trim();
+          const norm = (s || '').toLowerCase().trim();
           if (norm.length > 5 && !seenSentences.has(norm)) {
             seenSentences.add(norm);
             cleanedParts.push(s);

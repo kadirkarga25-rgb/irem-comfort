@@ -177,3 +177,27 @@ export interface SectionOrderItem {
   subtitle: string;
   enabled: boolean;
 }
+
+export interface HeroConfig {
+  badgeText: string;
+  title: string;
+  description: string;
+  primaryBtnText: string;
+  secondaryBtnText: string;
+  signatureModelTitle: string;
+  signatureModelSub: string;
+}
+
+export interface FairConfig {
+  enabled: boolean;
+  name: string;
+  location: string;
+  standNumber: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+  posterUrl: string;
+  qrCodeUrl: string;
+  badgeText: string;
+  whatsappContact: string;
+}

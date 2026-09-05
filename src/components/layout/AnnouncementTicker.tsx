@@ -11,13 +11,45 @@ export const AnnouncementTicker: React.FC<AnnouncementTickerProps> = ({
   onContactClick,
   className = ''
 }) => {
-  const { announcements, contactData } = useAppImages();
+  const { announcements, contactData, language } = useAppImages();
 
-  const tickerItems = (announcements && announcements.length > 0 ? announcements : [
+  const getTranslatedAnnouncement = (text: string): string => {
+    if (!text || typeof text !== 'string') return '';
+    if (language === 'tr') return text;
+
+    const tLower = (text || '').toLowerCase();
+    if (tLower.includes('yeni sezon') && (tLower.includes('sandalet') || tLower.includes('koleksiyon'))) {
+      return language === 'en'
+        ? "NEW SEASON 100% GENUINE LEATHER WOMEN'S COMFORT SANDALS & SLIPPERS COLLECTION"
+        : "تشكيلة الموسم الجديد من الصنادل والنعال الطبية النسائية المصنوعة من جلد طبيعي 100%";
+    }
+    if (tLower.includes('katalog') || tLower.includes('bilgi hattı')) {
+      const phone = contactData?.phoneDisplay || '+90 533 029 71 25';
+      return language === 'en'
+        ? `NEW SEASON CATALOG & INQUIRY HOTLINE: ${phone}`
+        : `كتالوج الموسم الجديد وخط الاستفسارات: ${phone}`;
+    }
+    if (tLower.includes('manisa') || tLower.includes('atölye') || tLower.includes('danışma')) {
+      return language === 'en'
+        ? "DIRECT WHOLESALE CONSULTATION FROM OUR MANISA SHOEMAKERS PRODUCTION WORKSHOP"
+        : "استشارات تجارية مباشرة من ورشة التصنيع في مجمع مانيسا للأحذية";
+    }
+
+    return text;
+  };
+
+  const rawList = announcements && announcements.length > 0 ? announcements : [
     "YENİ SEZON HAKİKİ DERİ BAYAN COMFORT SANDALET VE TERLİK KOLEKSİYONU",
     `YENİ SEZON KATALOĞU VE BİLGİ HATTI: ${contactData?.phoneDisplay || '0533 029 71 25'}`,
     "MANİSA AYAKKABICILAR SİTESİ ÜRETİM ATÖLYEMİZDEN DOĞRUDAN DANIŞMA"
-  ]).map(text => ({ text, tag: "Duyuru" }));
+  ];
+
+  const tagLabel = language === 'tr' ? 'Duyuru' : language === 'en' ? 'Announcement' : 'إعلان';
+
+  const tickerItems = rawList.map(text => ({
+    text: getTranslatedAnnouncement(text),
+    tag: tagLabel
+  }));
 
   // Repeat items for seamless smooth infinite looping
   const repeatedItems = [...tickerItems, ...tickerItems, ...tickerItems, ...tickerItems];

@@ -138,10 +138,10 @@ export const ConversationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   // Handle sending a user message
   const sendMessage = useCallback((text: string) => {
-    if (!text.trim()) return;
+    if (!text || typeof text !== 'string' || !text.trim()) return;
 
     // Check if user explicitly wants human support
-    const lower = text.toLowerCase();
+    const lower = (text || '').toLowerCase();
     if (lower.includes('canlı müşteri temsilcisi') || lower.includes('temsilciye bağlan') || lower.includes('insanla görüş') || lower.includes('canlı destek')) {
       setIsHumanSupportModalOpen(true);
     }

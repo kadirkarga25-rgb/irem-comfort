@@ -135,8 +135,10 @@ export const AiTrainingAdminTab: React.FC = () => {
   };
 
   const filteredCandidates = candidates.filter(c => {
-    const matchesSearch = c.question.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          c.adminAnswer.toLowerCase().includes(searchQuery.toLowerCase());
+    const sTerm = (searchQuery || '').toLowerCase();
+    const q = (c.question || '').toLowerCase();
+    const a = (c.adminAnswer || '').toLowerCase();
+    const matchesSearch = q.includes(sTerm) || a.includes(sTerm);
     const matchesCategory = categoryFilter === 'all' || c.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });

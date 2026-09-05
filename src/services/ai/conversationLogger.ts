@@ -316,10 +316,10 @@ export class ConversationLoggerService {
     return this.sessions.filter(s => {
       if (filter?.status && filter.status !== 'all' && s.status !== filter.status) return false;
       if (filter?.searchKey) {
-        const key = filter.searchKey.toLowerCase();
-        const nameMatch = s.visitorName?.toLowerCase().includes(key);
-        const emailMatch = s.visitorEmail?.toLowerCase().includes(key);
-        const msgMatch = s.messages.some(m => m.text.toLowerCase().includes(key));
+        const key = (filter.searchKey || '').toLowerCase();
+        const nameMatch = (s.visitorName || '').toLowerCase().includes(key);
+        const emailMatch = (s.visitorEmail || '').toLowerCase().includes(key);
+        const msgMatch = (s.messages || []).some(m => (m?.text || '').toLowerCase().includes(key));
         if (!nameMatch && !emailMatch && !msgMatch) return false;
       }
       return true;

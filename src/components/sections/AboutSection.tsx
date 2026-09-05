@@ -4,7 +4,7 @@ import { Shield, Sparkles, Feather, Compass, ChevronLeft, ChevronRight } from 'l
 import { useAppImages } from '../../context/ImageContext';
 
 export const AboutSection: React.FC = () => {
-  const { aboutSlides } = useAppImages();
+  const { aboutSlides, t, language } = useAppImages();
 
   const slides = aboutSlides && aboutSlides.length > 0 ? aboutSlides : [
     {
@@ -75,7 +75,49 @@ export const AboutSection: React.FC = () => {
     }
   };
 
-  const pillars = [
+  const pillars = language === 'en' ? [
+    {
+      icon: Shield,
+      title: '100% Genuine Leather',
+      desc: 'We strictly use breathable, anti-perspirant, supple natural calf and lamb upper leathers.'
+    },
+    {
+      icon: Sparkles,
+      title: 'Manisa Workshop Craft',
+      desc: 'Each slipper and sandal is carefully stitched by our seasoned master shoemakers in Manisa.'
+    },
+    {
+      icon: Feather,
+      title: 'Anatomic Comfort Footbed',
+      desc: 'Special orthotic contoured arch architecture that cradles foot arches and absorbs heel shock.'
+    },
+    {
+      icon: Compass,
+      title: 'Elegant & Functional',
+      desc: 'From double-buckle classics to orthotic sabots, graceful strides for work and daily life.'
+    }
+  ] : language === 'ar' ? [
+    {
+      icon: Shield,
+      title: 'جلد طبيعي 100%',
+      desc: 'نستخدم فقط جلود العجول والخراف الطبيعية الفاخرة التي تسمح بالتنفس وتمنع التعرق.'
+    },
+    {
+      icon: Sparkles,
+      title: 'حرفية ورشة مانيسا',
+      desc: 'يتم حياكة وتصنيع كل حذاء يدويًا بعناية فائقة بواسطة حرفيين خبراء في مانيسا.'
+    },
+    {
+      icon: Feather,
+      title: 'نعل تشريحي مريح',
+      desc: 'هندسة نعل طبية مقوسة تدعم قوس القدم بالكامل وتمتص صدمات الكعب.'
+    },
+    {
+      icon: Compass,
+      title: 'أناقة وعملية',
+      desc: 'من الموديلات الكلاسيكية ذات الإبزيم المزدوج إلى القوافل الطبية، لخطوات أنيقة ومريحة.'
+    }
+  ] : [
     {
       icon: Shield,
       title: '%100 Hakiki Deri',
@@ -112,7 +154,7 @@ export const AboutSection: React.FC = () => {
             className="inline-flex items-center gap-2 text-xs font-semibold tracking-widest text-[#0A2D6F] uppercase"
           >
             <span className="w-8 h-[1px] bg-[#0A2D6F]" />
-            <span>Mirasımız & Atölyemiz</span>
+            <span>{t.heritageTagline || 'Mirasımız & Atölyemiz'}</span>
           </motion.div>
 
           <motion.h2
@@ -122,7 +164,13 @@ export const AboutSection: React.FC = () => {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="text-3xl sm:text-5xl font-light tracking-tight text-[#111111]"
           >
-            Her Adımda <span className="font-serif-luxury font-bold text-[#0A2D6F]">Hakiki Deri</span> ve Esnek <span className="italic font-serif-luxury text-[#163E87]">Konfor</span>.
+            {language === 'tr' ? (
+              <>Her Adımda <span className="font-serif-luxury font-bold text-[#0A2D6F]">Hakiki Deri</span> ve Esnek <span className="italic font-serif-luxury text-[#163E87]">Konfor</span>.</>
+            ) : language === 'en' ? (
+              <>In Every Step <span className="font-serif-luxury font-bold text-[#0A2D6F]">Genuine Leather</span> &amp; Flexible <span className="italic font-serif-luxury text-[#163E87]">Comfort</span>.</>
+            ) : (
+              <>في كل خطوة <span className="font-serif-luxury font-bold text-[#0A2D6F]">جلد طبيعي</span> وراحة <span className="italic font-serif-luxury text-[#163E87]">مرنة</span>.</>
+            )}
           </motion.h2>
 
           <motion.p
@@ -132,7 +180,11 @@ export const AboutSection: React.FC = () => {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="text-base sm:text-lg text-[#111111]/70 font-light leading-relaxed"
           >
-            İrem Comfort olarak Manisa Ayakkabıcılar Sitesindeki imalathanemizde kadınların ayak sağlığı ve konforu için çalışıyoruz. %100 hakiki deri saya, yumuşatılmış iç taban ve ortopedik kavislerle ürettiğimiz bayan comfort terlik ve sandaletlerimiz, günün her saatinde hafif ve rahat adımlar atmanızı sağlar.
+            {language === 'tr'
+              ? 'İrem Comfort olarak Manisa Ayakkabıcılar Sitesindeki imalathanemizde kadınların ayak sağlığı ve konforu için çalışıyoruz. %100 hakiki deri saya, yumuşatılmış iç taban ve ortopedik kavislerle ürettiğimiz bayan comfort terlik ve sandaletlerimiz, günün her saatinde hafif ve rahat adımlar atmanızı sağlar.'
+              : language === 'en'
+              ? "At İrem Comfort, we dedicate our Manisa Shoemakers Site workshop to women's foot health and all-day comfort. Crafted with 100% genuine leather uppers, softened insoles, and orthotic arches, our footwear guarantees light, effortless steps throughout the day."
+              : 'في إيرم كومفورت، نكرس ورشتنا في مدينة مانيسا لصحة وراحة أقدام السيدات. صنعت أحذيتنا من جلد طبيعي 100% وبطانات ناعمة مع دعامات طبية لتمنحك خطوات خفيفة ومريحة طوال اليوم.'}
           </motion.p>
         </div>
 
@@ -162,7 +214,7 @@ export const AboutSection: React.FC = () => {
               {/* Fade & Zoom Image Slide with AnimatePresence */}
               <AnimatePresence initial={false} mode="sync">
                 <motion.div
-                  key={slides[safeIndex]?.id || 'slide-fallback'}
+                  key={slides[safeIndex]?.id || `slide-${safeIndex}`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
@@ -275,7 +327,7 @@ export const AboutSection: React.FC = () => {
             <div className="flex items-center justify-center gap-2.5 mt-4">
               {slides.map((slide, idx) => (
                 <button
-                  key={slide.id}
+                  key={`about-dot-${slide.id || idx}`}
                   onClick={() => goToSlide(idx)}
                   type="button"
                   aria-label={`Slayt ${idx + 1}: ${slide.title}`}
@@ -300,19 +352,27 @@ export const AboutSection: React.FC = () => {
             >
               <div className="space-y-3">
                 <h3 className="text-2xl font-semibold text-[#111111] font-serif-luxury">
-                  Nefes Alan Hakiki Saya
+                  {language === 'tr' ? 'Nefes Alan Hakiki Saya' : language === 'en' ? 'Breathable Genuine Upper' : 'جزء علوي من جلد طبيعي يسمح بالتنفس'}
                 </h3>
                 <p className="text-sm sm:text-base text-[#111111]/70 font-light leading-relaxed">
-                  İmalatımızda kullanılan tüm deriler doğal yöntemlerle işlenmiş, terleme ve koku yapmayan yumuşak hakiki dana derileridir. Ayaklarınızı tahriş etmeden gün boyu nefes almasını sağlar.
+                  {language === 'tr'
+                    ? 'İmalatımızda kullanılan tüm deriler doğal yöntemlerle işlenmiş, terleme ve koku yapmayan yumuşak hakiki dana derileridir. Ayaklarınızı tahriş etmeden gün boyu nefes almasını sağlar.'
+                    : language === 'en'
+                    ? 'All leathers used in our production are naturally processed soft genuine calf leathers that resist odor and sweat, letting your feet breathe freely without irritation.'
+                    : 'جميع الجلود المستخدمة في صناعتنا معالجة بطرق طبيعية؛ جلود عجول أصلية ناعمة تمنع التعرق والروائح وتمنح قدميك تنفسًا مريحًا.'}
                 </p>
               </div>
 
               <div className="space-y-3 pt-4 border-t border-[#0A2D6F]/10">
                 <h3 className="text-2xl font-semibold text-[#111111] font-serif-luxury">
-                  Anatomik Taban Mimarisi
+                  {language === 'tr' ? 'Anatomik Taban Mimarisi' : language === 'en' ? 'Anatomical Sole Architecture' : 'هندسة النعل التشريحي'}
                 </h3>
                 <p className="text-sm sm:text-base text-[#111111]/70 font-light leading-relaxed">
-                  Ayak taban kavisini ve topuğu mükemmel destekleyen poliüretan ve mantar taban yapımız, vücut ağırlığını dengeli dağıtarak bacak ve bel yorgunluğunu en aza indirir.
+                  {language === 'tr'
+                    ? 'Ayak taban kavisini ve topuğu mükemmel destekleyen poliüretan ve mantar taban yapımız, vücut ağırlığını dengeli dağıtarak bacak ve bel yorgunluğunu en aza indirir.'
+                    : language === 'en'
+                    ? 'Our polyurethane and cork footbeds provide anatomical arch and heel support, evenly distributing body weight to minimize leg and lower back fatigue.'
+                    : 'يدعم نعل البولي يوريثين والفلين قوس القدم والكعب بشكل مثالي، ويوزع وزن الجسم بشكل متوازن لتقليل إجهاد الساق والظهر.'}
                 </p>
               </div>
             </motion.div>
@@ -326,7 +386,7 @@ export const AboutSection: React.FC = () => {
             const Icon = pillar.icon;
             return (
               <motion.div
-                key={pillar.title}
+                key={`about-pillar-${idx}-${pillar.title}`}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}

@@ -57,9 +57,10 @@ export const ImageSelectModal: React.FC<ImageSelectModalProps> = ({
 
   const filteredFiles = mediaFiles.filter(file => {
     const matchesFolder = selectedFolder === 'all' || file.folder === selectedFolder;
+    const sTerm = (searchQuery || '').toLowerCase();
     const matchesSearch = searchQuery.trim() === '' || 
-      file.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      file.path.toLowerCase().includes(searchQuery.toLowerCase());
+      (file.name || '').toLowerCase().includes(sTerm) || 
+      (file.path || '').toLowerCase().includes(sTerm);
     return matchesFolder && matchesSearch;
   });
 

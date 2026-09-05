@@ -38,11 +38,11 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
 
   const categories = [
-    'Tümü', 
-    'Bayan Comfort Terlik', 
-    'Bayan Comfort Sandalet', 
-    'Sabo & Ortopedik Terlik', 
-    'Mantar Taban Terlik'
+    { id: 'Tümü', label: language === 'tr' ? 'Tümü' : language === 'en' ? 'All' : 'الكل' },
+    { id: 'Bayan Comfort Terlik', label: language === 'tr' ? 'Bayan Comfort Terlik' : language === 'en' ? "Women's Comfort Slippers" : 'نعال طبية نسائية' },
+    { id: 'Bayan Comfort Sandalet', label: language === 'tr' ? 'Bayan Comfort Sandalet' : language === 'en' ? "Women's Comfort Sandals" : 'صنادل طبية نسائية' },
+    { id: 'Sabo & Ortopedik Terlik', label: language === 'tr' ? 'Sabo & Ortopedik Terlik' : language === 'en' ? 'Clogs & Orthopedic' : 'قباقيب ونعال طبية' },
+    { id: 'Mantar Taban Terlik', label: language === 'tr' ? 'Mantar Taban Terlik' : language === 'en' ? 'Cork Sole Slippers' : 'نعال نعل فلين' }
   ];
 
   const itemsToDisplay = collectionItems && collectionItems.length > 0 ? collectionItems : COLLECTION_ITEMS;
@@ -50,9 +50,9 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
   const filteredItems = useMemo(() => {
     return itemsToDisplay.filter(item => {
       const matchesCategory = selectedCategory === 'Tümü' || item.category === selectedCategory;
-      const q = searchQuery.toLowerCase().trim();
+      const q = (searchQuery || '').toLowerCase().trim();
       const matchesSearch = !q || (
-        item.name.toLowerCase().includes(q) ||
+        (item.name && item.name.toLowerCase().includes(q)) ||
         (item.subtitle && item.subtitle.toLowerCase().includes(q)) ||
         (item.description && item.description.toLowerCase().includes(q)) ||
         (item.category && item.category.toLowerCase().includes(q))
@@ -131,7 +131,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-amber-50 hover:bg-amber-100 text-[#062050] font-extrabold text-xs border border-amber-200 transition-all cursor-pointer shadow-xs active:scale-95"
             >
               <Ruler className="w-4 h-4 text-[#D4AF37]" />
-              <span>Beden Rehberi</span>
+              <span>{language === 'tr' ? 'Beden Rehberi' : language === 'en' ? 'Size Guide' : 'دليل المقاسات'}</span>
             </button>
 
             <span className="px-4 py-2.5 rounded-2xl bg-blue-50 text-[#062050] text-xs font-bold border border-blue-100">
@@ -151,7 +151,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t.searchPlaceholder || "Model adı veya kategori ara..."}
+                placeholder={t.searchPlaceholder || (language === 'tr' ? "Model adı veya kategori ara..." : language === 'en' ? "Search model name or category..." : "ابحث عن موديل أو فئة...")}
                 className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#062050] focus:bg-white transition-all font-medium"
               />
               {searchQuery && (
@@ -159,32 +159,32 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
                   onClick={() => setSearchQuery('')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold px-2 py-1"
                 >
-                  Temizle
+                  {language === 'tr' ? 'Temizle' : language === 'en' ? 'Clear' : 'مسح'}
                 </button>
               )}
             </div>
 
             <div className="flex items-center gap-2 text-xs font-bold text-slate-500 shrink-0">
               <SlidersHorizontal className="w-4 h-4 text-[#062050]" />
-              <span>Filtrele:</span>
+              <span>{language === 'tr' ? 'Filtrele:' : language === 'en' ? 'Filter:' : 'تصفية:'}</span>
             </div>
           </div>
 
           {/* Category Filter Pills */}
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
             {categories.map((cat) => {
-              const isSelected = selectedCategory === cat;
+              const isSelected = selectedCategory === cat.id;
               return (
                 <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
                   className={`px-4 py-2 rounded-full text-xs font-extrabold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
                     isSelected
                       ? 'bg-[#062050] text-white shadow-md'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
-                  {cat === 'Tümü' ? (t.productsCategoryAll || 'Tümü') : cat}
+                  {cat.label}
                 </button>
               );
             })}
@@ -201,13 +201,17 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
               {language === 'tr' ? 'Aramanıza Uygun Ürün Bulunamadı' : language === 'en' ? 'No Products Found' : 'لم يتم العثور على منتجات'}
             </h3>
             <p className="text-xs text-slate-500">
-              Filtrelerinizi sıfırlayarak tüm koleksiyonumuzu inceleyebilirsiniz.
+              {language === 'tr'
+                ? 'Filtrelerinizi sıfırlayarak tüm koleksiyonumuzu inceleyebilirsiniz.'
+                : language === 'en'
+                ? 'Reset your filters to explore our full collection.'
+                : 'يمكنكم إعادة ضبط خيارات البحث لمشاهدة كافة الموديلات.'}
             </p>
             <button
               onClick={() => { setSelectedCategory('Tümü'); setSearchQuery(''); }}
               className="px-6 py-2.5 rounded-full bg-[#062050] text-white text-xs font-bold tracking-wider uppercase shadow-md hover:bg-[#163E87]"
             >
-              Filtreleri Temizle
+              {language === 'tr' ? 'Filtreleri Temizle' : language === 'en' ? 'Reset Filters' : 'إعادة ضبط الفلاتر'}
             </button>
           </div>
         ) : (

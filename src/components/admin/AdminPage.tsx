@@ -112,7 +112,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     updateCraftsmanshipImage,
     updateCollectionImage,
     resetAllImages,
-    heroConfig,
+    heroConfig: displayHeroConfig,
+    rawHeroConfig,
     updateHeroConfig,
     resetHeroConfig,
     fairConfig,
@@ -121,7 +122,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     contactData,
     updateContactData,
     resetContactData,
-    announcements,
+    announcements: displayAnnouncements,
+    rawAnnouncements,
     updateAnnouncements,
     resetAnnouncements,
     collectionItems,
@@ -129,10 +131,18 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     addCollectionItem,
     deleteCollectionItem,
     resetCollectionItems,
-    craftsmanshipSteps,
+    craftsmanshipSteps: displayCraftsmanshipSteps,
+    rawCraftsmanshipSteps,
     updateCraftsmanshipStep,
     resetCraftsmanshipSteps,
-    aboutSlides,
+    faqItems: displayFaqItems,
+    rawFaqItems,
+    updateFaqItem,
+    addFaqItem,
+    deleteFaqItem,
+    resetFaqItems,
+    aboutSlides: displayAboutSlides,
+    rawAboutSlides,
     updateAboutSlide,
     addAboutSlide,
     deleteAboutSlide,
@@ -151,6 +161,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     discardUnsavedChanges,
     isSettingsLoaded
   } = useAppImages();
+
+  // Admin always views and edits raw Turkish database content to ensure stability
+  const heroConfig = rawHeroConfig || displayHeroConfig;
+  const announcements = rawAnnouncements || displayAnnouncements;
+  const craftsmanshipSteps = rawCraftsmanshipSteps || displayCraftsmanshipSteps;
+  const aboutSlides = rawAboutSlides || displayAboutSlides;
+  const faqItems = rawFaqItems || displayFaqItems;
 
   // Authentication & Session Security State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -1453,7 +1470,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
         <div className="flex-1 overflow-y-auto p-3 space-y-4 scrollbar-thin scrollbar-thumb-white/20">
           {SIDEBAR_NAV_GROUPS.map((group, groupIdx) => {
             const filteredItems = sidebarSearch
-              ? group.items.filter(item => item.label.toLowerCase().includes(sidebarSearch.toLowerCase()))
+              ? group.items.filter(item => (item.label || '').toLowerCase().includes(sidebarSearch.toLowerCase()))
               : group.items;
 
             if (filteredItems.length === 0) return null;
@@ -3760,7 +3777,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {subscribers
-                          .filter(s => s.email.toLowerCase().includes(subscriberSearch.toLowerCase()))
+                          .filter(s => (s.email || '').toLowerCase().includes((subscriberSearch || '').toLowerCase()))
                           .map((sub, idx) => (
                             <tr key={sub.id || idx} className="hover:bg-slate-50 transition-colors">
                               <td className="p-3 font-mono text-slate-400">{idx + 1}</td>

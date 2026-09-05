@@ -76,8 +76,9 @@ export class AIServiceArchitecture {
    * Customer Inquiry Sentiment & Lead Scoring Analyzer
    */
   public analyzeLeadSentiment(message: string, inquiryType: string): AICustomerSentimentAnalysis {
-    const msgLower = message.toLowerCase();
-    const isWholesale = inquiryType.toLowerCase().includes('toptan') || msgLower.includes('seri') || msgLower.includes('kutu') || msgLower.includes('bayi');
+    const msgLower = (message || '').toLowerCase();
+    const inqLower = (inquiryType || '').toLowerCase();
+    const isWholesale = inqLower.includes('toptan') || msgLower.includes('seri') || msgLower.includes('kutu') || msgLower.includes('bayi');
 
     return {
       sentiment: msgLower.includes('acil') || msgLower.includes('teşekkür') ? 'positive' : 'neutral',
