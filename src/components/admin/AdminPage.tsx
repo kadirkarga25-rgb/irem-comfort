@@ -4596,6 +4596,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
               </div>
             </div>
 
+          </div>
+          </div>
         )}
 
         {/* Overview Tab */}
