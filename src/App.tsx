@@ -322,6 +322,9 @@ function MainAppContent() {
   };
 
   const returnToPublicSite = () => {
+    // Admin sayfasından ayrılma zamanı kaydedilir (ana sayfadayken süre sayar, 2 saat boyunca korur)
+    localStorage.setItem('irem_admin_left_at', Date.now().toString());
+
     setIsAdminView(false);
     setIsResetView(false);
     setIsRemoteView(false);

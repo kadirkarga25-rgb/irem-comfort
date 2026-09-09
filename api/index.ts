@@ -2,6 +2,7 @@ import express from "express";
 import nodemailer from "nodemailer";
 import fs from "fs";
 import path from "path";
+import { createSign } from "crypto";
 
 // Self-contained deepMerge utility for serverless environment
 function deepMerge<T extends Record<string, any>>(
@@ -812,6 +813,81 @@ function enqueueGithubTask<T>(taskFn: () => Promise<T>): Promise<T> {
   return nextPromise;
 }
 
+let githubAppTokenCache: { token: string; expiresAt: number } | null = null;
+
+function getGithubAppConfig() {
+  const appId = process.env.GITHUB_APP_ID || process.env.GH_APP_ID || "";
+  const installationId = process.env.GITHUB_APP_INSTALLATION_ID || process.env.GITHUB_INSTALLATION_ID || process.env.GH_APP_INSTALLATION_ID || "";
+  const privateKeyRaw = process.env.GITHUB_APP_PRIVATE_KEY || process.env.GH_APP_PRIVATE_KEY || "";
+  const privateKey = privateKeyRaw.replace(/\\n/g, "\n").replace(/\\r/g, "\r").trim();
+  return { appId, installationId, privateKey };
+}
+
+function base64Url(value: string | Buffer): string {
+  return Buffer.from(value).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+
+async function createGithubAppInstallationToken(): Promise<string> {
+  const { appId, installationId, privateKey } = getGithubAppConfig();
+  if (!appId || !installationId || !privateKey) {
+    throw new Error("GitHub App ayarları eksik. GITHUB_APP_ID, GITHUB_APP_INSTALLATION_ID ve GITHUB_APP_PRIVATE_KEY tanımlanmalı.");
+  }
+
+  if (githubAppTokenCache && githubAppTokenCache.expiresAt > Date.now() + 60_000) {
+    return githubAppTokenCache.token;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const jwtHeader = base64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const jwtPayload = base64Url(JSON.stringify({
+    iat: now - 60,
+    exp: now + 540,
+    iss: appId
+  }));
+  const unsigned = `${jwtHeader}.${jwtPayload}`;
+  const signer = createSign("RSA-SHA256");
+  signer.update(unsigned);
+  signer.end();
+  const signature = signer.sign(privateKey, "base64url");
+  const appJwt = `${unsigned}.${signature}`;
+
+  const res = await fetch(`https://api.github.com/app/installations/${installationId}/access_tokens`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${appJwt}`,
+      "Accept": "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "IremComfortApp"
+    }
+  });
+
+  const body = await res.text();
+  if (!res.ok) {
+    throw new Error(`GitHub App installation token alınamadı (HTTP ${res.status}): ${body.substring(0, 300)}`);
+  }
+
+  const data = JSON.parse(body);
+  if (!data?.token) throw new Error("GitHub App installation token yanıtı geçersiz.");
+  githubAppTokenCache = {
+    token: data.token,
+    expiresAt: data.expires_at ? Date.parse(data.expires_at) : Date.now() + 55 * 60 * 1000
+  };
+  return data.token;
+}
+
+async function getGithubAuth(customToken?: string, customRepo?: string, customBranch?: string) {
+  const cfg = getGithubConfig(customToken, customRepo, customBranch);
+  const appCfg = getGithubAppConfig();
+  const appConfigured = Boolean(appCfg.appId && appCfg.installationId && appCfg.privateKey);
+
+  // GitHub App is the primary authentication method. PAT remains only as a legacy fallback.
+  const token = appConfigured
+    ? await createGithubAppInstallationToken()
+    : cfg.token;
+
+  return { ...cfg, token, usingGithubApp: appConfigured };
+}
+
 function getGithubConfig(customToken?: string, customRepo?: string, customBranch?: string) {
   const token = customToken || 
     activeDeploymentSession?.userToken || 
@@ -845,11 +921,11 @@ async function uploadFileToGithubDirect(
   customBranch?: string
 ): Promise<{ success: boolean; commitSha?: string; error?: string }> {
   try {
-    const { token, repo, branch } = getGithubConfig(customToken, customRepo, customBranch);
+    const { token, repo, branch } = await getGithubAuth(customToken, customRepo, customBranch);
 
     if (!token || !repo) {
       console.warn("GitHub credentials missing, skipping GitHub API commit for", relativePath);
-      return { success: false, error: "GitHub credentials missing." };
+      return { success: false, error: "GitHub kimlik doğrulaması yapılamadı." };
     }
 
     const base64Content = typeof contentBuffer === "string" 
@@ -975,7 +1051,7 @@ async function saveAndUploadImageToGithub(
     logs.push(`📁 Dosya: ${fileName}`);
 
     // Resolve GitHub Credentials
-    const { token, repo, branch } = getGithubConfig(providedToken, providedRepo, providedBranch);
+    const { token, repo, branch } = await getGithubAuth(providedToken, providedRepo, providedBranch);
 
     if (!token) {
       logs.push("❌ GitHub Upload Hatası: GitHub Access Token (token) bulunamadı.");
@@ -1260,7 +1336,7 @@ app.get("/uploads/*", async (req, res) => {
     }
 
     // 3. Fetch from GitHub repository raw content or API
-    const { token, repo, branch } = getGithubConfig();
+    const { token, repo, branch } = await getGithubAuth();
 
     const ghRawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/public/uploads/${cleanSubPath}`;
     let ghRes = await fetch(ghRawUrl, {
@@ -1359,7 +1435,7 @@ app.get("/uploads/*", async (req, res) => {
 });
 
 async function syncAllImagesToGithub(userCommitMsg: string = "Auto-sync uploaded media and site settings") {
-  const { token, repo, branch } = getGithubConfig();
+  const { token, repo, branch } = await getGithubAuth();
 
   if (!token || !repo) {
     console.warn("GitHub token or repo missing for syncAllImagesToGithub");
@@ -1578,7 +1654,7 @@ app.post("/api/fetch-external-image", async (req, res) => {
 // MEDIA LIBRARY ENDPOINTS
 app.get("/api/media", async (req, res) => {
   try {
-    const { token, repo, branch } = getGithubConfig();
+    const { token, repo, branch } = await getGithubAuth();
 
     const folders: string[] = ["hero", "products", "logo", "gallery"];
     const filesMap = new Map<string, any>();
@@ -1713,7 +1789,7 @@ app.post("/api/media/delete", async (req, res) => {
     const cleanPath = relPath.startsWith("/uploads/") ? relPath.replace("/uploads/", "") : relPath.replace("/public/uploads/", "");
     const relativeGithubPath = `public/uploads/${cleanPath}`;
 
-    const { token, repo, branch } = getGithubConfig();
+    const { token, repo, branch } = await getGithubAuth();
 
     if (token && repo) {
       const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${relativeGithubPath}?ref=${branch}`, {
@@ -1820,7 +1896,7 @@ function loadSettingsFromFile(): any {
 
 // Canonical settings fetch directly from GitHub repository (Single Source of Truth)
 async function loadCanonicalSettingsFromGithub(customToken?: string, customRepo?: string, customBranch?: string): Promise<boolean> {
-  const { token, repo, branch } = getGithubConfig(customToken, customRepo, customBranch);
+  const { token, repo, branch } = await getGithubAuth(customToken, customRepo, customBranch);
 
   if (!token || !repo) {
     console.warn("No GitHub token/repo for canonical load. Using bundled static file fallback.");
@@ -2012,7 +2088,7 @@ async function publishSettings(
     inMemorySettingsCache = canonicalSettings;
     generateSitemapAndRobots(canonicalSettings);
 
-    const { token, repo, branch } = getGithubConfig(customToken, customRepo, customBranch);
+    const { token, repo, branch } = await getGithubAuth(customToken, customRepo, customBranch);
 
     if (!token || !repo) {
       persistenceStatus = 'UNSAVED';
@@ -2232,17 +2308,10 @@ async function checkVercelDeploymentStatus(repo: string, commitSha?: string, tok
 app.post("/api/github-test", async (req, res) => {
   try {
     const { githubToken, githubRepo, githubBranch } = req.body || {};
-    const cfg = getGithubConfig(githubToken, githubRepo, githubBranch);
+    const cfg = await getGithubAuth(githubToken, githubRepo, githubBranch);
     const token = cfg.token;
     const repo = cfg.repo;
     const branch = cfg.branch;
-
-    if (!token) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid GitHub token (Token girilmemiş)."
-      });
-    }
 
     if (!repo || !repo.includes('/')) {
       return res.status(400).json({
@@ -2251,110 +2320,78 @@ app.post("/api/github-test", async (req, res) => {
       });
     }
 
-    // 1. Validate Token
-    const userRes = await fetch("https://api.github.com/user", {
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "User-Agent": "IremComfortApp"
-      }
-    });
-
-    if (userRes.status === 401) {
-      return res.status(401).json({
-        success: false,
-        error: "Invalid GitHub token"
-      });
-    }
-
-    // 2. Validate Repository
     const repoRes = await fetch(`https://api.github.com/repos/${repo}`, {
       headers: {
         "Authorization": `Bearer ${token}`,
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
         "User-Agent": "IremComfortApp"
       }
     });
 
-    if (repoRes.status === 404) {
-      return res.status(404).json({
-        success: false,
-        error: "Repository not found"
-      });
+    if (repoRes.status === 401) {
+      return res.status(401).json({ success: false, error: "GitHub kimlik doğrulaması başarısız." });
     }
-
+    if (repoRes.status === 404) {
+      return res.status(404).json({ success: false, error: "Repository bulunamadı veya GitHub App bu repoya kurulu değil." });
+    }
     if (!repoRes.ok) {
-      return res.status(repoRes.status).json({
-        success: false,
-        error: `GitHub Repository kontrol hatası (${repoRes.status})`
-      });
+      return res.status(repoRes.status).json({ success: false, error: `GitHub Repository kontrol hatası (${repoRes.status})` });
     }
 
     const repoData = await repoRes.json();
     const canPush = repoData.permissions?.push || repoData.permissions?.admin || false;
-
     if (!canPush) {
-      return res.status(403).json({
-        success: false,
-        error: "No permission to push"
-      });
+      return res.status(403).json({ success: false, error: "GitHub App'in bu depoya yazma izni yok. Contents → Read and write kontrol edin." });
     }
 
-    // 3. Validate Branch
     const branchRes = await fetch(`https://api.github.com/repos/${repo}/branches/${branch}`, {
       headers: {
         "Authorization": `Bearer ${token}`,
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
         "User-Agent": "IremComfortApp"
       }
     });
-
     if (branchRes.status === 404) {
-      return res.status(404).json({
-        success: false,
-        error: "Invalid branch"
-      });
+      return res.status(404).json({ success: false, error: "Branch bulunamadı." });
     }
 
     return res.json({
       success: true,
-      message: "🟢 GitHub bağlantısı başarılı.",
-      details: [
-        "✓ Repository bulundu.",
-        "✓ Yazma izni var.",
-        "✓ Branch bulundu."
-      ]
+      message: "🟢 GitHub App bağlantısı başarılı.",
+      details: ["✓ Repository bulundu.", "✓ GitHub App yazma izni var.", "✓ Branch bulundu."]
     });
   } catch (err: any) {
-    return res.status(500).json({
-      success: false,
-      error: "GitHub API unavailable"
-    });
+    console.error("GitHub App test error:", err);
+    return res.status(500).json({ success: false, error: err?.message || "GitHub App bağlantısı kurulamadı." });
   }
 });
 
 app.post("/api/deploy-github", async (req, res) => {
   try {
     const { githubToken: bodyToken, githubRepo: bodyRepo, githubBranch: bodyBranch, commitMessage, settings: bodySettings } = req.body || {};
-    const cfg = getGithubConfig(bodyToken, bodyRepo, bodyBranch);
+    const cfg = await getGithubAuth(bodyToken, bodyRepo, bodyBranch);
     const token = cfg.token;
     const repo = cfg.repo;
     const branch = cfg.branch;
     const userCommitMsg = commitMessage || "Site güncellendi ve yayınlandı";
 
-    // 1. Load & Validate Token
+    // 1. GitHub App / PAT kimlik doğrulaması ve Repository doğrulaması
     if (!token) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid GitHub token"
-      });
+      return res.status(400).json({ success: false, error: "GitHub kimlik doğrulaması yapılamadı." });
     }
 
-    const userCheck = await fetch("https://api.github.com/user", {
-      headers: { "Authorization": `Bearer ${token}`, "User-Agent": "IremComfortApp" }
+    const userCheck = await fetch(`https://api.github.com/repos/${repo}`, {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "IremComfortApp"
+      }
     });
     if (userCheck.status === 401) {
-      return res.status(401).json({
-        success: false,
-        error: "Invalid GitHub token"
-      });
+      return res.status(401).json({ success: false, error: "GitHub kimlik doğrulaması başarısız." });
     }
 
     // 2. Validate Repository

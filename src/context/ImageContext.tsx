@@ -1218,7 +1218,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const deployTime = new Date().toISOString();
     updateSystemConfig({ isDeploying: true, lastDeployedAt: deployTime });
 
-    const tokenToSend = customToken || localStorage.getItem('irem_github_token') || undefined;
+    const tokenToSend = undefined;
     const repoToSend = systemConfig.githubRepo || localStorage.getItem('irem_github_repo') || undefined;
     const branchToSend = systemConfig.githubBranch || localStorage.getItem('irem_github_branch') || undefined;
 

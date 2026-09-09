@@ -253,7 +253,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
   const [githubRepoInput, setGithubRepoInput] = useState<string>(() => systemConfig.githubRepo || localStorage.getItem('irem_github_repo') || 'kadirkarga25-rgb/irem-comfort');
   const [githubBranchInput, setGithubBranchInput] = useState<string>(() => systemConfig.githubBranch || localStorage.getItem('irem_github_branch') || 'main');
-  const [githubTokenInput, setGithubTokenInput] = useState<string>(() => localStorage.getItem('irem_github_token') || '');
+  const [githubTokenInput, setGithubTokenInput] = useState<string>('');
   const [isTestingGithub, setIsTestingGithub] = useState(false);
   const [githubTestResult, setGithubTestResult] = useState<{ success: boolean; message: string; details?: string[] } | null>(null);
 
@@ -309,7 +309,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          token: githubTokenInput || localStorage.getItem('irem_github_token'),
           repo: githubRepoInput || localStorage.getItem('irem_github_repo'),
           branch: githubBranchInput || localStorage.getItem('irem_github_branch'),
           settings: freshStatePayload
@@ -345,7 +344,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   const handleSaveGithubSettings = () => {
     localStorage.setItem('irem_github_repo', githubRepoInput);
     localStorage.setItem('irem_github_branch', githubBranchInput);
-    localStorage.setItem('irem_github_token', githubTokenInput);
+    localStorage.removeItem('irem_github_token');
     updateSystemConfig({
       githubRepo: githubRepoInput,
       githubBranch: githubBranchInput
@@ -361,7 +360,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          githubToken: githubTokenInput,
           githubRepo: githubRepoInput,
           githubBranch: githubBranchInput
         })
@@ -419,7 +417,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          token: githubTokenInput || localStorage.getItem('irem_github_token'),
           repo: githubRepoInput || localStorage.getItem('irem_github_repo'),
           branch: githubBranchInput || localStorage.getItem('irem_github_branch'),
           commitMessage: 'Admin: Görseller ve ayarlar GitHub deposuna aktarıldı',
@@ -4325,11 +4322,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                     <span className="text-xl">⚙️</span>
                     <div>
                       <h4 className="font-bold text-[#111111] text-base">GitHub Ayarları</h4>
-                      <p className="text-xs text-slate-500">Repository, branch ve Personal Access Token yapılandırması</p>
+                      <p className="text-xs text-slate-500">Repository, branch ve GitHub App yapılandırması</p>
                     </div>
                   </div>
                   <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-bold">
-                    Yerel Saklama (Local Storage)
+                    GitHub App • Sunucu Kimlik Doğrulaması
                   </span>
                 </div>
 
@@ -4358,21 +4355,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                     />
                   </div>
 
-                  {/* Personal Access Token */}
+                  {/* GitHub App */}
                   <div className="space-y-1.5 md:col-span-2">
-                    <label className="text-xs font-bold text-slate-700 block">GitHub Personal Access Token (PAT)</label>
-                    <input
-                      type="password"
-                      value={githubTokenInput}
-                      onChange={(e) => setGithubTokenInput(e.target.value)}
-                      placeholder="ghp_xxxxxxxxxxxxxxxxxxxx..."
-                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-mono"
-                    />
+                    <label className="text-xs font-bold text-slate-700 block">GitHub App Bağlantısı</label>
+                    <div className="w-full px-3.5 py-3 text-xs rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 font-bold">
+                      🟢 GitHub App aktif — Repository: kadirkarga25-rgb/irem-comfort — Branch: main
+                    </div>
                     <p className="text-[11px] text-slate-500">
-                      * Token bir kez kaydedildikten sonra tarayıcınızda saklanır ve yayınlama işlemlerinde otomatik kullanılır. Tekrar girmeniz gerekmez.
+                      GitHub kimlik doğrulaması sunucu tarafında GitHub App ile yapılır. Personal Access Token tarayıcıda saklanmaz.
                     </p>
                   </div>
-                </div>
 
                 {/* Action Buttons */}
                 <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100">
@@ -4459,7 +4451,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs focus:ring-2 focus:ring-amber-500 focus:outline-hidden"
                   />
                   <p className="text-[11px] text-slate-400">
-                    * Kaydedilen GitHub ayarları (Token, Repo, Branch) otomatik olarak yüklenip kullanılacaktır.
+                    * Kaydedilen GitHub ayarları (Repo, Branch) otomatik olarak yüklenip kullanılacaktır. GitHub App sunucu tarafında kullanılır.
                   </p>
                 </div>
 
@@ -4560,7 +4552,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                     showToast('Görsel ve veriler GitHub\'a gönderiliyor...');
 
                     // Auto load saved settings
-                    const activeToken = githubTokenInput || localStorage.getItem('irem_github_token') || '';
+                    const activeToken = '';
                     const activeRepo = githubRepoInput || localStorage.getItem('irem_github_repo') || systemConfig.githubRepo;
                     const activeBranch = githubBranchInput || localStorage.getItem('irem_github_branch') || systemConfig.githubBranch;
 
