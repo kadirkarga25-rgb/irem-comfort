@@ -1944,7 +1944,6 @@ async function loadCanonicalSettingsFromGithub(customToken?: string, customRepo?
 
           lastSettingsSource = 'GitHub';
           lastSettingsCommitSha = data.sha || '';
-          lastPublishedAt = new Date().toISOString();
           persistenceStatus = 'SYNCHRONIZED';
           githubHeroImageVerified = inMemorySettingsCache?.images?.heroImage || '';
           generateSitemapAndRobots(inMemorySettingsCache);
@@ -2023,12 +2022,129 @@ function saveDraftSettings(updatedSettings: any) {
   }
 }
 
+// Atomic GitHub publishing: one commit for settings + SEO files.
+// Vercel watches main, so a successful GitHub commit is the deploy trigger.
+async function commitFilesToGithubAtomically(
+  files: Array<{ path: string; content: string | Buffer }>,
+  message: string,
+  token: string,
+  repo: string,
+  branch: string
+): Promise<{ success: boolean; commitSha?: string; changed?: boolean; error?: string }> {
+  const headers = {
+    "Authorization": `Bearer ${token}`,
+    "Accept": "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent": "IremComfortApp"
+  };
+
+  return enqueueGithubTask(async () => {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const refRes = await fetch(`https://api.github.com/repos/${repo}/git/ref/heads/${encodeURIComponent(branch)}`, { headers });
+        if (!refRes.ok) throw new Error(`GitHub branch okunamadı (HTTP ${refRes.status}).`);
+        const refData = await refRes.json();
+        const headSha = refData?.object?.sha;
+        if (!headSha) throw new Error("GitHub branch HEAD SHA alınamadı.");
+
+        const commitRes = await fetch(`https://api.github.com/repos/${repo}/git/commits/${headSha}`, { headers });
+        if (!commitRes.ok) throw new Error(`GitHub son commit okunamadı (HTTP ${commitRes.status}).`);
+        const commitData = await commitRes.json();
+        const baseTreeSha = commitData?.tree?.sha;
+        if (!baseTreeSha) throw new Error("GitHub base tree SHA alınamadı.");
+
+        // Avoid empty commits: compare the requested files with the current branch content.
+        let allSame = true;
+        for (const file of files) {
+          const currentRes = await fetch(
+            `https://api.github.com/repos/${repo}/contents/${file.path}?ref=${encodeURIComponent(branch)}`,
+            { headers }
+          );
+          if (!currentRes.ok) {
+            if (currentRes.status === 404) { allSame = false; break; }
+            throw new Error(`Mevcut ${file.path} okunamadı (HTTP ${currentRes.status}).`);
+          }
+          const currentData = await currentRes.json();
+          const currentContent = Buffer.from(currentData?.content || "", "base64").toString("utf-8");
+          const wantedContent = Buffer.isBuffer(file.content) ? file.content.toString("utf-8") : file.content;
+          if (currentContent !== wantedContent) { allSame = false; break; }
+        }
+
+        if (allSame) {
+          return { success: true, commitSha: headSha, changed: false };
+        }
+
+        const treeEntries: any[] = [];
+        for (const file of files) {
+          const contentBuffer = Buffer.isBuffer(file.content) ? file.content : Buffer.from(file.content, "utf-8");
+          const blobRes = await fetch(`https://api.github.com/repos/${repo}/git/blobs`, {
+            method: "POST",
+            headers: { ...headers, "Content-Type": "application/json" },
+            body: JSON.stringify({ content: contentBuffer.toString("base64"), encoding: "base64" })
+          });
+          if (!blobRes.ok) {
+            const body = await blobRes.text();
+            throw new Error(`GitHub blob oluşturulamadı (HTTP ${blobRes.status}): ${body.slice(0, 240)}`);
+          }
+          const blobData = await blobRes.json();
+          treeEntries.push({ path: file.path, mode: "100644", type: "blob", sha: blobData.sha });
+        }
+
+        const treeRes = await fetch(`https://api.github.com/repos/${repo}/git/trees`, {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: JSON.stringify({ base_tree: baseTreeSha, tree: treeEntries })
+        });
+        if (!treeRes.ok) {
+          const body = await treeRes.text();
+          throw new Error(`GitHub tree oluşturulamadı (HTTP ${treeRes.status}): ${body.slice(0, 240)}`);
+        }
+        const treeData = await treeRes.json();
+
+        const newCommitRes = await fetch(`https://api.github.com/repos/${repo}/git/commits`, {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: JSON.stringify({ message, tree: treeData.sha, parents: [headSha] })
+        });
+        if (!newCommitRes.ok) {
+          const body = await newCommitRes.text();
+          throw new Error(`GitHub commit oluşturulamadı (HTTP ${newCommitRes.status}): ${body.slice(0, 240)}`);
+        }
+        const newCommit = await newCommitRes.json();
+
+        const updateRefRes = await fetch(`https://api.github.com/repos/${repo}/git/refs/heads/${encodeURIComponent(branch)}`, {
+          method: "PATCH",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: JSON.stringify({ sha: newCommit.sha, force: false })
+        });
+        if (updateRefRes.ok) {
+          return { success: true, commitSha: newCommit.sha, changed: true };
+        }
+
+        const body = await updateRefRes.text();
+        if (updateRefRes.status === 409 && attempt < 3) {
+          await new Promise(resolve => setTimeout(resolve, 400 * attempt));
+          continue;
+        }
+        throw new Error(`GitHub branch güncellenemedi (HTTP ${updateRefRes.status}): ${body.slice(0, 240)}`);
+      } catch (err: any) {
+        if (attempt >= 3) {
+          return { success: false, error: err?.message || "GitHub atomik yayınlama hatası." };
+        }
+        await new Promise(resolve => setTimeout(resolve, 400 * attempt));
+      }
+    }
+    return { success: false, error: "GitHub yayınlama yeniden denemeleri tükendi." };
+  });
+}
+
 // Atomic GitHub Publishing Pipeline with strict Contents API verification
 async function publishSettings(
   settingsToPublish?: any,
   customToken?: string,
   customRepo?: string,
-  customBranch?: string
+  customBranch?: string,
+  customCommitMessage?: string
 ): Promise<{
   success: boolean;
   publishSuccess: boolean;
@@ -2039,6 +2155,7 @@ async function publishSettings(
   error?: string;
   details?: string;
   diagnostics: any;
+  changed?: boolean;
 }> {
   try {
     await ensureSettingsLoaded();
@@ -2092,7 +2209,7 @@ async function publishSettings(
 
     if (!token || !repo) {
       persistenceStatus = 'UNSAVED';
-      lastPersistenceError = "GitHub Access Token veya Depo bilgisi tanımlanmadığı için sadece yerel dosya ve sunucu belleğine kaydedildi.";
+      lastPersistenceError = "GitHub App kimlik doğrulaması veya depo bilgisi bulunamadı.";
       return {
         success: true,
         publishSuccess: true,
@@ -2104,33 +2221,35 @@ async function publishSettings(
       };
     }
 
-    // 1. Sync all uploaded media to GitHub
-    await syncAllImagesToGithub("Pre-publish media sync");
-
-    // Requirement 6: Upload this NEW site_settings.json file to GitHub
-    const uploadResult = await uploadFileToGithubDirect(
-      "public/site_settings.json",
-      settingsJsonStr,
-      `Publish site_settings.json at ${new Date().toISOString()}`,
+    // Media files are committed when they are uploaded. Publishing settings must NOT rescan
+    // the entire uploads directory: doing that caused long-running/hanging admin publishes.
+    // Commit settings + generated SEO files together as one atomic Git commit.
+    const atomicResult = await commitFilesToGithubAtomically(
+      [
+        { path: "public/site_settings.json", content: settingsJsonStr },
+        ...(inMemoryRobots ? [{ path: "public/robots.txt", content: inMemoryRobots }] : []),
+        ...(inMemorySitemap ? [{ path: "public/sitemap.xml", content: inMemorySitemap }] : [])
+      ],
+      customCommitMessage || `Admin yayın: site ayarları ${new Date().toISOString()}`,
       token,
       repo,
       branch
     );
 
-    if (!uploadResult.success) {
+    if (!atomicResult.success) {
       persistenceStatus = 'ERROR';
-      lastPersistenceError = uploadResult.error || "GitHub commit ve push işlemi başarısız.";
+      lastPersistenceError = atomicResult.error || "GitHub atomik commit işlemi başarısız.";
       return {
         success: false,
         publishSuccess: false,
         verified: false,
         error: "Yayınlama başarısız: site_settings.json GitHub'a kalıcı olarak kaydedilemedi.",
-        details: uploadResult.error,
+        details: atomicResult.error,
         diagnostics: getPersistenceDiagnostics()
       };
     }
 
-    const commitSha = uploadResult.commitSha || 'sha_unknown';
+    const commitSha = atomicResult.commitSha || 'sha_unknown';
 
     // Requirement 9: Verification step after publishing
     // Read back committed site_settings.json from GitHub
@@ -2202,6 +2321,7 @@ async function publishSettings(
       publishSuccess: true,
       verified: true,
       commitSha,
+      changed: atomicResult.changed !== false,
       publishedAt: lastPublishedAt,
       settings: inMemorySettingsCache,
       diagnostics: getPersistenceDiagnostics()
@@ -2369,149 +2489,52 @@ app.post("/api/github-test", async (req, res) => {
 });
 
 app.post("/api/deploy-github", async (req, res) => {
+  // Compatibility endpoint: publishing is now one atomic GitHub commit.
+  // Vercel automatically deploys from main; there is no second/manual deploy pipeline.
   try {
-    const { githubToken: bodyToken, githubRepo: bodyRepo, githubBranch: bodyBranch, commitMessage, settings: bodySettings } = req.body || {};
-    const cfg = await getGithubAuth(bodyToken, bodyRepo, bodyBranch);
-    const token = cfg.token;
-    const repo = cfg.repo;
-    const branch = cfg.branch;
-    const userCommitMsg = commitMessage || "Site güncellendi ve yayınlandı";
+    const { githubToken, githubRepo, githubBranch, commitMessage, settings } = req.body || {};
+    const result = await publishSettings(
+      settings || inMemorySettingsCache,
+      githubToken,
+      githubRepo,
+      githubBranch,
+      commitMessage || "Admin: Site değişiklikleri yayınlandı"
+    );
 
-    // 1. GitHub App / PAT kimlik doğrulaması ve Repository doğrulaması
-    if (!token) {
-      return res.status(400).json({ success: false, error: "GitHub kimlik doğrulaması yapılamadı." });
-    }
-
-    const userCheck = await fetch(`https://api.github.com/repos/${repo}`, {
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Accept": "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "IremComfortApp"
-      }
-    });
-    if (userCheck.status === 401) {
-      return res.status(401).json({ success: false, error: "GitHub kimlik doğrulaması başarısız." });
-    }
-
-    // 2. Validate Repository
-    const repoCheck = await fetch(`https://api.github.com/repos/${repo}`, {
-      headers: { "Authorization": `Bearer ${token}`, "User-Agent": "IremComfortApp" }
-    });
-    if (repoCheck.status === 404) {
-      return res.status(404).json({
+    if (!result.publishSuccess) {
+      return res.status(500).json({
         success: false,
-        error: "Repository not found"
+        error: result.error || "GitHub yayınlama başarısız.",
+        details: result.details,
+        deployment: {
+          status: "ERROR",
+          commitSha: result.commitSha,
+          logs: [result.error || "❌ GitHub yayınlama başarısız."]
+        }
       });
     }
-
-    if (repoCheck.ok) {
-      const repoData = await repoCheck.json();
-      const canPush = repoData.permissions?.push || repoData.permissions?.admin || false;
-      if (!canPush) {
-        return res.status(403).json({
-          success: false,
-          error: "No permission to push"
-        });
-      }
-    }
-
-    // 3. Validate Branch
-    const branchCheck = await fetch(`https://api.github.com/repos/${repo}/branches/${branch}`, {
-      headers: { "Authorization": `Bearer ${token}`, "User-Agent": "IremComfortApp" }
-    });
-    if (branchCheck.status === 404) {
-      return res.status(404).json({
-        success: false,
-        error: "Invalid branch"
-      });
-    }
-
-    const deployTime = new Date().toISOString();
-
-    // Enable Deploying state
-    inMemorySettingsCache.systemConfig = {
-      ...(inMemorySettingsCache.systemConfig || {}),
-      isDeploying: true,
-      lastDeployedAt: deployTime,
-      githubRepo: repo,
-      githubBranch: branch
-    };
-    saveSettingsToFile(inMemorySettingsCache);
-
-    const sessionId = `deploy_${Date.now()}`;
-    const initialLogs = [
-      "✓ Content validated",
-      "✓ Images prepared",
-      "✓ Uploading to GitHub..."
-    ];
-
-    activeDeploymentSession = {
-      id: sessionId,
-      repo,
-      branch,
-      status: 'UPLOADING',
-      stepIndex: 2,
-      logs: initialLogs,
-      startTime: Date.now(),
-      userToken: token
-    };
-
-    // Publish settings atomically to GitHub before triggering build using fresh bodySettings payload
-    const payloadToPublish = (bodySettings && typeof bodySettings === 'object' && Object.keys(bodySettings).length > 0)
-      ? bodySettings
-      : inMemorySettingsCache;
-
-    const pubRes = await publishSettings(payloadToPublish, token, repo, branch);
-    if (!pubRes.publishSuccess) {
-      activeDeploymentSession.status = 'ERROR';
-      activeDeploymentSession.error = pubRes.error || "GitHub commit ve push işlemi başarısız oldu.";
-      activeDeploymentSession.logs.push(`❌ ${activeDeploymentSession.error}`);
-      return res.status(400).json({
-        success: false,
-        error: activeDeploymentSession.error,
-        deployment: activeDeploymentSession
-      });
-    }
-
-    // Commit created & verified on GitHub! Now track Vercel build.
-    activeDeploymentSession.commitSha = pubRes.commitSha;
-    activeDeploymentSession.logs.push(`✓ Settings published & verified on GitHub (Commit SHA: ${pubRes.commitSha})`);
-    activeDeploymentSession.logs.push("✓ Commit created");
-    activeDeploymentSession.logs.push("✓ Push completed");
-    activeDeploymentSession.logs.push("✓ Waiting for Vercel...");
-    activeDeploymentSession.status = 'WAITING_VERCEL';
-    activeDeploymentSession.stepIndex = 5;
-
-    // Upload robots.txt & sitemap.xml
-    if (inMemoryRobots) {
-      await uploadFileToGithub("public/robots.txt", inMemoryRobots, `Deploy Robots: ${userCommitMsg}`, token, repo, branch);
-    }
-    if (inMemorySitemap) {
-      await uploadFileToGithub("public/sitemap.xml", inMemorySitemap, `Deploy Sitemap: ${userCommitMsg}`, token, repo, branch);
-    }
-
-    // Commit created & pushed! Now wait for Vercel.
-    activeDeploymentSession.commitSha = pubRes.commitSha;
-    activeDeploymentSession.logs.push("✓ Commit created");
-    activeDeploymentSession.logs.push("✓ Push completed");
-    activeDeploymentSession.logs.push("✓ Waiting for Vercel...");
-    activeDeploymentSession.status = 'WAITING_VERCEL';
-    activeDeploymentSession.stepIndex = 5;
 
     return res.json({
       success: true,
-      message: "GitHub commit oluşturuldu ve push tamamlandı. Vercel yayınlaması bekleniyor...",
-      deployment: activeDeploymentSession
+      message: result.changed === false
+        ? "Değişiklik yok; GitHub zaten güncel."
+        : "GitHub commit oluşturuldu. Vercel main dalındaki değişikliği otomatik olarak Production'a yayınlayacak.",
+      commitSha: result.commitSha,
+      changed: result.changed,
+      deployment: {
+        status: "READY",
+        commitSha: result.commitSha,
+        logs: [
+          result.changed === false ? "✓ GitHub zaten güncel." : "✓ Değişiklikler tek atomik commit ile GitHub'a kaydedildi.",
+          "✓ Vercel otomatik Production deployunu başlattı."
+        ]
+      },
+      settings: result.settings,
+      diagnostics: result.diagnostics
     });
   } catch (err: any) {
     console.error("Deploy endpoint error:", err);
-    if (activeDeploymentSession) {
-      activeDeploymentSession.status = 'ERROR';
-      activeDeploymentSession.error = err?.message || "Deploy başlatılırken beklenmeyen hata oluştu.";
-      activeDeploymentSession.logs.push(`❌ ${activeDeploymentSession.error}`);
-    }
-    return res.status(500).json({ success: false, error: "Deploy işlemi başlatılamadı." });
+    return res.status(500).json({ success: false, error: err?.message || "Yayınlama başlatılamadı." });
   }
 });
 
@@ -2753,10 +2776,10 @@ app.get("/api/settings/diagnostics", async (_req, res) => {
 
 app.post("/api/publish-settings", async (req, res) => {
   try {
-    const { settings, token, repo, branch } = req.body || {};
+    const { settings, token, repo, branch, commitMessage } = req.body || {};
     const payload = settings || inMemorySettingsCache;
 
-    const result = await publishSettings(payload, token, repo, branch);
+    const result = await publishSettings(payload, token, repo, branch, commitMessage);
     if (!result.publishSuccess) {
       return res.status(500).json(result);
     }
@@ -2767,6 +2790,8 @@ app.post("/api/publish-settings", async (req, res) => {
       message: "Site ayarları başarıyla GitHub'a kalıcı olarak yayınlandı ve doğrulandı.",
       settings: inMemorySettingsCache,
       _updatedAt: inMemorySettingsCache?._updatedAt,
+      commitSha: result.commitSha,
+      changed: result.changed !== false,
       diagnostics: result.diagnostics
     });
   } catch (err: any) {
@@ -2781,29 +2806,36 @@ app.post("/api/publish-settings", async (req, res) => {
 });
 
 app.post("/api/sync-github", async (req, res) => {
+  // Compatibility endpoint. It intentionally does not rescan public/uploads;
+  // media is committed when uploaded and settings are committed atomically here.
   try {
     await ensureSettingsLoaded();
     const { settings, token, repo, branch, commitMessage } = req.body || {};
-    const payload = settings || inMemorySettingsCache;
+    const result = await publishSettings(
+      settings || inMemorySettingsCache,
+      token,
+      repo,
+      branch,
+      commitMessage || "Admin: Site ayarları senkronize edildi"
+    );
 
-    const result = await publishSettings(payload, token, repo, branch);
-    await syncAllImagesToGithub(commitMessage || "Admin: Görseller ve ayarlar GitHub deposuna aktarıldı");
+    if (!result.publishSuccess) {
+      return res.status(500).json({ success: false, error: result.error, details: result.details, diagnostics: result.diagnostics });
+    }
 
     return res.json({
-      success: result.publishSuccess || result.success,
-      publishSuccess: result.publishSuccess,
-      message: "Tüm medya ve site ayarları GitHub'a başarıyla senkronize edildi.",
+      success: true,
+      publishSuccess: true,
+      message: result.changed === false ? "GitHub zaten güncel." : "Site ayarları GitHub'a tek commit ile senkronize edildi.",
       settings: result.settings || inMemorySettingsCache,
       _updatedAt: inMemorySettingsCache?._updatedAt,
+      commitSha: result.commitSha,
+      changed: result.changed,
       diagnostics: result.diagnostics
     });
   } catch (err: any) {
     console.error("Error in /api/sync-github:", err);
-    return res.status(500).json({
-      success: false,
-      error: "GitHub senkronizasyonu sırasında hata oluştu.",
-      details: err?.message || String(err)
-    });
+    return res.status(500).json({ success: false, error: "GitHub senkronizasyonu sırasında hata oluştu.", details: err?.message || String(err) });
   }
 });
 

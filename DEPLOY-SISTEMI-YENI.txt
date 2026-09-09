@@ -1,0 +1,21 @@
+İREM COMFORT — YENİ ADMİN YAYIN SİSTEMİ
+
+Bu sürümde yayın akışı sadeleştirildi:
+
+1. Admin paneli "Değişiklikleri Kaydet / Yayınla" isteği gönderir.
+2. Sunucu GitHub App ile kimlik doğrular.
+3. site_settings.json + robots.txt + sitemap.xml tek atomik GitHub commitinde güncellenir.
+4. public/uploads klasörü yayın sırasında tekrar tekrar taranmaz.
+5. Görseller yüklenirken kendi commitlerini oluşturur.
+6. GitHub commit başarılı olduğunda Vercel main branch'i otomatik olarak Production'a deploy eder.
+7. Admin paneli Vercel'i dakikalarca bekleyip takılmaz; GitHub commitini doğrulayıp sonucu gösterir.
+8. Aynı içerik zaten GitHub'daysa boş commit oluşturulmaz.
+9. 45 saniyelik istemci timeout ve gerçek hata mesajı vardır.
+10. Eski deploy-github ve sync-github endpointleri geriye dönük uyumluluk için bırakılmış, ancak eski uzun medya tarama akışını kullanmaz.
+
+GitHub App ortam değişkenleri:
+GITHUB_APP_ID
+GITHUB_APP_INSTALLATION_ID
+GITHUB_APP_PRIVATE_KEY
+
+Not: Bu paket içinde node_modules bulunmaz. Vercel buildi normal şekilde kendi bağımlılıklarını kurar.

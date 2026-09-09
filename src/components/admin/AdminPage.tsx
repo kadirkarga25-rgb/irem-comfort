@@ -305,17 +305,21 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
         newsletterOfferBox
       });
 
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 45000);
       const res = await fetch('/api/publish-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
-          repo: githubRepoInput || localStorage.getItem('irem_github_repo'),
-          branch: githubBranchInput || localStorage.getItem('irem_github_branch'),
-          settings: freshStatePayload
+          repo: githubRepoInput || localStorage.getItem('irem_github_repo') || 'kadirkarga25-rgb/irem-comfort',
+          branch: githubBranchInput || localStorage.getItem('irem_github_branch') || 'main',
+          settings: freshStatePayload,
+          commitMessage: 'Admin: Site değişiklikleri yayınlandı'
         })
-      });
-      const data = await res.json();
-      if (data.success) {
+      }).finally(() => window.clearTimeout(timeout));
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.publishSuccess) {
         setIsDirty(false);
         showToast("✓ Site ayarları kalıcı olarak GitHub'a yayınlandı ve doğrulandı!");
         if (data.settings) {
@@ -4310,7 +4314,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                     className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
                   >
                     <Upload className="w-4 h-4" />
-                    <span>{isPublishingDirect ? 'GitHub Onayı Alınıyor...' : "Değişiklikleri Doğrudan GitHub'a Onayla & Yayınla"}</span>
+                    <span>{isPublishingDirect ? "GitHub'a Kaydediliyor..." : "Değişiklikleri GitHub'a Kaydet & Yayınla"}</span>
                   </button>
                 </div>
               </div>
@@ -4549,7 +4553,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                     setIsDeployingInAdmin(true);
                     setDeployResult(null);
                     setDeployProgress(null);
-                    showToast('Görsel ve veriler GitHub\'a gönderiliyor...');
+                    showToast('Değişiklikler GitHub\'a kaydediliyor...');
 
                     // Auto load saved settings
                     const activeToken = '';
@@ -4591,7 +4595,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                   className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 font-extrabold text-xs uppercase tracking-wider shadow-lg hover:brightness-110 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 disabled:opacity-50"
                 >
                   <Send className={`w-4 h-4 ${isDeployingInAdmin ? 'animate-spin' : ''}`} />
-                  <span>{isDeployingInAdmin ? 'Yayınlanıyor (Vercel Bekleniyor)...' : '🚀 DEĞİŞİKLİKLERİ GİTHUB\'A GÖNDER VE YAYINLA (DEPLOY ET)'}</span>
+                  <span>{isDeployingInAdmin ? "GitHub'a Kaydediliyor..." : '🚀 DEĞİŞİKLİKLERİ KAYDET VE YAYINLA'}</span>
                 </button>
               </div>
             </div>

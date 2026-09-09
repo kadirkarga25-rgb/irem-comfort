@@ -1157,13 +1157,21 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const currentStateObj = { ...getCurrentAdminState(additionalState), _updatedAt: updatedAt };
 
     try {
-      const res = await fetch('/api/settings', {
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 45000);
+      const res = await fetch('/api/publish-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ section: 'ALL', data: currentStateObj, publish: true, _updatedAt: updatedAt })
-      });
-      const data = await res.json();
-      if (data.success || res.ok) {
+        signal: controller.signal,
+        body: JSON.stringify({
+          settings: currentStateObj,
+          repo: systemConfig.githubRepo || localStorage.getItem('irem_github_repo') || 'kadirkarga25-rgb/irem-comfort',
+          branch: systemConfig.githubBranch || localStorage.getItem('irem_github_branch') || 'main',
+          commitMessage: 'Admin: Site değişiklikleri yayınlandı'
+        })
+      }).finally(() => window.clearTimeout(timeout));
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.publishSuccess) {
         const finalSettings = { ...(data.settings || currentStateObj), _updatedAt: Math.max(updatedAt, data.settings?._updatedAt || 0) };
         lastSavedSettingsRef.current = finalSettings;
         lastUpdatedTimestampRef.current = finalSettings._updatedAt;
@@ -1176,7 +1184,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (err) {
       console.error('Error in saveAllChanges:', err);
     }
-    return { success: false, message: 'Ayarlar kaydedilirken bir hata oluştu.' };
+    return { success: false, message: "Ayarlar kaydedilirken GitHub'a yayınlama başarısız oldu." };
   };
 
   const discardUnsavedChanges = async () => {
@@ -1211,94 +1219,91 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const triggerDeploy = async (
     commitMessage?: string,
-    customToken?: string,
+    _customToken?: string,
     onProgress?: (progress: DeploymentProgress) => void,
     additionalState?: Record<string, any>
-  ): Promise<{ success: boolean; message: string; logs?: string[]; durationString?: string; error?: string }> => {
-    const deployTime = new Date().toISOString();
-    updateSystemConfig({ isDeploying: true, lastDeployedAt: deployTime });
+  ): Promise<{ success: boolean; message: string; logs?: string[]; durationString?: string; error?: string; commitSha?: string }> => {
+    const startedAt = Date.now();
+    updateSystemConfig({ isDeploying: true, lastDeployedAt: new Date().toISOString() });
 
-    const tokenToSend = undefined;
-    const repoToSend = systemConfig.githubRepo || localStorage.getItem('irem_github_repo') || undefined;
-    const branchToSend = systemConfig.githubBranch || localStorage.getItem('irem_github_branch') || undefined;
+    const repoToSend = systemConfig.githubRepo || localStorage.getItem('irem_github_repo') || 'kadirkarga25-rgb/irem-comfort';
+    const branchToSend = systemConfig.githubBranch || localStorage.getItem('irem_github_branch') || 'main';
+    const freshStatePayload = getCurrentAdminState({
+      ...(additionalState || {}),
+      githubRepo: repoToSend,
+      githubBranch: branchToSend
+    });
 
-    // Build complete current Admin state payload
-    const freshStatePayload = getCurrentAdminState(additionalState);
+    const pushProgress = (status: DeploymentProgress['status'], stepIndex: number, logs: string[], commitSha?: string) => {
+      onProgress?.({
+        id: `publish_${Date.now()}`,
+        repo: repoToSend,
+        branch: branchToSend,
+        commitSha,
+        status,
+        stepIndex,
+        logs,
+        startTime: startedAt,
+        endTime: status === 'READY' || status === 'ERROR' ? Date.now() : undefined,
+        durationSeconds: Math.floor((Date.now() - startedAt) / 1000),
+        durationString: `${Math.max(1, Math.floor((Date.now() - startedAt) / 1000))}s`
+      });
+    };
 
     try {
-      const response = await fetch('/api/deploy-github', {
+      pushProgress('VALIDATING', 1, ['✓ İçerik doğrulanıyor...', '✓ GitHub App kimliği hazırlanıyor...']);
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 45000);
+
+      const response = await fetch('/api/publish-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
-          githubToken: tokenToSend,
-          githubRepo: repoToSend,
-          githubBranch: branchToSend,
-          commitMessage: commitMessage || "Site güncellendi ve yayınlandı",
-          settings: freshStatePayload
+          repo: repoToSend,
+          branch: branchToSend,
+          settings: freshStatePayload,
+          commitMessage: commitMessage || 'Admin: Site değişiklikleri yayınlandı'
         })
-      });
+      }).finally(() => window.clearTimeout(timeout));
 
-      const data = await response.json();
-
-      if (!data.success) {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data?.publishSuccess) {
+        const error = data?.error || data?.details || 'GitHub yayınlama başarısız.';
+        pushProgress('ERROR', 8, [`❌ ${error}`], data?.commitSha);
         updateSystemConfig({ isDeploying: false });
-        return {
-          success: false,
-          message: data.error || 'GitHub commit hatası.',
-          logs: data.deployment?.logs || ['❌ Deployment failed during upload.'],
-          error: data.error
-        };
+        return { success: false, message: error, error, logs: [`❌ ${error}`] };
       }
 
-      if (onProgress && data.deployment) {
-        onProgress(data.deployment);
-      }
+      const commitSha = data.commitSha;
+      const logs = [
+        data.changed === false ? '✓ Değişiklik yok; GitHub zaten güncel.' : '✓ Değişiklikler GitHub main dalına tek commit ile kaydedildi.',
+        commitSha ? `✓ Commit: ${commitSha.slice(0, 8)}` : '✓ GitHub doğrulaması tamamlandı.',
+        '✓ Vercel, main değişikliğini otomatik olarak Production deployuna alacak.'
+      ];
+      pushProgress('READY', 8, logs, commitSha);
+      setIsDirty(false);
+      lastSavedSettingsRef.current = data.settings || freshStatePayload;
+      lastUpdatedTimestampRef.current = data.settings?._updatedAt || Date.now();
+      try {
+        localStorage.setItem('ic_admin_draft_settings_v1', JSON.stringify(lastSavedSettingsRef.current));
+      } catch (e) {}
+      updateSystemConfig({ isDeploying: false, lastDeployedAt: new Date().toISOString() });
 
-      // Poll /api/deploy-status every 2 seconds until status becomes READY or ERROR
-      return new Promise((resolve) => {
-        const pollInterval = setInterval(async () => {
-          try {
-            const statusRes = await fetch('/api/deploy-status');
-            const statusData = await statusRes.json();
-            const dep = statusData.deployment as DeploymentProgress | undefined;
-
-            if (dep) {
-              if (onProgress) {
-                onProgress(dep);
-              }
-
-              if (dep.status === 'READY') {
-                clearInterval(pollInterval);
-                setIsDirty(false);
-                lastSavedSettingsRef.current = freshStatePayload;
-                updateSystemConfig({ isDeploying: false, lastDeployedAt: new Date().toISOString() });
-                resolve({
-                  success: true,
-                  message: 'Deployment completed successfully.',
-                  logs: dep.logs,
-                  durationString: dep.durationString
-                });
-              } else if (dep.status === 'ERROR') {
-                clearInterval(pollInterval);
-                updateSystemConfig({ isDeploying: false });
-                resolve({
-                  success: false,
-                  message: dep.error || 'Deployment failed.',
-                  logs: dep.logs,
-                  error: dep.error,
-                  durationString: dep.durationString
-                });
-              }
-            }
-          } catch (pollErr) {
-            console.warn('Poll error:', pollErr);
-          }
-        }, 2000);
-      });
-    } catch (err) {
-      console.error('Deploy error:', err);
+      return {
+        success: true,
+        message: data.changed === false ? '✓ Değişiklik yok. Site zaten güncel.' : '✓ Değişiklikler GitHub\'a kaydedildi. Vercel otomatik yayınlamayı başlattı.',
+        logs,
+        durationString: `${Math.max(1, Math.floor((Date.now() - startedAt) / 1000))}s`,
+        commitSha
+      };
+    } catch (err: any) {
+      const error = err?.name === 'AbortError'
+        ? 'GitHub yayınlama 45 saniyede tamamlanmadı. İşlem sunucuda devam ediyor olabilir; tekrar basmadan önce GitHub commitini kontrol edin.'
+        : (err?.message || 'Sunucuyla bağlantı kurulurken hata oluştu.');
+      pushProgress('ERROR', 8, [`❌ ${error}`]);
       updateSystemConfig({ isDeploying: false });
-      return { success: false, message: 'Sunucuyla bağlantı kurulurken hata oluştu.' };
+      return { success: false, message: error, error, logs: [`❌ ${error}`] };
     }
   };
 
