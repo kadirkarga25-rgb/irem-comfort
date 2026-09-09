@@ -321,7 +321,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.publishSuccess) {
         setIsDirty(false);
-        showToast("✓ Site ayarları kalıcı olarak GitHub'a yayınlandı ve doğrulandı!");
+        showToast(data.vercelDeployTriggered ? "✓ GitHub kaydı doğrulandı ve Vercel Production yayını başlatıldı!" : "✓ GitHub kaydı tamamlandı.");
         if (data.settings) {
           try {
             localStorage.setItem('ic_admin_draft_settings_v1', JSON.stringify(data.settings));
@@ -439,7 +439,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
           setPersistenceDiagnostics(data.diagnostics);
         }
         if (!quiet) {
-          showToast('✓ Tüm ayarlar ve görseller kalıcı olarak GitHub\'a yayınlandı ve doğrulandı!');
+          showToast(data.vercelDeployTriggered ? '✓ GitHub kaydı tamamlandı ve Vercel Production yayını başlatıldı!' : '✓ GitHub kaydı tamamlandı.');
         }
       } else if (!quiet) {
         showToast('❌ Yayınlama hatası: ' + (data.error || 'Bilinmeyen hata'));

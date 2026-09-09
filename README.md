@@ -1,40 +1,54 @@
-# İrem Comfort — Yönetim Paneli & Akıllı Deploy Sistemi
+# İrem Comfort — Yönetim Paneli & Akıllı Yayın Sistemi
 
-İrem Comfort resmi web sitesi için geliştirilmiş React/Vite tabanlı yönetim paneli ve içerik yönetim sistemidir.
+İrem Comfort web sitesi için React/Vite tabanlı yönetim paneli, içerik yönetimi ve kalıcı yayın altyapısı.
 
-Bu sürümün ana amacı; site içeriklerinin, ürünlerin, görsellerin ve ayarların **tek merkezden yönetilmesi**, yapılan değişikliklerin **GitHub üzerinde kalıcı olarak saklanması** ve Vercel üzerinden güvenli şekilde yayınlanmasıdır.
+Bu sürümde amaç; siteyi mümkün olduğunca **Admin Paneli üzerinden yönetmek**, değişiklikleri **GitHub App ile güvenli şekilde GitHub'a kaydetmek** ve **Vercel Production yayınını Deploy Hook ile doğrudan tetiklemek**tir.
+
+## Yayın Akışı
+
+```text
+Admin Paneli
+    ↓
+GitHub App
+    ↓
+GitHub main
+    ↓
+Vercel Deploy Hook
+    ↓
+Vercel Build
+    ↓
+Production
+    ↓
+www.iremcomfort.com
+```
+
+Bu yapı, GitHub'a commit gönderildikten sonra Vercel webhook'unun gecikmesine veya kaçırmasına bağımlılığı azaltır.
 
 ---
 
-## 🚀 Sistem Özeti
+## Temel Özellikler
 
-Bu projede yönetim paneli üzerinden:
-
-- Ürün ekleme / düzenleme / silme
+- Ürün ekleme, düzenleme ve silme
 - Ürün görselleri ve renk varyantları yönetimi
+- Medya kütüphanesi
 - Hero ve site görselleri yönetimi
-- Hakkımızda, SSS, müşteri yorumları ve diğer site içeriklerinin yönetimi
+- Hakkımızda, SSS ve müşteri yorumları yönetimi
 - SEO ayarları
 - Tema ve görünüm ayarları
-- Medya kütüphanesi
-- CRM ve iletişim ayarları
-- Site yedeği oluşturma
-- JSON yedeğinden tam geri yükleme
-- GitHub kalıcı kayıt
-- Vercel Production deploy
-- Sistem ve yayın durumu kontrolü
-
-işlemleri yapılabilir.
+- JSON tam yedek alma
+- JSON yedekten geri yükleme
+- GitHub App ile kalıcı kayıt
+- GitHub commit doğrulaması
+- Vercel Production Deploy Hook ile yayın tetikleme
+- Persistence Diagnostics ile kaynak/commit kontrolü
 
 ---
 
-# 🔐 GitHub App ile Kalıcı Kayıt
+# GitHub App
 
-Sistem eski tarayıcı içi Personal Access Token (PAT) yöntemine bağlı değildir.
+Tarayıcı içinde Personal Access Token (PAT) kullanılması yerine GitHub App kullanılır.
 
-Yeni yapıda GitHub işlemleri sunucu tarafında **GitHub App** üzerinden gerçekleştirilir.
-
-### Kullanılan değişkenler
+Vercel Production Environment Variables:
 
 ```env
 GITHUB_APP_ID=
@@ -42,208 +56,258 @@ GITHUB_APP_INSTALLATION_ID=
 GITHUB_APP_PRIVATE_KEY=
 ```
 
-GitHub App, repository üzerinde gerekli izinlere sahip olmalıdır.
+GitHub App'in ilgili repository üzerinde en azından gerekli Contents yazma yetkisine sahip olması gerekir.
 
-Özellikle:
+### Güvenlik
 
-- Contents → Read and write
+Private key ve diğer gizli değerler:
 
-izni gereklidir.
-
-### Neden GitHub App?
-
-GitHub App kullanımı sayesinde:
-
-- PAT'i tarayıcıda saklamaya gerek kalmaz.
-- GitHub erişim anahtarı kullanıcıya gösterilmez.
-- Yönetim panelinden yapılan kayıtlar sunucu üzerinden GitHub'a gönderilir.
-- Installation Token otomatik olarak oluşturulur.
-- Token süresi dolduğunda sistem yeni token oluşturabilir.
+- GitHub repository'sine commit edilmemelidir.
+- Frontend koduna yazılmamalıdır.
+- `localStorage` içine konulmamalıdır.
+- Yalnızca güvenli sunucu ortamında tutulmalıdır.
 
 ---
 
-# 💾 Site Ayarlarının Kalıcı Kaydı
+# Vercel Deploy Hook
 
-Yönetim panelinde yapılan değişiklikler yalnızca tarayıcı belleğinde tutulmaz.
+Admin yayın sisteminin Vercel'i doğrudan tetiklemesi için Vercel'de bir Deploy Hook oluşturulur.
 
-Kalıcı kayıt akışı:
+Önerilen:
 
 ```text
-Yönetim Paneli
-      ↓
-ImageContext
-      ↓
-/api/settings
-      ↓
-GitHub App Authentication
-      ↓
-GitHub Repository
-      ↓
-public/site_settings.json
-      ↓
-Vercel
-      ↓
-Canlı Site
+Name: admin-publish
+Branch: main
 ```
 
-Bu yapı sayesinde farklı bilgisayardan veya telefondan site açıldığında kayıtlı site ayarlarının kaybolmaması hedeflenir.
+Vercel'de oluşturulan hook URL'si **gizli tutulmalıdır**.
+
+Vercel Production Environment Variables içine:
+
+```env
+VERCEL_DEPLOY_HOOK_URL=
+```
+
+olarak eklenir.
+
+### Yayın sırasında
+
+1. Admin güncel site verisini hazırlar.
+2. GitHub App ile GitHub'a commit gönderilir.
+3. Commit GitHub'dan doğrulanır.
+4. `VERCEL_DEPLOY_HOOK_URL` üzerinden Vercel Production deploy tetiklenir.
+5. Vercel build işlemini gerçekleştirir.
+6. Production deployment oluşur.
 
 ---
 
-# 🛡️ Yedekleme Sistemi
+# Site Ayarlarının Kalıcı Kaydı
 
-Yönetim panelinde bulunan yedekleme sistemi, site verilerini JSON formatında dışarı aktarabilir.
+Ana kalıcı kaynak GitHub'daki:
 
-Yedek içerisinde aşağıdaki veriler bulunabilir:
+```text
+public/site_settings.json
+```
+
+dosyasıdır.
+
+Genel akış:
+
+```text
+Admin State
+    ↓
+/api/settings veya /api/publish-settings
+    ↓
+sanitize + doğrulama
+    ↓
+GitHub App
+    ↓
+public/site_settings.json
+```
+
+SEO için oluşturulan dosyalar da yayın sırasında güncellenebilir:
+
+```text
+public/robots.txt
+public/sitemap.xml
+```
+
+---
+
+# JSON Yedekleme ve Geri Yükleme
+
+Admin panelindeki yedekleme sistemi site verilerini JSON formatında dışarı aktarır.
+
+Yedekte bulunabilen veriler:
 
 - Ürünler
 - Ürün açıklamaları
-- Ürün görselleri
+- Görsel yolları
 - Renkler
-- Malzeme bilgileri
+- Malzemeler
 - Ürün özellikleri
+- Hero bilgileri
 - Site içerikleri
 - Bölüm sıralaması
 - Müşteri yorumları
 - SEO ayarları
 - Tema ayarları
-- İletişim bilgileri
-- Sistem ayarları
+- İletişim ve sistem ayarları
 
-Örnek tam yedek:
+Örnek:
 
 ```text
 irem-comfort-tam-yedek-12-urun-2026-09-09.json
 ```
 
-Bu yedekte 12 ürün bulunmaktadır.
+## Geri Yükleme
+
+Admin Paneli → Yedekleme → **Yedek JSON Dosyası Seç**
+
+işlemiyle yedek seçilir.
+
+Sistem JSON'u doğrular ve site verilerini geri yükler.
+
+> JSON dosyası görsellerin kendisini taşımaz. Görsellerin site üzerindeki yollarını taşır. İlgili görseller repository içindeki `public/uploads` yapısında mevcutsa ürünler bu yolları kullanır.
 
 ---
 
-# ♻️ JSON Yedeğinden Geri Yükleme
+# Persistence Diagnostics
 
-Yedek dosyası:
+Admin panelindeki **Site Ayarları Kalıcılık Teşhisi** bölümü, verinin gerçekten nereden geldiğini kontrol etmek için kullanılır.
 
-**Admin Paneli → Yedekleme → Yedek Dosyasından Geri Yükle**
-
-alanından seçilir.
-
-Geri yükleme sırasında sistem:
-
-1. JSON dosyasını okur.
-2. Yedek formatını kontrol eder.
-3. Ürün ve site verilerini çıkarır.
-4. Mevcut yönetim verileriyle birleştirir.
-5. Uygulama belleğini günceller.
-6. Kalıcı kayıt işlemini başlatır.
-7. GitHub'a gönderir.
-8. Gerekli durumda Vercel deploy sürecini başlatır.
-
-> Görsellerin kendisi JSON dosyasının içinde bulunmaz; JSON içerisinde görsellerin site üzerindeki yolları tutulur. Görseller GitHub/public/uploads yapısında bulunuyorsa geri yüklenen ürünler bu yollar üzerinden görsellerini kullanır.
-
----
-
-# 📦 Deploy Sistemi
-
-Yeni deploy sistemi, yönetim panelinden yapılan değişikliklerin yayınlanma sürecini daha anlaşılır hale getirmek için tasarlanmıştır.
-
-Temel akış:
+Kontrol edilen bilgiler:
 
 ```text
-Değişiklik Yap
-      ↓
-Kaydet
-      ↓
-GitHub'a Gönder
-      ↓
-Commit Oluştur
-      ↓
-Vercel Build
-      ↓
-Production Deploy
-      ↓
-Canlı Site
+Veri Kaynağı
+Son Commit SHA
+Son Yayınlanma Zamanı
+Repository
+Branch
+Hero görseli doğrulaması
+Taslak değişiklik durumu
 ```
 
-Admin panelindeki yayın durumu bölümünden GitHub kaynak durumu ve son commit bilgileri takip edilebilir.
-
----
-
-# 🔎 Persistence Diagnostics
-
-Yönetim panelindeki **Site Ayarları Kalıcılık Teşhisi** bölümü, sistemin gerçekten hangi kaynaktan veri okuduğunu kontrol etmek için kullanılır.
-
-Kontrol edilen başlıca bilgiler:
-
-- Veri kaynağı
-- Son commit SHA
-- Son yayınlanma zamanı
-- GitHub repository
-- GitHub branch
-- Kritik görsellerin GitHub ve uygulama belleğindeki yolları
-- Taslak değişiklik durumu
-
-Örneğin:
+Örnek:
 
 ```text
 VERİ KAYNAĞI
 GitHub
 
-SON COMMIT SHA
-xxxxxxxx
-
 DEPO
 kadirkarga25-rgb/irem-comfort
+
+BRANCH
+main
 ```
 
-Bu bölüm, özellikle farklı cihazlarda eski/yeni verilerin karışması durumunda teşhis amacıyla kullanılmalıdır.
+Bu bölüm özellikle farklı cihazlarda eski ve yeni verilerin karışması durumunda teşhis için kullanılmalıdır.
 
 ---
 
-# 🧩 Önemli Dosyalar
+# Admin Yayın Sistemi
+
+Ana yayın endpoint'i:
+
+```text
+POST /api/publish-settings
+```
+
+Uyumluluk amacıyla:
+
+```text
+POST /api/sync-github
+```
+
+endpoint'i de kullanılabilir.
+
+Yeni yayın akışında medya klasörünün tamamı her kaydetme işleminde yeniden taranmaz.
+
+Bu önemlidir çünkü `public/uploads` içindeki yüzlerce dosyanın her yayın işleminde tekrar işlenmesi:
+
+- Gereksiz GitHub API çağrılarına
+- Uzun bekleme sürelerine
+- Admin panelinin takılı kalmasına
+- Gereksiz medya commitlerine
+
+neden olabilir.
+
+Medya dosyaları yüklendikleri aşamada GitHub'a gönderilir; site ayarları yayınında ise ayar ve SEO dosyaları atomik olarak commit edilir.
+
+---
+
+# Yayın Durumu
+
+Başarılı bir Admin yayınının mantıksal akışı:
+
+```text
+✓ Admin verisi hazırlandı
+✓ GitHub App doğrulandı
+✓ GitHub commit oluşturuldu
+✓ GitHub read-back doğrulandı
+✓ Vercel Deploy Hook tetiklendi
+⏳ Vercel build
+✓ Production
+```
+
+Vercel build sonucu Vercel panelinden kontrol edilebilir.
+
+---
+
+# Önemli Dosyalar
 
 ```text
 api/
 └── index.ts
-    Sunucu API'leri, GitHub App authentication,
-    ayar kayıtları ve deploy işlemleri
+    GitHub App authentication
+    GitHub kalıcı kayıt
+    Deploy Hook
+    API endpointleri
 
 src/
 ├── context/
 │   └── ImageContext.tsx
-│       Site verilerinin merkezi yönetimi,
-│       kayıt ve geri yükleme işlemleri
+│       Merkezi site state'i
+│       kayıt
+│       yedek geri yükleme
 │
 └── components/
     └── admin/
         ├── AdminPage.tsx
         ├── BackupAdminTab.tsx
-        ├── DeploymentExperienceAdminTab.tsx
-        ├── MediaLibraryAdminTab.tsx
         └── ...
 ```
 
 ---
 
-# 🌐 Teknoloji Altyapısı
+# Ortam Değişkenleri
 
-- React 19
-- TypeScript
-- Vite
-- Express
-- Vercel
-- GitHub Contents API
-- GitHub App Authentication
-- Tailwind CSS
-- Lucide React
-- Motion
-- GSAP
-- Nodemailer
-- Google Gemini API entegrasyonu
+Örnek Production değişkenleri:
+
+```env
+GITHUB_APP_ID=
+GITHUB_APP_INSTALLATION_ID=
+GITHUB_APP_PRIVATE_KEY=
+
+VERCEL_DEPLOY_HOOK_URL=
+
+GITHUB_REPO=kadirkarga25-rgb/irem-comfort
+GITHUB_BRANCH=main
+
+GEMINI_API_KEY=
+
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USER=
+SMTP_PASS=
+SMTP_SECURE=true
+```
+
+Gerçek değerler bu README'ye yazılmamalıdır.
 
 ---
 
-# ⚙️ Yerel Çalıştırma
+# Yerel Çalıştırma
 
 Gereksinimler:
 
@@ -262,12 +326,6 @@ Geliştirme:
 npm run dev
 ```
 
-TypeScript kontrolü:
-
-```bash
-npm run lint
-```
-
 Production build:
 
 ```bash
@@ -276,148 +334,92 @@ npm run build
 
 ---
 
-# 🔑 Ortam Değişkenleri
+# Güvenli Çalışma Sırası
 
-Örnek:
+Büyük değişikliklerden önce:
 
-```env
-GITHUB_APP_ID=
-GITHUB_APP_INSTALLATION_ID=
-GITHUB_APP_PRIVATE_KEY=
-
-GITHUB_REPO=irem-comfort
-GITHUB_BRANCH=main
-
-GEMINI_API_KEY=
-
-SMTP_HOST=
-SMTP_PORT=
-SMTP_USER=
-SMTP_PASS=
-SMTP_SECURE=true
+```text
+1. JSON yedeği al
+2. Değişiklikleri yap
+3. Admin'den kaydet/yayınla
+4. GitHub commitini kontrol et
+5. Vercel deploymentını kontrol et
+6. Canlı siteyi kontrol et
+7. Gerekirse yeni yedek al
 ```
 
-Gerçek gizli anahtarlar hiçbir zaman GitHub repository'sine commit edilmemelidir.
-
-GitHub App private key yalnızca güvenli sunucu ortamında tutulmalıdır.
+GitHub'daki commit başarılı olsa bile Vercel deploymentının `Ready` olduğunu kontrol etmek iyi bir uygulamadır.
 
 ---
 
-# ☁️ Vercel
+# Sorun Giderme
 
-Production deployment GitHub repository üzerinden Vercel tarafından yapılır.
+## GitHub'a kaydoluyor ama Vercel yayınlamıyorsa
 
-Önerilen yapı:
-
-```text
-GitHub
-  ↓
-main branch
-  ↓
-Vercel
-  ↓
-Production
-```
-
-Bir değişiklikten sonra Vercel panelinden ilgili deployment'ın:
+Kontrol edin:
 
 ```text
-Ready
+VERCEL_DEPLOY_HOOK_URL
 ```
 
-durumuna gelmesi beklenmelidir.
+Production Environment Variables içinde mevcut mu?
 
-Build sırasında oluşan kırmızı **Error** kayıtları kontrol edilmeden canlı sistemde yedek geri yükleme veya büyük veri değişikliği yapılmamalıdır.
+Ardından Deploy Hook'un:
+
+```text
+Branch = main
+```
+
+olduğunu kontrol edin.
 
 ---
-
-# 🆘 Sorun Giderme
 
 ## "H is not a function"
 
-Bu hata genellikle bir fonksiyonun çağrıldığı halde React Context içerisinde bulunmaması durumunda oluşur.
+Bu hata, geri yükleme sırasında çağrılan fonksiyonun React Context tarafından sağlanmaması durumunda oluşur.
 
-Özellikle JSON yedeği geri yükleme sisteminde `restoreFullBackup` gibi fonksiyonların Context tarafından gerçekten export edilmesi gerekir.
-
----
-
-## Veriler geri geliyor ama başka cihazda görünmüyor
-
-Şunlar kontrol edilmelidir:
-
-1. Admin panelindeki Persistence Diagnostics bölümü açılır.
-2. Veri kaynağının GitHub olduğu kontrol edilir.
-3. Son commit SHA kontrol edilir.
-4. GitHub repository kontrol edilir.
-5. Vercel'deki son deployment kontrol edilir.
-6. Tarayıcıdaki eski localStorage taslağı varsa temizlenip sayfa yenilenir.
+Yedek geri yükleme sistemi `restoreFullBackup` fonksiyonunu merkezi Context üzerinden kullanır.
 
 ---
 
-## GitHub'a kayıt olmuyor
+## Veriler başka cihazda görünmüyorsa
 
-Kontrol listesi:
+Admin panelindeki Persistence Diagnostics bölümünü kontrol edin.
+
+Özellikle:
 
 ```text
-GITHUB_APP_ID
-GITHUB_APP_INSTALLATION_ID
-GITHUB_APP_PRIVATE_KEY
+Veri Kaynağı = GitHub
 ```
 
-Vercel Production Environment Variables içerisinde mevcut olmalıdır.
-
-GitHub App'in ilgili repository için:
-
-```text
-Contents → Read and write
-```
-
-yetkisi bulunmalıdır.
+olmalı ve son commit SHA GitHub'daki son ilgili commit ile uyumlu olmalıdır.
 
 ---
 
-# 🔄 Güvenli Çalışma Kuralı
+# Teknoloji
 
-Büyük değişikliklerden önce mutlaka JSON yedeği alınmalıdır.
-
-Önerilen sıra:
-
-```text
-1. Yedek Al
-2. Değişiklik Yap
-3. Kaydet
-4. GitHub Commit Kontrol Et
-5. Vercel Deployment Kontrol Et
-6. Canlı Siteyi Kontrol Et
-7. Yeni Yedek Al
-```
-
----
-
-# 📌 Proje Hakkında
-
-Bu proje İrem Comfort web sitesinin yönetim, içerik, ürün, medya ve yayın süreçlerini tek bir sistem altında toplamak amacıyla geliştirilmiştir.
-
-Ana hedef:
-
-> **Siteyi değiştirmek için harici bir yapay zekâ aracına veya manuel GitHub düzenlemesine mümkün olduğunca az ihtiyaç duymak.**
-
-Yönetim paneli üzerinden yapılan değişikliklerin güvenli şekilde kaydedilmesi, yedeklenmesi ve yayınlanması temel sistem prensibidir.
+- React
+- TypeScript
+- Vite
+- Express
+- Vercel
+- GitHub API
+- GitHub App
+- GitHub Contents / Git Data API
+- Tailwind CSS
+- Lucide React
+- Motion
+- GSAP
+- Nodemailer
 
 ---
 
-## 🏷️ Sürüm Notu
+# Projenin Ana Prensibi
 
-Bu sürüm özellikle:
+Bu projenin temel amacı:
 
-- GitHub App tabanlı kimlik doğrulama
-- Kalıcı site ayarları
-- Yeni deploy sistemi
-- JSON tam yedekleme
-- JSON yedekten geri yükleme
-- Persistence Diagnostics
-- Admin paneli hata düzeltmeleri
+> **İrem Comfort web sitesini mümkün olduğunca Admin Paneli üzerinden yönetmek; değişiklikleri güvenli şekilde GitHub'a kaydetmek ve Vercel Production'a doğrudan yayınlatmak.**
 
-üzerine kurulmuştur.
+Böylece günlük site yönetimi için manuel GitHub düzenlemesi veya harici bir yapay zekâ geliştirme ortamına bağımlılık azaltılır.
 
-**İrem Comfort — Yönetim Sistemi**
+**İrem Comfort — Yönetim Paneli & Akıllı Yayın Sistemi**

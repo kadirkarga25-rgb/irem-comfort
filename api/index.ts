@@ -2138,6 +2138,54 @@ async function commitFilesToGithubAtomically(
   });
 }
 
+
+async function triggerVercelDeployHook(commitSha?: string): Promise<{
+  triggered: boolean;
+  error?: string;
+}> {
+  const hookUrl = process.env.VERCEL_DEPLOY_HOOK_URL;
+  if (!hookUrl) {
+    return {
+      triggered: false,
+      error: "VERCEL_DEPLOY_HOOK_URL tanımlı değil."
+    };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
+  try {
+    const response = await fetch(hookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "IremComfortDeploy/1.0"
+      },
+      body: JSON.stringify({
+        source: "irem-comfort-admin",
+        commitSha: commitSha || null
+      }),
+      signal: controller.signal
+    });
+
+    const responseText = await response.text().catch(() => "");
+    if (!response.ok) {
+      throw new Error(`Vercel Deploy Hook HTTP ${response.status}${responseText ? `: ${responseText.slice(0, 300)}` : ""}`);
+    }
+
+    console.log(`[VERCEL DEPLOY HOOK] Production deploy tetiklendi${commitSha ? ` (${commitSha})` : ""}.`);
+    return { triggered: true };
+  } catch (err: any) {
+    const message = err?.name === "AbortError"
+      ? "Vercel Deploy Hook zaman aşımına uğradı."
+      : (err?.message || "Vercel Deploy Hook çağrısı başarısız.");
+    console.error("[VERCEL DEPLOY HOOK ERROR]", message);
+    return { triggered: false, error: message };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 // Atomic GitHub Publishing Pipeline with strict Contents API verification
 async function publishSettings(
   settingsToPublish?: any,
@@ -2156,6 +2204,7 @@ async function publishSettings(
   details?: string;
   diagnostics: any;
   changed?: boolean;
+  vercelDeployTriggered?: boolean;
 }> {
   try {
     await ensureSettingsLoaded();
@@ -2251,6 +2300,26 @@ async function publishSettings(
 
     const commitSha = atomicResult.commitSha || 'sha_unknown';
 
+    // GitHub commit succeeded. Trigger Vercel explicitly through the project Deploy Hook.
+    // This removes the dependency on GitHub->Vercel webhook timing and guarantees that
+    // an Admin publish requests a fresh Production deployment.
+    const vercelResult = await triggerVercelDeployHook(commitSha);
+    if (!vercelResult.triggered) {
+      persistenceStatus = 'ERROR';
+      lastPersistenceError = vercelResult.error || "Vercel Deploy Hook çağrısı başarısız.";
+      return {
+        success: false,
+        publishSuccess: false,
+        verified: false,
+        commitSha,
+        changed: atomicResult.changed !== false,
+        vercelDeployTriggered: false,
+        error: "GitHub'a kaydedildi ancak Vercel Production yayını başlatılamadı.",
+        details: vercelResult.error,
+        diagnostics: getPersistenceDiagnostics()
+      };
+    }
+
     // Requirement 9: Verification step after publishing
     // Read back committed site_settings.json from GitHub
     const verifyRes = await fetch(`https://api.github.com/repos/${repo}/contents/public/site_settings.json?ref=${branch}`, {
@@ -2324,7 +2393,8 @@ async function publishSettings(
       changed: atomicResult.changed !== false,
       publishedAt: lastPublishedAt,
       settings: inMemorySettingsCache,
-      diagnostics: getPersistenceDiagnostics()
+      diagnostics: getPersistenceDiagnostics(),
+      vercelDeployTriggered: true
     };
   } catch (err: any) {
     console.error("Error in publishSettings:", err);
@@ -2792,6 +2862,7 @@ app.post("/api/publish-settings", async (req, res) => {
       _updatedAt: inMemorySettingsCache?._updatedAt,
       commitSha: result.commitSha,
       changed: result.changed !== false,
+      vercelDeployTriggered: result.vercelDeployTriggered === true,
       diagnostics: result.diagnostics
     });
   } catch (err: any) {
@@ -2831,6 +2902,7 @@ app.post("/api/sync-github", async (req, res) => {
       _updatedAt: inMemorySettingsCache?._updatedAt,
       commitSha: result.commitSha,
       changed: result.changed,
+      vercelDeployTriggered: result.vercelDeployTriggered === true,
       diagnostics: result.diagnostics
     });
   } catch (err: any) {
