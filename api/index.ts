@@ -617,12 +617,66 @@ export interface NewsletterSubscriber {
   source?: string;
 }
 
+const NEWSLETTER_WELCOME_SUBJECT = 'İrem Comfort — E-Bültenimize Hoş Geldiniz!';
+
+function buildNewsletterWelcomeHtml(email: string): string {
+  const safeEmail = String(email).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return `<!DOCTYPE html>
+<html lang="tr">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>İrem Comfort — Hoş Geldiniz</title></head>
+<body style="margin:0;padding:0;background:#f3f5f8;font-family:Arial,Helvetica,sans-serif;color:#172033;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f3f5f8;padding:28px 12px;">
+<tr><td align="center">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:640px;background:#fff;border-radius:20px;overflow:hidden;border:1px solid #e3e7ec;">
+<tr><td style="background:#0b1f3a;padding:38px 30px;text-align:center;">
+<div style="font-family:Georgia,serif;font-size:29px;font-weight:700;letter-spacing:1.5px;color:#fff;">irem <span style="color:#c5a45a;">comfort</span></div>
+<div style="margin-top:9px;font-size:11px;font-weight:700;letter-spacing:2px;color:#f2d48a;text-transform:uppercase;">E-BÜLTEN &amp; YENİ KOLEKSİYON</div>
+</td></tr>
+<tr><td style="padding:42px 34px 36px;">
+<div style="display:inline-block;background:#f8f0dc;border:1px solid #ead7a7;color:#8a6a25;border-radius:999px;padding:7px 13px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">HOŞ GELDİNİZ</div>
+<h1 style="margin:18px 0 12px;color:#0b1f3a;font-family:Georgia,serif;font-size:28px;line-height:1.25;">İrem Comfort ailesine hoş geldiniz!</h1>
+<p style="margin:0 0 18px;font-size:16px;line-height:1.75;color:#475569;">E-bülten listemize başarıyla kaydoldunuz. Bundan sonra yeni koleksiyonlarımızı, sezon modellerimizi, fuar davetlerimizi ve önemli katalog güncellemelerimizi doğrudan e-posta adresinizden takip edebilirsiniz.</p>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:26px 0;background:#f7f9fc;border-radius:14px;border:1px solid #e7ebf0;">
+<tr><td style="padding:22px 22px 18px;">
+<div style="font-size:13px;font-weight:800;color:#0b1f3a;margin-bottom:12px;">Sizi neler bekliyor?</div>
+<div style="font-size:14px;line-height:1.9;color:#526071;">✓ Yeni sezon ürün ve koleksiyon duyuruları<br>✓ Toptan katalog ve bayi bilgilendirmeleri<br>✓ Fuar davetleri ve etkinlik haberleri<br>✓ Özel kampanya ve fırsatlardan haberdar olma</div>
+</td></tr></table>
+<div style="text-align:center;margin:30px 0 8px;"><a href="https://iremcomfort.com" target="_blank" style="display:inline-block;background:#0b1f3a;color:#fff;text-decoration:none;padding:14px 28px;border-radius:999px;font-size:14px;font-weight:700;">Web Sitemizi Ziyaret Edin →</a></div>
+<p style="margin:26px 0 0;text-align:center;font-size:12px;line-height:1.6;color:#94a3b8;">Bu e-posta, <strong>${safeEmail}</strong> adresinin İrem Comfort e-bülten listesine kaydolması üzerine gönderilmiştir.</p>
+</td></tr>
+<tr><td style="background:#111827;padding:27px 28px;text-align:center;color:#9ca3af;font-size:12px;line-height:1.7;">
+<div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:6px;">İrem Comfort Ayakkabıcılık</div>
+<div>Hakiki Deri Comfort Terlik &amp; Sandalet</div>
+<div style="margin-top:5px;">info@iremcomfort.com • 0533 029 71 25</div>
+</td></tr>
+</table>
+</td></tr></table>
+</body></html>`;
+}
+
+async function sendNewsletterWelcomeEmail(email: string): Promise<boolean> {
+  const transporter = getTransporter(currentEmailConfig);
+  if (!transporter) return false;
+  try {
+    await transporter.sendMail({
+      from: `"${currentEmailConfig.senderName || 'İrem Comfort'}" <${currentEmailConfig.senderEmail || currentEmailConfig.smtpUser}>`,
+      to: email,
+      subject: NEWSLETTER_WELCOME_SUBJECT,
+      html: buildNewsletterWelcomeHtml(email),
+    });
+    return true;
+  } catch (err) {
+    console.error('Newsletter welcome email error:', err);
+    return false;
+  }
+}
+
 const newsletterSubscribers: NewsletterSubscriber[] = [
   { id: 'sub-1', email: 'kargakadir4525@gmail.com', createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), source: 'Web Form' },
   { id: 'sub-2', email: 'info@iremcomfort.com', createdAt: new Date(Date.now() - 86400000 * 5).toISOString(), source: 'Web Form' }
 ];
 
-app.post("/api/newsletter/subscribe", (req, res) => {
+app.post("/api/newsletter/subscribe", async (req, res) => {
   try {
     const { email, source } = req.body || {};
     if (!email || typeof email !== 'string' || !email.includes('@')) {
@@ -648,10 +702,13 @@ app.post("/api/newsletter/subscribe", (req, res) => {
 
     newsletterSubscribers.unshift(newSub);
 
+    const welcomeEmailSent = await sendNewsletterWelcomeEmail(cleanEmail);
+
     return res.json({
       success: true,
       message: "İrem Comfort e-bülten ve katalog bilgilendirme listesine kaydınız başarıyla oluşturuldu!",
-      subscriber: newSub
+      subscriber: newSub,
+      welcomeEmailSent
     });
   } catch (err) {
     console.error("Error in /api/newsletter/subscribe:", err);
@@ -2968,13 +3025,92 @@ app.post("/api/settings", async (req, res) => {
   }
 });
 
+// WHOLESALE CUSTOMER SURVEY - ADMIN RESULT + CUSTOMER THANK-YOU + NEWSLETTER
+app.post("/api/wholesale-survey", async (req, res) => {
+  try {
+    const {
+      storeName, fullName, phone, email, language,
+      performance, salesSpeed, fastProducts, reasons, improvements,
+      newCollection, satisfaction, futureOrder, newProduct,
+      newsletterOptIn, imageBase64, imageName
+    } = req.body || {};
+
+    const clean = (value: any) => String(value ?? '').replace(/[&<>"']/g, (c: string) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const customerName = String(fullName || 'Anket Katılımcısı').trim();
+    const customerEmail = String(email || '').trim().toLowerCase();
+    const adminRecipient = 'kargakadir4525@gmail.com';
+    const rows = [
+      ['Mağaza / Firma', storeName], ['Müşteri', fullName], ['Telefon', phone], ['E-Posta', email],
+      ['Dil', language === 'en' ? 'English' : 'Türkçe'], ['Satış Performansı', performance],
+      ['Satış Hızı', salesSpeed], ['Hızlı Satan Ürünler', Array.isArray(fastProducts) ? fastProducts.join(', ') : fastProducts],
+      ['Müşteri Tercih Nedenleri', Array.isArray(reasons) ? reasons.join(', ') : reasons],
+      ['Geliştirme Önerileri', improvements], ['Yeni Koleksiyon Tercihleri', Array.isArray(newCollection) ? newCollection.join(', ') : newCollection],
+      ['Genel Memnuniyet', satisfaction], ['Gelecekte Daha Fazla Sipariş', futureOrder],
+      ['Yeni Model / Ürün Önerisi', newProduct], ['E-Bülten İzni', newsletterOptIn ? 'Evet' : 'Hayır']
+    ];
+    const tableRows = rows.map(([label, value]) => `<tr><td class="lbl">${clean(label)}</td><td>${clean(value || 'Belirtilmedi')}</td></tr>`).join('');
+    const submittedAt = new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
+    const adminHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+      body{margin:0;background:#f4f6f8;font-family:Arial,sans-serif;color:#1f2937;padding:24px}.card{max-width:700px;margin:auto;background:#fff;border-radius:18px;overflow:hidden;border:1px solid #e5e7eb}.head{background:#0b1f3a;color:#fff;padding:26px;text-align:center}.gold{color:#c5a45a}.body{padding:26px}.table{width:100%;border-collapse:collapse;font-size:13px}.table td{padding:11px 10px;border-bottom:1px solid #eef0f3;vertical-align:top}.lbl{font-weight:700;color:#0b1f3a;width:34%}.footer{text-align:center;color:#8a9199;font-size:11px;padding:18px;border-top:1px solid #eee}
+    </style></head><body><div class="card"><div class="head"><h1 style="margin:0;font-size:21px">📋 Yeni Toptan Müşteri Anketi</h1><div class="gold" style="margin-top:7px;font-size:12px">İREM COMFORT</div></div><div class="body"><p><strong>Yeni bir toptan müşteri anketi dolduruldu.</strong></p><p style="font-size:12px;color:#64748b">Gönderim zamanı: ${clean(submittedAt)}</p><table class="table">${tableRows}</table></div><div class="footer">İrem Comfort • Toptan Müşteri Anketi</div></div></body></html>`;
+
+    const isEnglish = language === 'en';
+    const customerHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+      body{margin:0;background:#f4f6f8;font-family:Arial,sans-serif;color:#1e293b;padding:20px}.card{max-width:620px;margin:auto;background:#fff;border-radius:18px;overflow:hidden;border:1px solid #e2e8f0}.head{background:linear-gradient(135deg,#0b1f3a,#163e87);color:#fff;text-align:center;padding:34px}.brand{font-family:Georgia,serif;font-size:27px;font-weight:bold;letter-spacing:2px}.tag{font-size:11px;color:#c5a45a;letter-spacing:1.5px;text-transform:uppercase;margin-top:8px}.body{padding:32px;line-height:1.7}.thanks{background:#f8fafc;border-left:4px solid #c5a45a;padding:17px;border-radius:10px;margin:22px 0}.footer{text-align:center;color:#64748b;font-size:11px;padding:20px;border-top:1px solid #e2e8f0;background:#fafafa}
+    </style></head><body><div class="card"><div class="head"><div class="brand">İREM COMFORT</div><div class="tag">Wholesale Customer Survey</div></div><div class="body"><h2 style="color:#0b1f3a;font-family:Georgia,serif">${isEnglish ? 'Dear' : 'Sayın'} ${clean(customerName)},</h2><p>${isEnglish ? 'Thank you very much for completing our wholesale customer survey and sharing your valuable feedback with us.' : 'Toptan müşteri anketimizi doldurduğunuz ve değerli görüşlerinizi bizimle paylaştığınız için çok teşekkür ederiz.'}</p><div class="thanks"><strong>${isEnglish ? 'Your feedback matters to us.' : 'Görüşleriniz bizim için çok değerli.'}</strong><br>${isEnglish ? 'Your answers will help us improve our products, collections and service.' : 'Cevaplarınız ürünlerimizi, koleksiyonlarımızı ve hizmet kalitemizi geliştirmemize yardımcı olacaktır.'}</div>${storeName ? `<p><strong>${isEnglish ? 'Company:' : 'Firma:'}</strong> ${clean(storeName)}</p>` : ''}<p>${isEnglish ? 'We appreciate your partnership and look forward to working with you again.' : 'İş ortaklığınız için teşekkür eder, sizinle yeniden çalışmaktan mutluluk duyarız.'}</p><p>${isEnglish ? 'Best regards,<br><strong>İrem Comfort</strong>' : 'Saygılarımızla,<br><strong>İrem Comfort</strong>'}</p></div><div class="footer">İrem Comfort Ayakkabıcılık • info@iremcomfort.com • 0533 029 71 25</div></div></body></html>`;
+
+    const transporter = getTransporter();
+    let adminSent = false, customerSent = false;
+    if (transporter) {
+      try {
+        const attachments: any[] = [];
+        if (typeof imageBase64 === 'string' && imageBase64.startsWith('data:image/')) {
+          attachments.push({ filename: clean(imageName || 'model-gorseli.jpg'), content: imageBase64.split(',')[1], encoding: 'base64' });
+        }
+        await transporter.sendMail({
+          from: `"${currentEmailConfig.senderName || 'İrem Comfort'}" <${currentEmailConfig.senderEmail || 'info@iremcomfort.com'}>`,
+          to: adminRecipient,
+          subject: `[TOPTAN ANKET] ${customerName}${storeName ? ' - ' + storeName : ''}`,
+          html: adminHtml,
+          attachments
+        });
+        adminSent = true;
+        if (customerEmail.includes('@')) {
+          await transporter.sendMail({
+            from: `"${currentEmailConfig.senderName || 'İrem Comfort'}" <${currentEmailConfig.senderEmail || 'info@iremcomfort.com'}>`,
+            to: customerEmail,
+            subject: isEnglish ? 'İrem Comfort — Thank You for Completing Our Survey' : 'İrem Comfort — Anketimize Katıldığınız İçin Teşekkürler',
+            html: customerHtml
+          });
+          customerSent = true;
+        }
+      } catch (mailErr) {
+        console.error('Wholesale survey email error:', mailErr);
+      }
+    }
+
+    if (newsletterOptIn && customerEmail.includes('@')) {
+      const cleanEmail = customerEmail.trim().toLowerCase();
+      if (!newsletterSubscribers.some(s => s.email === cleanEmail)) {
+        newsletterSubscribers.unshift({ id:`sub-${Date.now()}-${Math.random().toString(36).substring(2,7)}`, email:cleanEmail, createdAt:new Date().toISOString(), source:'Toptan Müşteri Anketi' });
+        await sendNewsletterWelcomeEmail(cleanEmail);
+      }
+    }
+
+    return res.json({ success:true, adminSent, customerSent, newsletterAdded: Boolean(newsletterOptIn && customerEmail.includes('@')) });
+  } catch (err) {
+    console.error('Error in /api/wholesale-survey:', err);
+    return res.status(500).json({ success:false, error:'Anket gönderilirken sunucu hatası oluştu.' });
+  }
+});
+
 // SURVEY SUBMISSION & AUTOMATIC DUAL EMAIL ENDPOINT
 app.post("/api/survey", async (req, res) => {
   try {
     const {
       fullName, phone, email, platform, model, color, size,
       overall, comfort, quality, ortho, light, design, price, packaging, shipping,
-      fit, likes, comment, npsScore, avgScore
+      fit, likes, comment, npsScore, avgScore, newsletterOptIn
     } = req.body || {};
 
     const customerName = (fullName || 'Anket Müşterisi').trim();
@@ -3120,6 +3256,19 @@ app.post("/api/survey", async (req, res) => {
         }
       } catch (mailErr) {
         console.error("Survey email dispatch error:", mailErr);
+      }
+    }
+
+    if (newsletterOptIn && customerEmail && customerEmail.includes('@')) {
+      const cleanEmail = customerEmail.trim().toLowerCase();
+      if (!newsletterSubscribers.some(s => s.email === cleanEmail)) {
+        newsletterSubscribers.unshift({
+          id: `sub-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          email: cleanEmail,
+          createdAt: new Date().toISOString(),
+          source: 'Müşteri Anketi'
+        });
+        await sendNewsletterWelcomeEmail(cleanEmail);
       }
     }
 

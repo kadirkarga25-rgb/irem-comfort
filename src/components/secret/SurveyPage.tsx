@@ -70,6 +70,7 @@ export function SurveyPage({ onReturnToSite }: SurveyPageProps) {
     name: string;
     phone: string;
     email: string;
+    newsletterOptIn: boolean;
     honeypot: string;
   }>({
     platform: '',
@@ -93,6 +94,7 @@ export function SurveyPage({ onReturnToSite }: SurveyPageProps) {
     name: '',
     phone: '',
     email: '',
+    newsletterOptIn: false,
     honeypot: ''
   });
 
@@ -235,7 +237,8 @@ export function SurveyPage({ onReturnToSite }: SurveyPageProps) {
           likes: formData.likes,
           comment: formData.comment,
           npsScore: formData.npsScore,
-          avgScore: avgScore
+          avgScore: avgScore,
+          newsletterOptIn: formData.newsletterOptIn
         })
       });
     } catch (err) {
@@ -847,6 +850,16 @@ export function SurveyPage({ onReturnToSite }: SurveyPageProps) {
                     className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#082C6C]"
                   />
                 </div>
+
+                <label className="flex items-start gap-2.5 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.newsletterOptIn}
+                    onChange={(e) => setFormData((p) => ({ ...p, newsletterOptIn: e.target.checked }))}
+                    className="mt-0.5 accent-[#082C6C]"
+                  />
+                  <span className="text-[11px] leading-5 text-slate-600">İrem Comfort yeni koleksiyon, katalog ve fuar haberlerini e-posta ile almak istiyorum.</span>
+                </label>
               </div>
 
               {/* Honeypot */}

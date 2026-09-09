@@ -2,6 +2,10 @@
   "version": 2,
   "rewrites": [
     {
+      "source": "/toptananket",
+      "destination": "/toptananket.html"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/index.ts"
     },

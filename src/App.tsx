@@ -97,6 +97,11 @@ function MainAppContent() {
     );
   });
 
+  const [isWholesaleSurveyView, setIsWholesaleSurveyView] = useState<boolean>(() => {
+    const { path } = getSafeLocation();
+    return path === '/toptananket' || path === '/toptananket.html';
+  });
+
   // 404 Not Found route state: check if pathname is not root and not matching any known route
   const [isNotFoundView, setIsNotFoundView] = useState<boolean>(() => {
     const { path, hash, search } = getSafeLocation();
@@ -105,7 +110,8 @@ function MainAppContent() {
       path.includes('admin') || hash.includes('admin') || search.includes('admin') ||
       path.includes('sifre-sifirla') || hash.includes('sifre-sifirla') || search.includes('sifre-sifirla') ||
       path.includes('uzak-yonetim') || hash.includes('uzak-yonetim') || search.includes('uzak-yonetim') ||
-      path.includes('anket') || hash.includes('anket') || search.includes('anket')
+      path.includes('anket') || hash.includes('anket') || search.includes('anket') ||
+      path === '/toptananket' || path === '/toptananket.html'
     );
     return !isKnown;
   });
@@ -137,6 +143,7 @@ function MainAppContent() {
         hash.includes('anket') || 
         search.includes('anket')
       );
+      const wholesaleSurvey = path === '/toptananket' || path === '/toptananket.html';
 
       setIsPreviewView(true);
 
@@ -144,11 +151,12 @@ function MainAppContent() {
       setIsResetView(reset);
       setIsRemoteView(remote);
       setIsSurveyView(survey);
+      setIsWholesaleSurveyView(wholesaleSurvey);
 
       if (path === '/' || path === '' || path === '/index.html') {
         setIsNotFoundView(false);
       } else {
-        setIsNotFoundView(!admin && !reset && !remote && !survey);
+        setIsNotFoundView(!admin && !reset && !remote && !survey && !wholesaleSurvey);
       }
     };
 
@@ -381,6 +389,18 @@ function MainAppContent() {
 
   if (isRemoteView) {
     return <RemoteManagementPage onReturnToSite={returnToPublicSite} />;
+  }
+
+  if (isWholesaleSurveyView) {
+    return (
+      <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', background: '#f4f6f8' }}>
+        <iframe
+          src="/toptananket.html"
+          title="İrem Comfort Toptan Müşteri Anketi"
+          style={{ width: '100%', height: '100%', border: '0', display: 'block' }}
+        />
+      </div>
+    );
   }
 
   if (isSurveyView) {
