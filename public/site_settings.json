@@ -36,7 +36,7 @@
     "isOnboardingCompleted": false
   },
   "heroConfig": {
-    "badgeText": "Kuruluş 1993 • Manisa Ayakkabıcılar Sitesi İmalatı",
+    "badgeText": "Kuruluş 2020 • Manisa Ayakkabıcılar Sitesi İmalatı",
     "title": "Bayan Comfort Deri Sandalet & Terlik.",
     "description": "%100 Hakiki deri saya, ortopedik kavisli anatomik taban ve Manisa atölyemizin usta el işçiliği. Gün boyu adımlarınıza hafiflik ve zarif konfor katan yeni sezon modellerimizi keşfedin.",
     "primaryBtnText": "Koleksiyonu Keşfet",
@@ -45,7 +45,7 @@
     "signatureModelSub": "Yumuşak Dana Derisi Saya • Anatomik Yumuşak Konfor Taban"
   },
   "images": {
-    "heroImage": "",
+    "heroImage": "/uploads/gallery/Ads_z_tasar_m.png",
     "aboutImage": "",
     "craftsmanshipImages": {
       "01": "",
@@ -82,8 +82,36 @@
   },
   "aboutSlides": [
     {
-      "title": "Hakkımızda Slayt",
-      "desc": "Açıklama"
+      "badge": "YENİ SEZON",
+      "title": "Hakiki Deri Konfor",
+      "subtitle": "Atölyemizden Mükemmel Dikiş İşçiliği",
+      "image": "/uploads/gallery/12__1_.png",
+      "alt": "İrem Comfort Yeni Slayt Görseli",
+      "id": "slide-1788944101910"
+    },
+    {
+      "badge": "YENİ SEZON",
+      "title": "Hakiki Deri Konfor",
+      "subtitle": "Atölyemizden Mükemmel Dikiş İşçiliği",
+      "image": "/uploads/gallery/12__3_.png",
+      "alt": "İrem Comfort Yeni Slayt Görseli",
+      "id": "slide-1788944084200"
+    },
+    {
+      "badge": "YENİ SEZON",
+      "title": "Hakiki Deri Konfor",
+      "subtitle": "Atölyemizden Mükemmel Dikiş İşçiliği",
+      "image": "/uploads/gallery/12__2_.png",
+      "alt": "İrem Comfort Yeni Slayt Görseli",
+      "id": "slide-1788944084396"
+    },
+    {
+      "badge": "YENİ SEZON",
+      "title": "Hakiki Deri Konfor",
+      "subtitle": "Atölyemizden Mükemmel Dikiş İşçiliği",
+      "image": "/uploads/gallery/12__4_.png",
+      "alt": "İrem Comfort Yeni Slayt Görseli",
+      "id": "slide-1788944084580"
     }
   ],
   "ALL": {
@@ -1082,7 +1110,7 @@
       "iconName": "Award"
     }
   ],
-  "_updatedAt": 1788266995183,
+  "_updatedAt": 1788944113352,
   "faqItems": [
     {
       "q": "Soru 1",
