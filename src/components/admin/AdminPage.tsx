@@ -182,33 +182,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
 
-  // Periodic session token verification with backend
-  useEffect(() => {
-    if (!isAuthenticated || !sessionToken) return;
-
-    const verifyInterval = setInterval(async () => {
-      try {
-        const res = await fetch('/api/auth/verify', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionToken}`
-          }
-        });
-        const data = await res.json();
-        if (!data.authenticated) {
-          setIsAuthenticated(false);
-          setSessionToken(null);
-          setPassword('');
-          setLoginError('Oturum süreniz doldu. Lütfen tekrar şifre girin.');
-        }
-      } catch (e) {
-        // Ignored temporary offline check
-      }
-    }, 45000);
-
-    return () => clearInterval(verifyInterval);
-  }, [isAuthenticated, sessionToken]);
+  // Session is intentionally kept only in React memory.
+  // AdminPage unmounts when the user leaves /admin, so returning to the admin
+  // page always requires the password again. We do NOT run periodic verification
+  // here because Vercel serverless instances can be different between requests;
+  // that old heartbeat could incorrectly log an active admin out.
 
   // Admin Panel Tabs
   const [activeTab, setActiveTab] = useState<'overview' | 'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'page_builder' | 'presets' | 'leads' | 'crm' | 'testimonials' | 'newsletter' | 'email' | 'system' | 'media' | 'deployment_exp' | 'seo' | 'appearance' | 'analytics' | 'security' | 'ai_arch' | 'live_monitor' | 'backup' | 'ai_training' | 'infrastructure' | 'conv_logs'>('overview');
@@ -621,11 +599,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
   // Email Config State
   const [emailConfig, setEmailConfig] = useState({
-    smtpHost: 'mail.iremcomfort.com',
-    smtpPort: 587,
+    smtpHost: 'smtp.gmail.com',
+    smtpPort: 465,
     smtpUser: 'info@iremcomfort.com',
     smtpPass: '',
-    smtpSecure: false,
+    smtpSecure: true,
     adminEmails: 'kargakadir4525@gmail.com, info@iremcomfort.com',
     senderName: 'İrem Comfort Ayakkabıcılık',
     senderEmail: 'info@iremcomfort.com',
@@ -3975,7 +3953,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                       <input
                         type="number"
                         value={emailConfig.smtpPort}
-                        onChange={(e) => setEmailConfig({ ...emailConfig, smtpPort: Number(e.target.value) || 587 })}
+                        onChange={(e) => setEmailConfig({ ...emailConfig, smtpPort: Number(e.target.value) || 465 })}
                         placeholder="587"
                         className="w-full px-3.5 py-2 bg-white rounded-xl border border-slate-300 text-xs font-mono text-slate-800 focus:outline-none focus:border-[#082C6C]"
                       />

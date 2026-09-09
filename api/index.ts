@@ -103,11 +103,11 @@ export interface EmailConfig {
 const contactLeads: ContactLead[] = [];
 
 let currentEmailConfig: EmailConfig = {
-  smtpHost: process.env.SMTP_HOST || "mail.iremcomfort.com",
-  smtpPort: Number(process.env.SMTP_PORT) || 587,
+  smtpHost: process.env.SMTP_HOST || "smtp.gmail.com",
+  smtpPort: Number(process.env.SMTP_PORT) || 465,
   smtpUser: process.env.SMTP_USER || "info@iremcomfort.com",
   smtpPass: process.env.SMTP_PASS || "",
-  smtpSecure: process.env.SMTP_SECURE === "true",
+  smtpSecure: process.env.SMTP_SECURE ? process.env.SMTP_SECURE === "true" : true,
   adminEmails: "kargakadir4525@gmail.com, info@iremcomfort.com",
   senderName: "İrem Comfort Ayakkabıcılık",
   senderEmail: "info@iremcomfort.com",
@@ -148,7 +148,7 @@ interface AdminSession {
 }
 
 const activeAdminSessions = new Map<string, AdminSession>();
-const ADMIN_SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours max inactivity session timeout
+const ADMIN_SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours while the admin page remains open; leaving the page clears the client session
 
 // Periodic session cleanup (unref'd for serverless compatibility)
 const sessionCleanupTimer = setInterval(() => {
@@ -314,7 +314,7 @@ app.post("/api/email/config", (req, res) => {
     currentEmailConfig = {
       ...currentEmailConfig,
       ...updated,
-      smtpPort: Number(updated.smtpPort) || 587,
+      smtpPort: Number(updated.smtpPort) || 465,
       smtpSecure: Boolean(updated.smtpSecure),
       sendCustomerConfirmation: Boolean(updated.sendCustomerConfirmation),
       sendAdminNotification: Boolean(updated.sendAdminNotification),
