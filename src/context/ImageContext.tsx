@@ -303,6 +303,7 @@ interface ImageContextType {
   markDirty: () => void;
   markClean: () => void;
   getCurrentAdminState: (additionalState?: Record<string, any>) => Record<string, any>;
+  restoreFullBackup: (backup: Record<string, any>) => Promise<{ success: boolean; restoredCount: number; message: string }>;
   saveAllChanges: (additionalState?: Record<string, any>) => Promise<{ success: boolean; message: string }>;
   discardUnsavedChanges: () => Promise<void>;
 
@@ -1151,6 +1152,106 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     testimonials
   ]);
 
+  const restoreFullBackup = async (backup: Record<string, any>): Promise<{ success: boolean; restoredCount: number; message: string }> => {
+    if (!backup || typeof backup !== 'object') {
+      throw new Error('Geçersiz yedek verisi.');
+    }
+
+    const restoredCollectionItems = Array.isArray(backup.collectionItems)
+      ? backup.collectionItems
+      : (Array.isArray(backup.products) ? backup.products : null);
+
+    if (!restoredCollectionItems) {
+      throw new Error('Yedek dosyasında ürün listesi bulunamadı.');
+    }
+
+    const restoredImages = backup.images && typeof backup.images === 'object' ? backup.images : images;
+    const restoredHeroConfig = backup.heroConfig && typeof backup.heroConfig === 'object' ? backup.heroConfig : heroConfig;
+    const restoredFairConfig = backup.fairConfig && typeof backup.fairConfig === 'object' ? backup.fairConfig : fairConfig;
+    const restoredContactData = backup.contactData && typeof backup.contactData === 'object' ? backup.contactData : contactData;
+    const restoredAnnouncements = Array.isArray(backup.announcements) ? backup.announcements : announcements;
+    const restoredCraftsmanshipSteps = Array.isArray(backup.craftsmanshipSteps) ? backup.craftsmanshipSteps : craftsmanshipSteps;
+    const restoredFaqItems = Array.isArray(backup.faqItems) ? backup.faqItems : faqItems;
+    const restoredAboutSlides = Array.isArray(backup.aboutSlides) ? backup.aboutSlides : aboutSlides;
+    const restoredTestimonials = Array.isArray(backup.testimonials) ? backup.testimonials : testimonials;
+    const restoredSeoConfig = backup.seoConfig && typeof backup.seoConfig === 'object' ? backup.seoConfig : seoConfig;
+    const restoredThemeConfig = backup.themeConfig && typeof backup.themeConfig === 'object' ? backup.themeConfig : themeConfig;
+    const restoredSectionOrder = Array.isArray(backup.sectionOrder) ? backup.sectionOrder : sectionOrder;
+    const restoredSystemConfig = backup.systemConfig && typeof backup.systemConfig === 'object'
+      ? { ...systemConfig, ...backup.systemConfig, isDeploying: false }
+      : systemConfig;
+
+    const restoredState = {
+      images: restoredImages,
+      heroConfig: restoredHeroConfig,
+      fairConfig: restoredFairConfig,
+      contactData: restoredContactData,
+      announcements: restoredAnnouncements,
+      collectionItems: restoredCollectionItems,
+      craftsmanshipSteps: restoredCraftsmanshipSteps,
+      faqItems: restoredFaqItems,
+      aboutSlides: restoredAboutSlides,
+      testimonials: restoredTestimonials,
+      seoConfig: restoredSeoConfig,
+      themeConfig: restoredThemeConfig,
+      sectionOrder: restoredSectionOrder,
+      systemConfig: restoredSystemConfig,
+      _updatedAt: Date.now()
+    };
+
+    // Önce tarayıcıdaki React state ve taslağı güncelle. Böylece geri yükleme sonrası
+    // polling eski veriyi ekrana geri yazamaz.
+    setImages(restoredImages);
+    setHeroConfig(restoredHeroConfig);
+    setFairConfig(restoredFairConfig);
+    setContactData(restoredContactData);
+    setAnnouncements(restoredAnnouncements);
+    setCollectionItems(restoredCollectionItems);
+    setCraftsmanshipSteps(restoredCraftsmanshipSteps);
+    setFaqItems(restoredFaqItems);
+    setAboutSlides(restoredAboutSlides);
+    setTestimonials(restoredTestimonials);
+    setSeoConfig(restoredSeoConfig);
+    setThemeConfig(restoredThemeConfig);
+    setSectionOrder(restoredSectionOrder);
+    setSystemConfig(restoredSystemConfig);
+
+    lastUpdatedTimestampRef.current = restoredState._updatedAt;
+    lastSavedSettingsRef.current = restoredState;
+    try {
+      localStorage.setItem('ic_admin_draft_settings_v1', JSON.stringify(restoredState));
+    } catch (e) {}
+
+    // Geri yüklemeyi yalnızca ekranda bırakma; aynı tam paket yeni yayın sistemiyle
+    // GitHub'a da gönder. Böylece 12 ürün gizli sekmede / başka cihazda da kalıcı olur.
+    const repo = restoredSystemConfig.githubRepo || localStorage.getItem('irem_github_repo') || 'kadirkarga25-rgb/irem-comfort';
+    const branch = restoredSystemConfig.githubBranch || localStorage.getItem('irem_github_branch') || 'main';
+    const response = await fetch('/api/publish-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        settings: restoredState,
+        repo,
+        branch,
+        commitMessage: `Admin: ${restoredCollectionItems.length} ürünlük yedek geri yüklendi`
+      })
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result?.publishSuccess) {
+      throw new Error(result?.error || result?.details || "Yedek verileri GitHub'a yayınlanamadı.");
+    }
+
+    setIsDirty(false);
+    return {
+      success: true,
+      restoredCount: restoredCollectionItems.length,
+      message: result.changed === false
+        ? 'Yedek zaten GitHub ile aynı; veriler geri yüklendi.'
+        : "Yedek verileri GitHub'a kaydedildi ve Vercel yeni sürümü yayınlamaya başladı."
+    };
+  };
+
   const saveAllChanges = async (additionalState?: Record<string, any>): Promise<{ success: boolean; message: string }> => {
     const updatedAt = Date.now();
     lastUpdatedTimestampRef.current = updatedAt;
@@ -1380,6 +1481,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         markDirty,
         markClean,
         getCurrentAdminState,
+        restoreFullBackup,
         saveAllChanges,
         discardUnsavedChanges,
         triggerDeploy,
