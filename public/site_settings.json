@@ -1372,7 +1372,7 @@
       "iconName": "Award"
     }
   ],
-  "_updatedAt": 1789038083036,
+  "_updatedAt": 1789038110827,
   "faqItems": [
     {
       "q": "Soru 1",
@@ -1533,13 +1533,13 @@
     "sendCustomerConfirmation": true,
     "sendAdminNotification": true
   },
-  "newsletterSubject": "İrem Comfort 2026-2027 Yeni Sezon Hakiki Deri Koleksiyon Kataloğu Yayınlandı!",
-  "newsletterBadge": "YENİ SEZON KATALOĞU",
-  "newsletterTitle": "2026-2027 Bayan Comfort Sandalet & Terlik Koleksiyonumuzu Keşfedin!",
-  "newsletterSubtitle": "Manisa Ayakkabıcılar Sitesi İmalat Atölyemizden %100 Hakiki Deri Kalitesi",
-  "newsletterBody": "Değerli Müşterimiz ve İş Ortağımız,\n\nİrem Comfort olarak Manisa Ayakkabıcılar Sitesindeki atölyemizde özenle imal ettiğimiz %100 hakiki deri, anatomik yumuşak tabanlı bayan comfort terlik ve sandalet koleksiyonumuzun yeni sezon kataloğu hazırlandı.\n\nUzun saatler ayakta kalan kadınlar için geliştirilen ortopedik sabo modellerimiz, çift tokalı zamansız klasiklerimiz ve şık yazlık sandaletlerimizi incelemek için sizleri online kataloğumuza bekliyoruz.",
-  "newsletterCtaText": "Koleksiyonu & Kataloğu İnceleyin",
-  "newsletterCtaUrl": "https://iremcomfort.com/#collection",
+  "newsletterSubject": "İrem Comfort - Önemli Duyuru & Bilgilendirme",
+  "newsletterBadge": "İREM COMFORT DUYURU",
+  "newsletterTitle": "İrem Comfort Özel Bilgilendirme",
+  "newsletterSubtitle": "Hakiki Deri Bayan Comfort Terlik & Sandalet İmalatı",
+  "newsletterBody": "Değerli Müşterilerimiz,\n\nAtölyemiz ve koleksiyonumuzla ilgili en güncel gelişmeleri paylaşmaktan mutluluk duyuyoruz. Tüm soru, görüş ve sipariş talepleriniz için iletişim kanallarımızdan bize dilediğiniz zaman ulaşabilirsiniz.",
+  "newsletterCtaText": "Web Sitemizi Ziyaret Edin",
+  "newsletterCtaUrl": "https://iremcomfort.com",
   "newsletterBanner": "https://images.unsplash.com/photo-1603808033176-9d134e6f2c74?auto=format&fit=crop&q=80&w=1200",
   "newsletterOfferBox": ""
 }
