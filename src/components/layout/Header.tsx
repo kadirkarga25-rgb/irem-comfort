@@ -23,12 +23,16 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { sectionOrder, language, setLanguage, t } = useAppImages();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [langMenuOpen, setLangMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
   // Header is always visible
   const isHeaderVisible = true;
   const showFullLogoText = true;
+
+  const cycleLanguage = () => {
+    const nextLanguage: Record<Language, Language> = { tr: 'en', en: 'ar', ar: 'tr' };
+    setLanguage(nextLanguage[language]);
+  };
 
   const SECTION_LABELS: Record<string, string> = {
     hero: 'Ana Sayfa',
@@ -161,52 +165,19 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Right Side: Language Selector, Trendyol & Contact Buttons & Mobile Toggle */}
             <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
-              {/* Language Selector */}
-              <div className="relative">
-                <button
-                  onClick={() => setLangMenuOpen(!langMenuOpen)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#062050]/5 hover:bg-[#062050]/10 text-[#062050] text-[11px] font-extrabold transition-all border border-[#062050]/15 cursor-pointer"
-                  title="Language / Dil Seçimi"
-                >
-                  <Globe className="w-3 h-3 text-[#062050]" />
-                  <span className="uppercase font-mono">{language}</span>
-                  <span className="text-xs">
-                    {language === 'tr' ? '🇹🇷' : language === 'en' ? '🇬🇧' : '🇸🇦'}
-                  </span>
-                </button>
-
-                {langMenuOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-36 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-1">
-                    <button
-                      onClick={() => { setLanguage('tr'); setLangMenuOpen(false); }}
-                      className={`w-full px-3.5 py-2 text-left text-xs font-bold flex items-center justify-between hover:bg-slate-50 cursor-pointer ${
-                        language === 'tr' ? 'text-[#062050] bg-blue-50/80 font-extrabold' : 'text-slate-700'
-                      }`}
-                    >
-                      <span>Türkçe</span>
-                      <span>🇹🇷</span>
-                    </button>
-                    <button
-                      onClick={() => { setLanguage('en'); setLangMenuOpen(false); }}
-                      className={`w-full px-3.5 py-2 text-left text-xs font-bold flex items-center justify-between hover:bg-slate-50 cursor-pointer ${
-                        language === 'en' ? 'text-[#062050] bg-blue-50/80 font-extrabold' : 'text-slate-700'
-                      }`}
-                    >
-                      <span>English</span>
-                      <span>🇬🇧</span>
-                    </button>
-                    <button
-                      onClick={() => { setLanguage('ar'); setLangMenuOpen(false); }}
-                      className={`w-full px-3.5 py-2 text-left text-xs font-bold flex items-center justify-between hover:bg-slate-50 cursor-pointer ${
-                        language === 'ar' ? 'text-[#062050] bg-blue-50/80 font-extrabold' : 'text-slate-700'
-                      }`}
-                    >
-                      <span>العربية</span>
-                      <span>🇸🇦</span>
-                    </button>
-                  </div>
-                )}
-              </div>
+              {/* Language Selector — click to cycle: Türkçe → English → العربية → Türkçe */}
+              <button
+                onClick={cycleLanguage}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#062050]/5 hover:bg-[#062050]/10 text-[#062050] text-[11px] font-extrabold transition-all border border-[#062050]/15 cursor-pointer active:scale-95"
+                title="Dili değiştir / Change language / تغيير اللغة"
+                aria-label="Dili değiştir"
+              >
+                <Globe className="w-3 h-3 text-[#062050]" />
+                <span className="uppercase font-mono">{language}</span>
+                <span className="text-xs">
+                  {language === 'tr' ? '🇹🇷' : language === 'en' ? '🇬🇧' : '🇸🇦'}
+                </span>
+              </button>
 
               {CONTACT_DATA.trendyolUrl && (
                 <a
@@ -260,41 +231,21 @@ export const Header: React.FC<HeaderProps> = ({
             className="fixed inset-x-0 top-20 z-30 bg-white/95 backdrop-blur-xl border-b border-[#0A2D6F]/10 shadow-2xl md:hidden px-6 py-8 max-h-[85vh] overflow-y-auto"
           >
             <div className="flex flex-col space-y-3">
-              {/* Mobile Language Selector */}
+              {/* Mobile Language Selector — same one-click cycle as desktop */}
               <div className="py-2 border-b border-[#0A2D6F]/10">
-                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Globe className="w-3.5 h-3.5 text-[#0A2D6F]" />
-                  <span>{language === 'tr' ? 'Dil Seçimi / Language' : language === 'en' ? 'Select Language' : 'اختيار اللغة'}</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    onClick={() => { setLanguage('tr'); setMobileMenuOpen(false); }}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border cursor-pointer transition-all ${
-                      language === 'tr' ? 'bg-[#0A2D6F] text-white border-[#0A2D6F] shadow-sm' : 'bg-slate-50 text-slate-700 border-slate-200'
-                    }`}
-                  >
-                    <span>🇹🇷</span>
-                    <span>TR</span>
-                  </button>
-                  <button
-                    onClick={() => { setLanguage('en'); setMobileMenuOpen(false); }}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border cursor-pointer transition-all ${
-                      language === 'en' ? 'bg-[#0A2D6F] text-white border-[#0A2D6F] shadow-sm' : 'bg-slate-50 text-slate-700 border-slate-200'
-                    }`}
-                  >
-                    <span>🇬🇧</span>
-                    <span>EN</span>
-                  </button>
-                  <button
-                    onClick={() => { setLanguage('ar'); setMobileMenuOpen(false); }}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border cursor-pointer transition-all ${
-                      language === 'ar' ? 'bg-[#0A2D6F] text-white border-[#0A2D6F] shadow-sm' : 'bg-slate-50 text-slate-700 border-slate-200'
-                    }`}
-                  >
-                    <span>🇸🇦</span>
-                    <span>AR</span>
-                  </button>
-                </div>
+                <button
+                  onClick={cycleLanguage}
+                  className="w-full py-3 px-4 rounded-xl text-sm font-extrabold flex items-center justify-between gap-2 bg-[#062050]/5 text-[#062050] border border-[#062050]/10 cursor-pointer active:scale-[0.99] transition-all"
+                  title="Dili değiştir / Change language / تغيير اللغة"
+                >
+                  <span className="flex items-center gap-2">
+                    <Globe className="w-4 h-4" />
+                    <span>{language === 'tr' ? 'Türkçe' : language === 'en' ? 'English' : 'العربية'}</span>
+                  </span>
+                  <span className="text-base">
+                    {language === 'tr' ? '🇹🇷' : language === 'en' ? '🇬🇧' : '🇸🇦'}
+                  </span>
+                </button>
               </div>
 
               {[...primaryNavLinks, ...secondaryNavLinks].map((link) => {

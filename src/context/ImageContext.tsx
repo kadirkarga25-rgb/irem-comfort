@@ -32,7 +32,12 @@ export const detectInitialLanguage = (): Language => {
   if (search.includes('lang=ar') || hash.includes('lang=ar') || search.includes('locale=ar')) return 'ar';
   if (search.includes('lang=tr') || hash.includes('lang=tr') || search.includes('locale=tr')) return 'tr';
 
-  // 2. English domain or subdomain (iremcomfort.en, iremcomfrot.en, *.en, en.iremcomfort.com, en.*)
+  // 2. Language domains / subdomains.
+  // iremcomfort.tr is treated as Turkish. iremcomfort.en is supported by the
+  // application if a resolvable domain/proxy is configured for it.
+  if (hostname === 'iremcomfort.tr' || hostname.endsWith('.iremcomfort.tr')) return 'tr';
+  if (hostname === 'iremcomfort.en' || hostname.endsWith('.iremcomfort.en')) return 'en';
+
   if (
     hostname.endsWith('.en') || 
     hostname.startsWith('en.') || 
