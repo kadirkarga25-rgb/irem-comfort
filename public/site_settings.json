@@ -11,7 +11,7 @@
   "systemConfig": {
     "maxWaitTimeSeconds": 120,
     "isDeploying": false,
-    "lastDeployedAt": "2026-08-05T07:06:22.589Z",
+    "lastDeployedAt": "2026-09-05T10:56:12.568Z",
     "deployingMessage": "Sitemizin tamamlanmasına çok az kaldı, beklediğiniz için teşekkürler.",
     "githubRepo": "kadirkarga25-rgb/irem-comfort",
     "githubBranch": "main",
@@ -36,7 +36,7 @@
     "isOnboardingCompleted": false
   },
   "heroConfig": {
-    "badgeText": "Kuruluş 1993 • Manisa Ayakkabıcılar Sitesi İmalatı",
+    "badgeText": "Kuruluş 2020 • Manisa Ayakkabıcılar Sitesi İmalatı",
     "title": "Bayan Comfort Deri Sandalet & Terlik.",
     "description": "%100 Hakiki deri saya, ortopedik kavisli anatomik taban ve Manisa atölyemizin usta el işçiliği. Gün boyu adımlarınıza hafiflik ve zarif konfor katan yeni sezon modellerimizi keşfedin.",
     "primaryBtnText": "Koleksiyonu Keşfet",
@@ -45,45 +45,97 @@
     "signatureModelSub": "Yumuşak Dana Derisi Saya • Anatomik Yumuşak Konfor Taban"
   },
   "images": {
-    "heroImage": "",
+    "heroImage": "/uploads/gallery/Ads_z_tasar_m.png",
     "aboutImage": "",
     "craftsmanshipImages": {
-      "01": "",
-      "02": "",
-      "03": "",
-      "04": ""
+      "01": "/uploads/gallery/ChatGPT_Image_4_A_u_2026_15_07_00.png",
+      "02": "/uploads/gallery/ChatGPT_Image_4_A_u_2026_15_11_49.png",
+      "03": "/uploads/gallery/ChatGPT_Image_4_A_u_2026_15_13_39.png",
+      "04": "/uploads/gallery/ChatGPT_Image_4_A_u_2026_15_15_56.png"
     },
     "collectionImages": {
       "cift-tokali-comfort-terlik": {
-        "image": "/uploads/logo/irem-comfort-logo.jpg",
-        "secondaryImage": ""
+        "image": "/uploads/gallery/7_4.jpg",
+        "secondaryImage": "/uploads/gallery/7_3.jpg"
       },
       "ortopedik-sabo-terlik": {
-        "image": "",
-        "secondaryImage": ""
+        "image": "/uploads/gallery/1_2.png",
+        "secondaryImage": "/uploads/gallery/2_1.png"
       },
       "capraz-bant-sandalet": {
-        "image": "",
-        "secondaryImage": ""
+        "image": "/uploads/gallery/MS-01-Silver2.jpeg",
+        "secondaryImage": "/uploads/gallery/MS-01-Siyah3.jpeg"
       },
       "mantar-taban-comfort-terlik": {
-        "image": "",
-        "secondaryImage": ""
+        "image": "/uploads/gallery/Ekran_g_r_nt_s__2026-08-10_131207.png",
+        "secondaryImage": "/uploads/gallery/Ekran_g_r_nt_s__2026-08-10_131220.png"
       },
       "dolgu-topuk-sandalet": {
-        "image": "",
-        "secondaryImage": ""
+        "image": "/uploads/gallery/5_1.png",
+        "secondaryImage": "/uploads/gallery/5_6.jpg"
       },
       "cirt-cirtli-genis-terlik": {
-        "image": "",
-        "secondaryImage": ""
+        "image": "/uploads/gallery/3.jpg",
+        "secondaryImage": "/uploads/gallery/2_1.jpg"
+      },
+      "item-1788601354591": {
+        "image": "/uploads/gallery/KahverengiTopuklu_8.png",
+        "secondaryImage": "/uploads/gallery/KahverengiTopuklu_6.png"
+      },
+      "item-1788601630323": {
+        "image": "/uploads/gallery/1_10.jpg",
+        "secondaryImage": "/uploads/gallery/1_11.jpg"
+      },
+      "item-1788601736269": {
+        "image": "/uploads/gallery/BordoTopuklu_2.png",
+        "secondaryImage": "/uploads/gallery/BordoTopuklu_6.png"
+      },
+      "item-1788604303494": {
+        "image": "/uploads/gallery/MS-02Bej2.jpeg",
+        "secondaryImage": "/uploads/gallery/MS-02Siyah3).jpeg"
+      },
+      "item-1788604419676": {
+        "image": "/uploads/gallery/1.png",
+        "secondaryImage": "/uploads/gallery/2.png"
+      },
+      "item-1788604483167": {
+        "image": "/uploads/gallery/5_7.jpg",
+        "secondaryImage": "/uploads/gallery/1_8.jpg"
       }
     }
   },
   "aboutSlides": [
     {
-      "title": "Hakkımızda Slayt",
-      "desc": "Açıklama"
+      "badge": "YENİ SEZON",
+      "title": "Her Daim Konfor",
+      "subtitle": "Atölyemizden Mükemmel Dikiş İşçiliği",
+      "image": "/uploads/gallery/12__1_.png",
+      "alt": "İrem Comfort Yeni Slayt Görseli",
+      "id": "slide-1788600151739"
+    },
+    {
+      "badge": "YENİ SEZON",
+      "title": "Hakiki Deri Konfor",
+      "subtitle": "Atölyemizden Mükemmel Dikiş İşçiliği",
+      "image": "/uploads/gallery/12__4_.png",
+      "alt": "İrem Comfort Yeni Slayt Görseli",
+      "id": "slide-1788269315012"
+    },
+    {
+      "badge": "YENİ SEZON",
+      "title": "%100 El İşciliği",
+      "subtitle": "Atölyemizden Mükemmel Dikiş İşçiliği",
+      "image": "/uploads/gallery/12__2_.png",
+      "alt": "İrem Comfort Yeni Slayt Görseli",
+      "id": "slide-1788269318328"
+    },
+    {
+      "badge": "YENİ SEZON",
+      "title": "Gün Boyu Konfor",
+      "subtitle": "Atölyemizden Mükemmel Dikiş İşçiliği",
+      "image": "/uploads/gallery/12__3_.png",
+      "alt": "İrem Comfort Yeni Slayt Görseli",
+      "id": "slide-1788342114935"
     }
   ],
   "ALL": {
@@ -771,14 +823,239 @@
   },
   "collectionItems": [
     {
+      "name": "İrem Comfort Ortopedik Platform Sandalet | Çift Ayarlanabilir Bantlı Rahat Günlük Yazlık Siyah Sandalet",
+      "subtitle": "Hakiki Deri Konfor Taban",
+      "category": "Bayan Comfort Sandalet",
+      "tagline": "Yeni sezon özel el işçiliği",
+      "description": "İrem Comfort Ortopedik Platform Sandalet – Çift Ayarlanabilir Bantlı Günlük Konfor\nModern tasarımı, zarif metal aksesuar detayları ve konfor odaklı yapısıyla öne çıkan İrem Comfort Kadın Platform Sandalet, günlük kullanımda rahatlığı ve şıklığı bir arada sunar. Zamansız siyah rengi sayesinde günlük kombinlerden klasik kombinlere kadar birçok farklı stile kolayca uyum sağlar.\n\nÇift ayarlanabilir bant sistemi ve ayarlanabilir arka bant, ayağınıza güvenli ve kişiye özel uyum sağlarken hafif platform tabanı yürüyüş sırasında konfor hissini destekler. Yumuşak iç tabanı sayesinde uzun süreli kullanımlarda ayağı rahat ettirir ve gün boyu konfor sunar.\n\nÜrün Özellikleri\nÇift ayarlanabilir bant sistemi\nAyarlanabilir arka bant\nHafif platform taban\nYumuşak ve konforlu iç taban\nKaymayı azaltmaya yardımcı taban yapısı\nŞık metal aksesuar detayları\nAçık burun tasarımı\nNefes almayı destekleyen yapı\nGünlük kullanıma uygun\nKaliteli işçilik\nNeden Bu Model?\nAyarlanabilir bant sistemi sayesinde ayağınıza kolayca uyum sağlar.\nYumuşak iç tabanı gün boyu konfor sunar.\nHafif platform tabanı rahat yürüyüş deneyimi sağlar.\nMetal aksesuar detayları modern ve şık bir görünüm kazandırır.\nSiyah rengi sayesinde birçok kombinle kolayca uyum sağlar.\nGünlük kullanım, ofis ve seyahat için ideal bir tercihtir.\nKullanım Alanları\nGünlük kullanım\nOfis\nŞehir yaşamı\nTatil\nYaz ayları\nSeyahat\nBakım Önerileri\nNemli ve yumuşak bir bez ile temizleyiniz.\nKimyasal temizleyiciler kullanmayınız.\nDoğrudan güneş ışığında uzun süre bırakmayınız.\nKuru ve havadar bir ortamda muhafaza ediniz.\nNumara Bilgisi\nÜrün standart kalıptadır. Ayarlanabilir bant sistemi sayesinde farklı ayak yapılarına uyum sağlayabilir. Günlük kullandığınız ayakkabı numarasını tercih etmeniz önerilir.\n\nİrem Comfort\nİrem Comfort olarak her modelimizi kalite, konfor ve modern tasarım anlayışıyla üretiyoruz. Günlük yaşamın temposuna uyum sağlayan sandalet koleksiyonumuz; hafif yapısı, rahat tabanı ve şık görünümüyle gün boyu konfor sunmak için özenle tasarlanmıştır.",
+      "image": "/uploads/gallery/5_7.jpg",
+      "secondaryImage": "/uploads/gallery/1_8.jpg",
+      "materials": [
+        "%100 Hakiki Deri",
+        "Anatomik Taban"
+      ],
+      "dimensions": "36 - 41 Numara",
+      "leatherGrades": [
+        "Nappa Hakiki Deri"
+      ],
+      "colors": [
+        {
+          "name": "Siyah ",
+          "hex": "#1C1C1C",
+          "image": "/uploads/gallery/1_8.jpg"
+        },
+        {
+          "name": "Bej",
+          "hex": "#e2d1c1",
+          "image": "/uploads/gallery/_rem_Comfort_Ana_Logo.png"
+        }
+      ],
+      "features": [
+        "Anatomik taban desteği",
+        "%100 Hakiki deri saya"
+      ],
+      "trendyolUrl": "https://www.trendyol.com/irem-comfort/ortopedik-platform-sandalet-cift-ayarlanabilir-bantli-rahat-gunluk-yazlik-siyah-sandalet-p-1171036724?boutiqueId=61&merchantId=1286942&filterOverPriceListings=false&sav=true",
+      "id": "item-1788604483167"
+    },
+    {
+      "name": "İrem Comfort Hakiki Deri Confort Yüksek Topuklu Sandalet",
+      "subtitle": "Hakiki Deri Konfor Taban",
+      "category": "Bayan Comfort Sandalet",
+      "tagline": "Yeni sezon özel el işçiliği",
+      "description": "İrem Comfort Ortopedik Dolgu Topuk Sandalet – Çapraz Bantlı Günlük Konfor\nŞık çapraz bant tasarımı, zarif dolgu topuk tabanı ve gün boyu rahatlık sunan yapısıyla İrem Comfort Kadın Dolgu Topuk Sandalet, günlük kullanımda konfor ve şıklığı bir araya getirir. Klasik taba rengi sayesinde jean, elbise, etek ve kumaş pantolon gibi birçok kombinle kolayca uyum sağlar.\n\nAyağı nazikçe kavrayan çapraz ön bantları ve ayarlanabilir arka bant sistemi sayesinde güvenli kullanım sunarken, hafif dolgu topuk tabanı yürüyüş sırasında dengeyi destekler. Yumuşak iç tabanı sayesinde uzun süreli kullanımlarda ayağın rahat etmesine yardımcı olur ve gün boyu konfor hissi sağlar.\n\nÜrün Özellikleri\nModern çapraz bant tasarımı\nAyarlanabilir arka bant sistemi\nHafif dolgu topuk (platform) taban\nYumuşak ve konforlu iç taban\nKaymayı azaltmaya yardımcı taban yapısı\nGünlük kullanıma uygun ergonomik tasarım\nAçık burun yapısı\nNefes almayı destekleyen tasarım\nKaliteli işçilik ve dayanıklı malzeme\nGün boyu rahat kullanım\nNeden Bu Model?\nÇapraz bant tasarımı ayağı estetik şekilde sarar.\nAyarlanabilir arka bant sayesinde kişiye özel uyum sağlar.\nDolgu topuk tabanı hem şıklık hem de yürüyüş konforu sunar.\nYumuşak iç tabanı uzun süreli kullanımlarda rahatlık sağlar.\nTaba rengi sayesinde birçok farklı kombinle uyum sağlar.\nGünlük kullanım, ofis, davet ve tatil için ideal bir tercihtir.\nKullanım Alanları\nGünlük kullanım\nOfis\nŞehir yaşamı\nTatil\nYaz ayları\nÖzel davetler\nSeyahat\nBakım Önerileri\nNemli ve yumuşak bir bez ile temizleyiniz.\nKimyasal temizleyiciler kullanmayınız.\nDoğrudan güneş ışığında uzun süre bırakmayınız.\nKuru ve havadar bir ortamda muhafaza ediniz.\nNumara Bilgisi\nÜrün standart kalıptadır. Ayarlanabilir arka bant sistemi sayesinde farklı ayak yapılarına uyum sağlayabilir. Günlük kullandığınız ayakkabı numarasını tercih etmeniz önerilir.\n\nİrem Comfort\nİrem Comfort olarak her modelimizi kalite, konfor ve modern tasarım anlayışıyla üretiyoruz. Günlük yaşamın temposuna uyum sağlayan sandalet koleksiyonumuz; hafif yapısı, rahat tabanı ve zarif görünümüyle gün boyu konfor sunmak için özenle tasarlanmıştır.",
+      "image": "/uploads/gallery/1.png",
+      "secondaryImage": "/uploads/gallery/2.png",
+      "materials": [
+        "%100 Hakiki Deri",
+        "Anatomik Taban"
+      ],
+      "dimensions": "36 - 41 Numara",
+      "leatherGrades": [
+        "Nappa Hakiki Deri"
+      ],
+      "colors": [
+        {
+          "name": "Taba ",
+          "hex": "#8B5A2B",
+          "image": "/uploads/gallery/1.png"
+        }
+      ],
+      "features": [
+        "Anatomik taban desteği",
+        "%100 Hakiki deri saya"
+      ],
+      "trendyolUrl": "https://www.trendyol.com/irem-comfort/hakiki-deri-confort-yuksek-topuklu-sandalet-p-1175150889?boutiqueId=61&merchantId=1286942&filterOverPriceListings=false&sav=true",
+      "id": "item-1788604419676"
+    },
+    {
+      "name": "İrem Comfort Kadın Topuklu Hakiki Deri Comfort Sandalet",
+      "subtitle": "Hakiki Deri Konfor Taban",
+      "category": "Bayan Comfort Sandalet",
+      "tagline": "Yeni sezon özel el işçiliği",
+      "description": "İrem Comfort Kadın Topuklu Hakiki Deri Comfort Sandalet\nModern çizgileri, zarif lazer kesim detayları ve şık blok topuğu ile öne çıkan İrem Comfort Kadın Topuklu Sandalet, konfor ve zarafeti bir araya getiriyor. Hafif yapısı ve estetik görünümü sayesinde günlük kullanımın yanı sıra özel davetlerde de rahatlıkla tercih edilebilir.\n\nÖn bölümde yer alan lazer kesim desenler ayağın nefes almasına yardımcı olurken, ayarlanabilir toka detayı ayağa güvenli ve kişiye özel uyum sağlar. Dengeli blok topuğu ve yumuşak iç tabanı sayesinde gün boyu rahat bir kullanım sunar.\n\nÜrün Özellikleri\nModern lazer kesim tasarım\nAyarlanabilir toka sistemi\nŞık blok topuk\nYumuşak ve konforlu iç taban\nAçık burun yapısı\nAyağın nefes almasını destekleyen lazer kesim yüzey\nKaymayı azaltmaya yardımcı taban\nKaliteli işçilik\nGünlük ve özel kullanıma uygun\nZamansız ve zarif görünüm\nNeden Bu Model?\nLazer kesim detayları sayesinde modern ve şık bir görünüm sunar.\nAyarlanabilir toka ayağa güvenli ve rahat uyum sağlar.\nBlok topuk yapısı dengeli yürüyüş deneyimini destekler.\nYumuşak iç tabanı uzun süreli kullanımlarda konfor sunar.\nGünlük kombinlerden özel davetlere kadar farklı stillerle kolayca uyum sağlar.\nYaz aylarında ferah kullanım sağlayan açık ve hava alan tasarıma sahiptir.\nKullanım Alanları\nGünlük kullanım\nOfis\nŞehir yaşamı\nÖzel davetler\nDüğün ve nişan organizasyonları\nYaz kombinleri\nBakım Önerileri\nNemli ve yumuşak bir bez ile temizleyiniz.\nKimyasal temizleyiciler kullanmayınız.\nDoğrudan güneş ışığında uzun süre bırakmayınız.\nKuru ve havadar bir ortamda muhafaza ediniz.\nNumara Bilgisi\nÜrün standart kalıptadır. Günlük kullandığınız ayakkabı numarasını tercih etmeniz önerilir.\n\nİrem Comfort\nİrem Comfort olarak şıklığı, kaliteyi ve konforu bir araya getiren kadın ayakkabı koleksiyonları tasarlıyoruz. Modern çizgilere sahip topuklu sandalet modellerimiz, günlük kullanımda ve özel günlerde rahatlığınızdan ödün vermeden zarif bir görünüm sunmak için özenle üretilmektedir.\n\n",
+      "image": "/uploads/gallery/MS-02Bej2.jpeg",
+      "secondaryImage": "/uploads/gallery/MS-02Siyah3).jpeg",
+      "materials": [
+        "%100 Hakiki Deri",
+        "Anatomik Taban"
+      ],
+      "dimensions": "36 - 41 Numara",
+      "leatherGrades": [
+        "Nappa Hakiki Deri"
+      ],
+      "colors": [
+        {
+          "name": "Siyah ",
+          "hex": "#1C1C1C",
+          "image": "/uploads/gallery/MS-02Siyah(2).jpeg"
+        },
+        {
+          "name": "Bej",
+          "hex": "#d0c4b9",
+          "image": "/uploads/gallery/MS-02Bej.jpeg"
+        }
+      ],
+      "features": [
+        "Anatomik taban desteği",
+        "%100 Hakiki deri saya"
+      ],
+      "trendyolUrl": "https://www.trendyol.com/pd/irem-comfort/kadin-topuklu-hakiki-deri-comfort-sandalet-p-1179924848?boutiqueId=61&merchantId=1286942&filterOverPriceListings=false&sav=true",
+      "id": "item-1788604303494"
+    },
+    {
+      "name": "İrem Comfort Kadın Topuklu Hakiki Deri Günlük Klasik Ayakkabı",
+      "subtitle": "Hakiki Deri Konfor Taban",
+      "category": "Bayan Comfort Ayakkabı",
+      "tagline": "Yeni sezon özel el işçiliği",
+      "description": "Anavelle Kadın Topuklu Ayakkabı – Şık ve Klasik Günlük Kullanım\nŞık ve zamansız tasarımıyla öne çıkan Anavelle Kadın Taba Topuklu Ayakkabı, klasik görünümü modern detaylarla bir araya getirerek günlük kullanım ve özel kombinler için zarif bir seçenek sunar. Taba renkli tasarımı, ayakkabının burun kısmındaki dekoratif kroko desenli detay ile dikkat çekici bir görünüm kazanır.\n\nOrta yükseklikteki kalın topuk yapısı dengeli ve şık bir duruş sunarken, klasik loafer esintili ön tasarımı sayesinde farklı kombinlerle kolayca uyum sağlar. İç tabandaki perfore detaylar ise kullanım sırasında ferah bir his sunmaya yardımcı olur.\n\nÜrün Özellikleri\nŞık ve klasik tasarım\nTaba renk\nKroko desenli dekoratif burun detayı\nOrta yükseklikte kalın topuk\nKlasik loafer esintili ön tasarım\nPerfore detaylı iç taban\nZarif ve modern görünüm\nKolay kombinlenebilen tasarım\nGünlük ve özel kullanıma uygun\nÖzenli işçilik ve şık detaylar\nNeden Bu Model?\nZamansız tasarımı sayesinde farklı kombinlerle kolayca uyum sağlar.\nKroko desenli burun detayı modele şık ve dikkat çekici bir görünüm kazandırır.\nKalın topuk yapısı dengeli bir kullanım sunmaya yardımcı olur.\nPerfore iç taban detayları ferah bir kullanım hissini destekler.\nTaba rengi sayesinde hem klasik hem de günlük kombinlerde kullanılabilir.\nŞık görünümüyle ofis, davet ve günlük kullanım için ideal bir tercihtir.\nKullanım Alanları\nGünlük kullanım\nOfis ve iş hayatı\nÖzel davetler\nÖzel günler\nŞık kombinler\nGünlük şehir kullanımı\nBakım Önerileri\nYumuşak ve hafif nemli bir bez ile nazikçe temizleyiniz.\nKimyasal ve aşındırıcı temizleyiciler kullanmayınız.\nÜrünü uzun süre doğrudan güneş ışığına maruz bırakmayınız.\nIslak veya nemli bırakmadan kuru ve havadar bir ortamda muhafaza ediniz.\nAyakkabının formunu koruması için kullanım sonrasında uygun şekilde saklayınız.\nNumara Bilgisi\nÜrün kalıbı hakkında özel bir bilgi bulunmadığından, satın alma öncesinde mevcut kullandığınız ayakkabı numarasını ve ürün ölçülerini kontrol etmeniz önerilir.\n\nAnavelle\nAnavelle olarak günlük yaşamın farklı anlarına uyum sağlayan, şık ve kullanışlı ayakkabı modelleri sunuyoruz. Klasik çizgileri modern detaylarla buluşturan bu model, zarif görünümü ve kolay kombinlenebilir tasarımıyla kadın ayakkabı koleksiyonunun öne çıkan seçeneklerinden biridir.\n\n",
+      "image": "/uploads/gallery/BordoTopuklu_2.png",
+      "secondaryImage": "/uploads/gallery/BordoTopuklu_6.png",
+      "materials": [
+        "%100 Hakiki Deri",
+        "Anatomik Taban"
+      ],
+      "dimensions": "36 - 41 Numara",
+      "leatherGrades": [
+        "Nappa Hakiki Deri"
+      ],
+      "colors": [
+        {
+          "name": "Siyah Klasik",
+          "hex": "#1C1C1C",
+          "image": "/uploads/gallery/SiyahTopuklu_4_3.png"
+        },
+        {
+          "name": "Taba Bronz",
+          "hex": "#8B5A2B",
+          "image": "/uploads/gallery/TabaTopuklu_6_2.png"
+        },
+        {
+          "name": "Bordo",
+          "hex": "#45284d",
+          "image": "/uploads/gallery/BordoTopuklu_1.png"
+        }
+      ],
+      "features": [
+        "Anatomik taban desteği",
+        "%100 Hakiki deri saya"
+      ],
+      "trendyolUrl": "https://www.trendyol.com/pd/anavelle/kadin-topuklu-hakiki-deri-gunluk-klasik-ayakkabi-p-1184304267?boutiqueId=61&merchantId=1286942&filterOverPriceListings=false&sav=true",
+      "id": "item-1788601736269"
+    },
+    {
+      "name": "İrem Comfort Ortopedik Platform Sandalet | Çapraz Bantlı Ayarlanabilir Rahat Günlük Yazlık Sandalet",
+      "subtitle": "Hakiki Deri Konfor Taban",
+      "category": "Bayan Comfort Terlik",
+      "tagline": "Yeni sezon özel el işçiliği",
+      "description": "İrem Comfort Ortopedik Platform Sandalet – Çapraz Bantlı Günlük Konfor\nModern tasarımı, uyumlu renk geçişleri ve hafif platform tabanı ile öne çıkan İrem Comfort Kadın Platform Sandalet, gün boyu konforu ve şıklığı bir araya getiriyor. Çapraz bant tasarımı ayağı zarif bir şekilde kavrarken günlük kombinlerinize modern bir dokunuş kazandırır.\n\nAyarlanabilir arka bant sayesinde ayağınıza güvenli ve rahat bir uyum sağlar. Hafif platform tabanı yürüyüş sırasında konfor hissini desteklerken yumuşak iç tabanı gün boyu rahat kullanım sunar. Açık tasarımı sayesinde sıcak havalarda ferah kullanım sağlayarak yaz aylarının vazgeçilmez parçalarından biri olur.\n\nÜrün Özellikleri\nModern çapraz bant tasarımı\nAyarlanabilir arka bant\nHafif platform taban\nYumuşak ve konforlu iç taban\nKaymayı azaltmaya yardımcı taban yapısı\nGünlük kullanıma uygun\nNefes almayı destekleyen açık tasarım\nÇok renkli modern görünüm\nKaliteli işçilik\nYaz ayları için ideal kullanım\nNeden Bu Model?\nÇapraz bant yapısı ayağı rahat ve dengeli şekilde kavrar.\nAyarlanabilir arka bant sayesinde kişiye özel uyum sağlar.\nHafif platform tabanı gün boyu konforlu yürüyüş deneyimi sunar.\nYumuşak iç tabanı uzun süreli kullanımlarda rahatlık sağlar.\nBej, haki ve hardal tonlarının uyumu birçok kombinle kolayca kullanılabilir.\nGünlük kullanım, tatil ve şehir yaşamı için ideal bir tercihtir.\nKullanım Alanları\nGünlük kullanım\nŞehir yaşamı\nOfis\nTatil\nYaz ayları\nSeyahat\nBakım Önerileri\nNemli ve yumuşak bir bez ile temizleyiniz.\nKimyasal temizleyiciler kullanmayınız.\nDoğrudan güneş ışığında uzun süre bırakmayınız.\nKuru ve havadar bir ortamda muhafaza ediniz.\nNumara Bilgisi\nÜrün standart kalıptadır. Günlük kullandığınız ayakkabı numarasını tercih etmeniz önerilir.\n\nİrem Comfort\nİrem Comfort olarak konforu, kaliteyi ve modern tasarımı bir araya getiriyoruz. Günlük yaşamın temposuna uyum sağlayan sandalet koleksiyonumuz; hafif yapısı, rahat tabanı ve şık görünümüyle gün boyu keyifli bir kullanım sunmak için özenle tasarlanmıştır.",
+      "image": "/uploads/gallery/1_10.jpg",
+      "secondaryImage": "/uploads/gallery/1_11.jpg",
+      "materials": [
+        "%100 Hakiki Deri",
+        "Anatomik Taban"
+      ],
+      "dimensions": "36 - 41 Numara",
+      "leatherGrades": [
+        "Nappa Hakiki Deri"
+      ],
+      "colors": [
+        {
+          "name": "Siyah",
+          "hex": "#1C1C1C",
+          "image": "/uploads/gallery/1_9.jpg"
+        },
+        {
+          "name": "Taba",
+          "hex": "#8B5A2B",
+          "image": "/uploads/gallery/1_12.jpg"
+        },
+        {
+          "name": "Kahve-Taba-Bej",
+          "hex": "#5e442c",
+          "image": "/uploads/gallery/1_10.jpg"
+        },
+        {
+          "name": "Bej-Sarı-Scarpion",
+          "hex": "#b2b884",
+          "image": "/uploads/gallery/1_11.jpg"
+        }
+      ],
+      "features": [
+        "Anatomik taban desteği",
+        "%100 Hakiki deri saya"
+      ],
+      "trendyolUrl": "https://www.trendyol.com/irem-comfort/ortopedik-platform-sandalet-capraz-bantli-ayarlanabilir-rahat-gunluk-yazlik-sandalet-p-1170920248?boutiqueId=61&merchantId=1286942&filterOverPriceListings=false&sav=true",
+      "id": "item-1788601630323"
+    },
+    {
+      "name": "İrem Comfort Hakiki Deri Kalın Topuklu Bağcıklı Oxford Ayakkabı",
+      "subtitle": "Hakiki Deri Konfor Taban",
+      "category": "Bayan Comfort Ayakkabı",
+      "tagline": "Yeni sezon özel el işçiliği",
+      "description": "Anavelle Kadın Kahverengi Kalın Topuklu Bağcıklı Oxford Ayakkabı\nKlasik Oxford ayakkabı stilini modern ve feminen bir tasarımla buluşturan Anavelle Kadın Oxford Ayakkabı, şık görünümü ve dikkat çekici detaylarıyla günlük ve klasik kombinlerin tamamlayıcısıdır. Kahverengi tasarımı, zarif dikiş detayları ve bağcıklı yapısıyla zamansız bir görünüm sunar.\n\nKalın topuk yapısı modele güçlü ve şık bir duruş kazandırırken, bağcıklı tasarımı ayağın ayakkabıya daha iyi uyum sağlamasına yardımcı olur. Yuvarlak burun yapısı ve klasik Oxford çizgileri sayesinde pantolon, kumaş pantolon, etek ve elbiselerle kolayca kombinlenebilir.\n\nÜrün Özellikleri\nKadın Oxford ayakkabı\nKahverengi tasarım\nBağcıklı yapı\nKalın topuk\nYuvarlak burun\nKlasik Oxford tasarımı\nDekoratif dikiş ve brogue detayları\nŞık ve zamansız görünüm\nKolay kombinlenebilen tasarım\nGünlük ve klasik kullanıma uygun\nNeden Bu Model?\nKlasik Oxford tasarımı sayesinde zamansız bir stil sunar.\n Kalın topuk yapısı modele modern ve güçlü bir görünüm kazandırır.\nBağcıklı tasarımı sayesinde ayağa uyum sağlamaya yardımcı olur.\nDekoratif dikiş ve brogue detayları tasarımı zenginleştirir.\n Kahverengi rengi sayesinde farklı renklerdeki kombinlerle kolayca uyum sağlar.\n Ofis, günlük kullanım ve klasik kombinler için şık bir tercihtir.\nKullanım Alanları\nGünlük kullanım\nOfis ve iş hayatı\nKlasik kombinler\nÖzel günler\nDavetler\nGünlük şehir kullanımı\nBakım Önerileri\nYumuşak ve hafif nemli bir bez ile nazikçe temizleyiniz.\nKimyasal ve aşındırıcı temizleyiciler kullanmayınız.\nDoğrudan güneş ışığına uzun süre maruz bırakmayınız.\nKuru ve havadar bir ortamda muhafaza ediniz.\nÜrünün formunu koruması için uygun şekilde saklayınız.\nNumara Bilgisi\nSatın alma öncesinde mevcut kullandığınız ayakkabı numarasını ve ürün ölçülerini kontrol etmeniz önerilir.\n\nAnavelle\nAnavelle, klasik ve modern tasarım anlayışını bir araya getirerek günlük yaşamın farklı anlarına uyum sağlayan kadın ayakkabı modelleri sunar. Şık detayları ve zamansız çizgileriyle bu Oxford model, stil sahibi kombinlerin tamamlayıcısı olarak tasarlanmıştır.\n\n",
+      "image": "/uploads/gallery/KahverengiTopuklu_8.png",
+      "secondaryImage": "/uploads/gallery/KahverengiTopuklu_6.png",
+      "materials": [
+        "%100 Hakiki Deri",
+        "Anatomik Taban"
+      ],
+      "dimensions": "36 - 41 Numara",
+      "leatherGrades": [
+        "Nappa Hakiki Deri"
+      ],
+      "colors": [
+        {
+          "name": "Siyah",
+          "hex": "#1C1C1C",
+          "image": "/uploads/gallery/SiyahTopuklu_1.png"
+        },
+        {
+          "name": "Taba",
+          "hex": "#8B5A2B",
+          "image": "/uploads/gallery/TabaTopuklu_1.png"
+        },
+        {
+          "name": "Kahve",
+          "hex": "#964b00",
+          "image": "/uploads/gallery/KahverengiTopuklu_5.png"
+        }
+      ],
+      "features": [
+        "Anatomik taban desteği",
+        "%100 Hakiki deri saya"
+      ],
+      "trendyolUrl": "https://www.trendyol.com/anavelle/hakiki-deri-kalin-topuklu-bagcikli-oxford-ayakkabi-p-1184419644?boutiqueId=61&merchantId=1286942&filterOverPriceListings=false&sav=true",
+      "id": "item-1788601354591"
+    },
+    {
       "id": "cift-tokali-comfort-terlik",
-      "name": "İrem Comfort Çift Tokalı Hakiki Deri Terlik",
+      "name": "İrem Comfort Hakiki Deri Dolgu Topuklu Ortopedik Kadın Terlik",
       "subtitle": "Anatomik Yumuşak Tabanlı Bayan Terliği",
       "category": "Bayan Comfort Terlik",
       "tagline": "Gün boyu yumuşak adımlar için %100 hakiki deri saya ve esnek taban",
-      "description": "İrem Comfort un en çok tercih edilen klasiği. Ayarlanabilir metal kemer tokaları sayesinde her ayak tipine mükemmel uyum sağlar. Hakiki deri iç ve dış kaplaması terlemeyi önler, anatomik taban desteğiyle gün boyu konfor sunar.",
-      "image": "/uploads/logo/irem-comfort-logo.jpg",
-      "secondaryImage": "",
+      "description": "İREM COMFORT\nPremium Leather Collection\nHakiki Deri • El İşçiliği • Ortopedik Konfor\n\nÜrün Hakkında\nİrem Comfort tarafından özenle üretilen bu model; modern görünümü, hakiki deri yapısı ve ortopedik taban desteği ile gün boyu konfor sunmak için tasarlanmıştır. Premium işçiliği, nefes alabilen yapısı ve kaliteli malzemeleri sayesinde hem günlük kullanım hem de uzun süreli kullanım için idealdir.\n\n\nÖzellikDetay Üst MalzemeHakiki Deri TabanOrtopedik Anatomik KullanımGünlük Kullanım Taban YapısıKaymaz Platform Taban ÜretimEl İşçiliği\n✓ Hakiki Deri\n✓ Ortopedik\n✓ Kaymaz Taban\n✓ Hafif Yapı\n✓ El İşçiliği\n✓ Gün Boyu Konfor\n\nNeden İrem Comfort?\nPremium kalite anlayışı\nHakiki deri malzeme\nOrtopedik destek\nUzun ömürlü kullanım\nModern ve şık tasarım\nGünlük kullanım için ideal\n\nBakım Önerileri\nNemli bez ile temizleyiniz.\nKimyasal temizleyici kullanmayınız.\nDoğrudan güneş ışığında bırakmayınız.\nKuru ortamda muhafaza ediniz.\n\nİREM COMFORT\nHer Adımda Konfor\nPremium Kadın Ayakkabı & Terlik Koleksiyonu",
+      "image": "/uploads/gallery/7_4.jpg",
+      "secondaryImage": "/uploads/gallery/7_3.jpg",
       "materials": [
         "%100 Hakiki Yumuşak Dana Derisi",
         "Anatomik Poliüretan Taban",
@@ -793,20 +1070,17 @@
         {
           "name": "Siyah Klasik",
           "hex": "#1C1C1C",
-          "image": "/uploads/hero/hero_1785930350459_g819p.jpg"
-        },
-        {
-          "name": "Taba Bronz",
-          "hex": "#8B5A2B"
+          "image": "/uploads/gallery/1_3.jpg"
         },
         {
           "name": "Vizon Krem",
-          "hex": "#D2C4B2"
+          "hex": "#D2C4B2",
+          "image": "/uploads/gallery/fotograf_1.png"
         },
         {
           "name": "Beyaz Saf",
           "hex": "#FFFFFF",
-          "image": "/uploads/logo/irem-comfort-logo.jpg"
+          "image": "/uploads/gallery/1_4.jpg"
         }
       ],
       "features": [
@@ -815,17 +1089,18 @@
         "Paslanmaz ayarlanabilir metal tokalar",
         "Hafif ve darbe emici poliüretan taban"
       ],
-      "isFeatured": true
+      "isFeatured": true,
+      "trendyolUrl": "https://www.trendyol.com/irem-comfort/hakiki-deri-dolgu-topuklu-ortopedik-kadin-terlik-p-1164715557?boutiqueId=61&merchantId=1286942&filterOverPriceListings=false&sav=true"
     },
     {
       "id": "ortopedik-sabo-terlik",
-      "name": "İrem Comfort Hakiki Deri Ortopedik Sabo Terlik",
+      "name": "İrem Comfort Hakiki Deri Konfort Taban Rahat Günlük Terlik",
       "subtitle": "Nefes Alan Gözenekli İş ve Günlük Terliği",
-      "category": "Sabo & Ortopedik Terlik",
+      "category": "Bayan Comfort Terlik",
       "tagline": "Sağlık çalışanları ve ayakta çalışan kadınlar için özel konfor",
-      "description": "Uzun saatler ayakta kalan kadınlar için özel olarak geliştirilmiş ortopedik sabo modeli. Lamine hakiki deri saya üzerindeki özel hava delikleri sirkülasyon sağlar. Özel pedli dolgulu tabanı topuk ve bel yükünü hafifletir.",
-      "image": "",
-      "secondaryImage": "",
+      "description": "İrem Comfort Hakiki Deri Kadın Ortopedik Platform Terlik\nGünlük şıklığı ve üstün konforu bir araya getiren İrem Comfort Hakiki Deri Platform Terlik, modern tasarımı ve kaliteli işçiliğiyle gün boyu rahat kullanım sunar.\n\nHakiki deri üst yüzeyi doğal yapısı sayesinde ayağın nefes almasına yardımcı olurken, yumuşak dokusu ile uzun süreli kullanımlarda konfor hissini artırır.\n\nMinimal H kesim saya tasarımı ayağı rahatça kavrar ve açık yan kesimleri sayesinde özellikle yaz aylarında ferah kullanım sağlar. Hafif platform tabanı yürüyüş sırasında dengeli destek sunarken, ortopedik iç tabanı gün boyu konfor sağlar.\n\nÜrün Özellikleri\nHakiki Deri Üst Yüzey\nOrtopedik Anatomik İç Taban\nHafif Platform Taban\nKaymaz Alt Taban\nNefes Alabilen Açık Saya Tasarımı\nYumuşak İç Taban\nGünlük Kullanıma Uygun\nEl İşçiliği ile Üretilmiştir\nŞık ve Modern Tasarım\nNeden Bu Model?\nHakiki deri sayesinde uzun ömürlü kullanım.\nOrtopedik taban ile gün boyu konfor.\nHafif platform taban sayesinde rahat yürüyüş.\nMinimal tasarımı sayesinde birçok kombin ile uyum sağlar.\nYaz aylarında ferah kullanım sunan açık saya yapısı.\nGünlük kullanım için ideal yapı.\nKullanım Alanları\nGünlük Kullanım\nOfis\nŞehir Yaşamı\nTatil\nYaz Ayları\nUzun Süre Ayakta Kalınan Günler\nBakım Önerileri\nNemli ve yumuşak bir bez ile temizleyiniz.\nKimyasal temizleyiciler kullanmayınız.\nDoğrudan güneş ışığında uzun süre bırakmayınız.\nDeri bakım ürünleri ile düzenli bakım yapılması tavsiye edilir.\nNumara Bilgisi\nÜrün standart kalıptadır. Günlük kullandığınız ayakkabı numarasını tercih etmeniz önerilir.\n\nİrem Comfort\nİrem Comfort olarak ürünlerimizi kaliteli malzeme, özenli işçilik ve gün boyu konfor anlayışıyla üretiyoruz. Hakiki deri ve ortopedik taban teknolojisini modern tasarımla bir araya getirerek şıklığı ve rahatlığı aynı üründe sunuyoruz.\n\n",
+      "image": "/uploads/gallery/1_2.png",
+      "secondaryImage": "/uploads/gallery/2_1.png",
       "materials": [
         "Perfore Hakiki Deri",
         "Ortopedik Jel Pedli Taban",
@@ -837,16 +1112,19 @@
       ],
       "colors": [
         {
-          "name": "Beyaz Medikal",
-          "hex": "#F8F9FA"
+          "name": "Siyah",
+          "hex": "#1c1c1c",
+          "image": "/uploads/gallery/1.webp"
         },
         {
-          "name": "Gece Siyahı",
-          "hex": "#111111"
+          "name": "Taba",
+          "hex": "#8B5A2B",
+          "image": "/uploads/gallery/1_2.png"
         },
         {
-          "name": "Lacivert",
-          "hex": "#0A2D6F"
+          "name": "Bej",
+          "hex": "#d2c4b2",
+          "image": "/uploads/gallery/1_1.webp"
         }
       ],
       "features": [
@@ -855,17 +1133,18 @@
         "Islak ve kuru zeminlerde kaymayan taban",
         "Kolay temizlenebilir leke tutmaz hakiki deri"
       ],
-      "isFeatured": true
+      "isFeatured": true,
+      "trendyolUrl": "https://www.trendyol.com/irem-comfort/hakiki-deri-konfort-taban-rahat-gunluk-terlik-p-1166665710?boutiqueId=61&merchantId=1286942&filterOverPriceListings=false&sav=true"
     },
     {
       "id": "capraz-bant-sandalet",
-      "name": "İrem Comfort Çapraz Bantlı Hakiki Deri Sandalet",
+      "name": "İrem Comfort Kadın Topuklu Hakiki Deri Sandalet",
       "subtitle": "Zarif & Şık Yazlık Bayan Sandalet",
       "category": "Bayan Comfort Sandalet",
       "tagline": "Yazın sıcak günlerinde hem şıklık hem anatomik konfor",
-      "description": "Yumuşacık çapraz deri bantları ve bilekten cırtlı/tokalı kilit mekanizması ile ayağı güvenle sarar. Ayak tabanının doğal yapısını destekleyen hafif esnek tabanı sayesinde uzun yürüyüşlerde yorgunluk hissettirmez.",
-      "image": "",
-      "secondaryImage": "",
+      "description": "İrem Comfort Kadın Topuklu Hakiki Deri Sandalet\nZarif çizgileri ve modern tasarımıyla öne çıkan İrem Comfort Kadın Topuklu Sandalet, şıklığı ve konforu bir araya getiriyor. Açık burun tasarımı, estetik yan kesim detayları ve dengeli blok topuğu sayesinde hem günlük kullanımda hem de özel davetlerde rahat ve şık bir kullanım sunar.\n\nYumuşak iç tabanı ayağınızı gün boyu desteklerken, sağlam blok topuk yapısı dengeli yürüyüş deneyimi sağlar. Minimal tasarımı sayesinde elbise, etek, kumaş pantolon ve jean kombinleriyle kolayca uyum sağlayarak stilinizi tamamlar.\n\nÜrün Özellikleri\nModern blok topuk tasarımı\nAçık burunlu şık görünüm\nZarif yan kesim detayları\nYumuşak ve konforlu iç taban\nDengeli yürüyüş sağlayan topuk yapısı\nKaymayı azaltmaya yardımcı taban\nKaliteli işçilik\nGünlük ve özel kullanıma uygun\nKolay kombinlenebilir klasik tasarım\nZamansız siyah renk\nNeden Bu Model?\nBlok topuğu sayesinde gün boyu rahat kullanım sunar.\nAçık burun tasarımı yaz aylarında ferah bir kullanım sağlar.\nModern ve zarif görünümüyle birçok farklı kombinle uyum sağlar.\nYumuşak iç tabanı uzun süreli kullanımlarda konfor hissini destekler.\nHem günlük kullanım hem de özel davetler için ideal bir seçimdir.\nKaliteli işçiliği ve sade tasarımıyla uzun yıllar kullanılabilecek zamansız bir modeldir.\nKullanım Alanları\nGünlük kullanım\nOfis\nÖzel davetler\nDüğün ve nişan organizasyonları\nAkşam yemekleri\nŞık yaz kombinleri\nBakım Önerileri\nNemli ve yumuşak bir bez ile temizleyiniz.\nKimyasal temizleyiciler kullanmayınız.\nDoğrudan güneş ışığında uzun süre bırakmayınız.\nKuru ve havadar bir ortamda muhafaza ediniz.\nNumara Bilgisi\nÜrün standart kalıptadır. Günlük kullandığınız ayakkabı numarasını tercih etmeniz önerilir.\n\nİrem Comfort\nİrem Comfort olarak kalite, konfor ve zarafeti bir araya getiren tasarımlar sunuyoruz. Modern kadınların günlük yaşamından özel davetlerine kadar her anına eşlik edecek şık ve rahat sandalet modellerimizi özenle hazırlıyoruz.",
+      "image": "/uploads/gallery/MS-01-Silver2.jpeg",
+      "secondaryImage": "/uploads/gallery/MS-01-Siyah3.jpeg",
       "materials": [
         "Süper Yumuşak Dana Derisi",
         "Anatomik Esnek Taban",
@@ -877,16 +1156,14 @@
       ],
       "colors": [
         {
-          "name": "Konyak Taba",
-          "hex": "#9E5B2B"
+          "name": "Siiyah",
+          "hex": "#111111",
+          "image": "/uploads/gallery/MS-01-Siyah2.jpeg"
         },
         {
-          "name": "Gece Siyahı",
-          "hex": "#111111"
-        },
-        {
-          "name": "Kum Beji",
-          "hex": "#E2D3C1"
+          "name": "Silver",
+          "hex": "#E2D3d3",
+          "image": "/uploads/gallery/MS-01-Silver.jpeg"
         }
       ],
       "features": [
@@ -895,17 +1172,18 @@
         "Esnek ve hafif ergonomik yazlık taban",
         "Şok emici topuk dolgusu"
       ],
-      "isFeatured": true
+      "isFeatured": true,
+      "trendyolUrl": "https://www.trendyol.com/irem-comfort/kadin-topuklu-hakiki-deri-sandalet-p-1179282583?boutiqueId=61&merchantId=1286942&filterOverPriceListings=false&sav=true"
     },
     {
       "id": "mantar-taban-comfort-terlik",
-      "name": "İrem Comfort Doğal Mantar Taban Hakiki Deri Terlik",
+      "name": "İrem Comfort Hakiki Deri Rahat Günlük Konfort Terlik",
       "subtitle": "Hakiki Süet Astar Kaplamalı Anatomik Terlik",
-      "category": "Mantar Taban Terlik",
+      "category": "Bayan Comfort Terlik",
       "tagline": "Doğal mantar esnekliği ve süet dokusunun eşsiz uyumu",
-      "description": "Doğal mantar ve kauçuk karışımı özel tabanlık, giyildikçe ayağınızın formunu alarak kişiselleştirilmiş bir konfor sunar. Üst saya hakiki deriden üretilmiş olup iç tabanlığı hakiki süet deri ile kaplanmıştır.",
-      "image": "",
-      "secondaryImage": "",
+      "description": "İrem Comfort Kadın Ortopedik Günlük Terlik – Çapraz Düğüm Detaylı Rahat Tasarım\nModern tasarımı ve gün boyu konfor sunan yapısıyla öne çıkan İrem Comfort Kadın Terlik, günlük kullanım için şıklığı ve rahatlığı bir araya getiriyor. Zarif çapraz düğüm detayı, sade çizgileri ve modern görünümü sayesinde günlük kombinlerden yazlık stillere kadar birçok farklı tarzla kolayca uyum sağlar.\n\nYumuşak iç tabanı ayağınızı gün boyu desteklerken hafif taban yapısı rahat yürüyüş deneyimi sunar. Açık tasarımı sayesinde ayakların nefes almasına yardımcı olur ve sıcak havalarda ferah bir kullanım sağlar.\n\nÜrün Özellikleri\nModern çapraz düğüm detaylı tasarım\nYumuşak ve konforlu iç taban\nHafif taban yapısı\nKaymayı azaltmaya yardımcı taban\nGünlük kullanıma uygun\nAçık burun tasarımı\nNefes almayı destekleyen yapı\nŞık ve minimal görünüm\nKaliteli işçilik\nYaz ayları için ideal kullanım\nNeden Bu Model?\nÇapraz düğüm detayı ile modern ve zarif görünüm sunar.\nYumuşak iç tabanı sayesinde gün boyu konfor sağlar.\nHafif tabanı rahat yürüyüş deneyimini destekler.\nBirçok günlük kombin ile kolayca uyum sağlar.\nSıcak havalarda ferah kullanım sunan açık tasarıma sahiptir.\nGünlük kullanım için rahat ve şık bir alternatiftir.\nKullanım Alanları\nGünlük kullanım\nŞehir yaşamı\nOfis\nTatil\nYaz ayları\nSeyahat\nBakım Önerileri\nNemli ve yumuşak bir bez ile temizleyiniz.\nKimyasal temizleyiciler kullanmayınız.\nDoğrudan güneş ışığında uzun süre bırakmayınız.\nKuru ve havadar bir ortamda muhafaza ediniz.\nNumara Bilgisi\nÜrün standart kalıptadır. Günlük kullandığınız ayakkabı numarasını tercih etmeniz önerilir.\n\nİrem Comfort\nİrem Comfort olarak her modelimizi konfor, kalite ve modern tasarım anlayışıyla hazırlıyoruz. Günlük kullanımda rahatlığı ön planda tutarken zamansız çizgilerle şıklığı tamamlayan ürünler sunuyoruz.",
+      "image": "/uploads/gallery/Ekran_g_r_nt_s__2026-08-10_131207.png",
+      "secondaryImage": "/uploads/gallery/Ekran_g_r_nt_s__2026-08-10_131220.png",
       "materials": [
         "Hakiki Deri Saya",
         "Doğal Mantar-Lateks Taban",
@@ -917,16 +1195,19 @@
       ],
       "colors": [
         {
-          "name": "Toprak Taba",
-          "hex": "#8B5A2B"
+          "name": "Taba",
+          "hex": "#8B5A2B",
+          "image": "/uploads/gallery/Ekran_g_r_nt_s__2026-08-10_131220.png"
         },
         {
-          "name": "Zeytin Yeşili",
-          "hex": "#556B2F"
+          "name": "Bej",
+          "hex": "#D2C4B2",
+          "image": "/uploads/gallery/Ekran_g_r_nt_s__2026-08-10_131207.png"
         },
         {
-          "name": "Mat Siyah",
-          "hex": "#2B2B2B"
+          "name": "Siyah",
+          "hex": "#2B2B2B",
+          "image": "/uploads/products/products_1788601055266_1fdzo.jpg"
         }
       ],
       "features": [
@@ -935,17 +1216,18 @@
         "Kaymayı önleyen alt kauçuk EVA taban",
         "Ayarlanabilir kemer tokası"
       ],
-      "isFeatured": true
+      "isFeatured": true,
+      "trendyolUrl": "https://www.trendyol.com/irem-comfort/hakiki-deri-rahat-gunluk-konfort-terlik-p-1168127703?boutiqueId=61&merchantId=1286942&filterOverPriceListings=false&sav=true"
     },
     {
       "id": "dolgu-topuk-sandalet",
-      "name": "İrem Comfort Dolgu Topuk Hakiki Deri Sandalet",
+      "name": "İrem Comfort Hakiki Deri Kemik Çıkıntılı Konfor Terlik",
       "subtitle": "Ortopedik Dolgu Tabanlı Şık Sandalet",
-      "category": "Bayan Comfort Sandalet",
+      "category": "Kemik Çıkıntılı Terlik",
       "tagline": "Yükseklik ve zarafet arayanlar için dengeli dolgu taban",
-      "description": "Ayağı yormayan ideal eğime sahip dolgu topuklu özel tasarım. Ön bantlarındaki yumuşatılmış deri kaplama parmak sürtünmelerini engeller. Hem günlük elbiselerle hem şık kombinlerle rahatça kullanılabilir.",
-      "image": "",
-      "secondaryImage": "",
+      "description": "İrem Comfort Kadın Ortopedik Platform Terlik – Çift Cırt Cırtlı Konfor Tasarımı\nGünlük kullanım için tasarlanan İrem Comfort ortopedik platform terlik, ayarlanabilir çift cırt cırtlı yapısı ve yumuşak iç tabanı sayesinde ayağınıza kişiye özel uyum sağlar. Modern bordo desenli tasarımı, siyah platform tabanı ile şık bir görünüm sunarken gün boyu konfor hissini destekler.\n\nGeniş ön tasarımı ve ayarlanabilir bant sistemi sayesinde ayak yapısına daha rahat uyum sağlayarak özellikle kemik çıkıntısı (halluks valgus) hassasiyeti bulunan kullanıcıların ayağını sıkmadan konforlu bir kullanım sunmaya yardımcı olur.\n\nÜrün Özellikleri\nÇift cırt cırtlı ayarlanabilir bant sistemi\nKemik çıkıntısı (Halluks Valgus) hassasiyetine uygun rahat kalıp\nYumuşak ve konforlu iç taban\nHafif platform taban\nKaymayı azaltmaya yardımcı taban yapısı\nGeniş ön bölüm tasarımı\nNefes almayı destekleyen açık model\nGünlük kullanıma uygun\nŞık bordo desenli modern görünüm\nÖzenli işçilik ve kaliteli malzeme\nNeden Bu Model?\nAyarlanabilir çift bant sayesinde ayağınıza göre kolayca uyum sağlar.\nGeniş kalıbı ayağı sıkmadan daha rahat kullanım sunar.\nKemik çıkıntısı bulunan hassas ayaklarda baskıyı azaltmaya yardımcı olacak şekilde tasarlanmıştır.\nPlatform tabanı yürüyüş sırasında konfor hissini artırır.\nYumuşak iç tabanı uzun süreli kullanımlarda rahatlık sunar.\nGünlük kullanım için şık ve fonksiyonel bir tasarıma sahiptir.\nKullanım Alanları\nGünlük kullanım\nEv ve dış mekân kullanımı\nOfis\nTatil\nYaz ayları\nUzun süre ayakta kalınan günler\nBakım Önerileri\nNemli ve yumuşak bir bez ile temizleyiniz.\nKimyasal temizleyici kullanmayınız.\nDoğrudan güneş ışığında uzun süre bırakmayınız.\nKuru ve serin ortamda muhafaza ediniz.\nNumara Bilgisi\nÜrün standart kalıptadır. Ayarlanabilir çift cırt cırtlı bant sistemi sayesinde farklı ayak genişliklerine uyum sağlayabilir. Günlük kullandığınız numarayı tercih etmeniz önerilir.\n\nİrem Comfort\nİrem Comfort olarak her ürünümüzü konfor, kalite ve şıklığı bir araya getirecek şekilde özenle tasarlıyoruz. Günlük yaşamın temposuna uyum sağlayan modellerimiz, modern tasarımları ve rahat kullanım odaklı yapılarıyla gün boyu konfor sunmayı hedefler.\n\n",
+      "image": "/uploads/gallery/5_1.png",
+      "secondaryImage": "/uploads/gallery/5_6.jpg",
       "materials": [
         "Hakiki Deri Saya",
         "Hafif Poliüretan Dolgu Taban",
@@ -957,16 +1239,19 @@
       ],
       "colors": [
         {
-          "name": "Asil Siyah",
-          "hex": "#111111"
+          "name": "Siyah",
+          "hex": "#111111",
+          "image": "/uploads/gallery/1_5.jpg"
         },
         {
-          "name": "Altın Vizon",
-          "hex": "#C5A059"
+          "name": "Bordo",
+          "hex": "#7b1113",
+          "image": "/uploads/gallery/1_6.jpg"
         },
         {
-          "name": "Sütlü Kahve",
-          "hex": "#8C6D58"
+          "name": "Taba",
+          "hex": "#8b5a2b",
+          "image": "/uploads/gallery/1_7.jpg"
         }
       ],
       "features": [
@@ -974,17 +1259,18 @@
         "Yumuşak sünger destekli deri iç taban",
         "Bileği sağlam kavrayan esnek tokalı bant",
         "Sarsıntı önleyici hafif poliüretan gövde"
-      ]
+      ],
+      "trendyolUrl": "https://www.trendyol.com/irem-comfort/hakiki-deri-kemik-cikintili-konfor-terlik-p-1168028849?boutiqueId=61&merchantId=1286942&filterOverPriceListings=false&sav=true"
     },
     {
       "id": "cirt-cirtli-genis-terlik",
-      "name": "İrem Comfort Cırt Cırtlı Genişletilebilir Comfort Terlik",
+      "name": "İrem Comfort Hakiki Deri Konfor Sandalet",
       "subtitle": "Taraklı & Hassas Ayaklar İçin Özel Terlik",
-      "category": "Bayan Comfort Terlik",
+      "category": "Bayan Comfort Sandalet",
       "tagline": "Ödemli veya taraklı ayaklar için kolayca genişleyen hakiki deri",
-      "description": "Ayağında tarak, ödem veya hassasiyet bulunan kadınlar için özel olarak tasarlanmıştır. Geniş cırt bantları sayesinde ayağın şişliğine göre milimetrik olarak ayarlanabilir. İçi ekstra yumuşak jel dolguludur.",
-      "image": "",
-      "secondaryImage": "",
+      "description": "İrem Comfort Kadın Dolgu Topuk Sandalet – Ayarlanabilir Bantlı Günlük Konfor\nŞıklığı ve konforu bir araya getiren İrem Comfort kadın dolgu topuk sandalet, zarif örgü bant tasarımı ve modern görünümüyle yaz kombinlerinin vazgeçilmez parçası olmaya adaydır. Günlük kullanıma uygun yapısı sayesinde hem şehir yaşamında hem de tatilde rahatlıkla tercih edebilirsiniz.\n\nAyarlanabilir arka bant ayağınıza güvenli ve rahat bir uyum sağlarken, hafif dolgu topuk tabanı yürüyüş sırasında konfor hissini destekler. Ön bölümde yer alan örgü bant tasarımı ayağı estetik bir şekilde sararak hem şık hem de rahat bir kullanım sunar.\n\nÜrün Özellikleri\nŞık örgü bant tasarımı\nAyarlanabilir arka bant\nHafif dolgu topuk taban\nYumuşak ve konforlu iç taban\nKaymayı azaltmaya yardımcı taban yapısı\nGünlük kullanıma uygun\nAçık burun tasarımı\nNefes almayı destekleyen yapı\nKaliteli işçilik\nModern ve zarif görünüm\nNeden Bu Model?\nAyarlanabilir bant sayesinde ayağınıza kolayca uyum sağlar.\nDolgu topuk tasarımı şıklık sunarken gün boyu rahat kullanım sağlar.\nÖrgü bant yapısı ayağı estetik şekilde kavrar.\nHafif tabanı sayesinde yürüyüş sırasında konfor sunar.\nGünlük kullanım, ofis ve özel gün kombinleriyle uyum sağlar.\nZamansız tasarımı sayesinde uzun yıllar keyifle kullanılabilir.\nKullanım Alanları\nGünlük kullanım\nOfis\nŞehir yaşamı\nTatil\nYaz ayları\nÖzel davetler\nBakım Önerileri\nNemli ve yumuşak bir bez ile temizleyiniz.\nKimyasal temizleyiciler kullanmayınız.\nDoğrudan güneş ışığında uzun süre bırakmayınız.\nKuru ve havadar bir ortamda muhafaza ediniz.\nNumara Bilgisi\nÜrün standart kalıptadır. Günlük kullandığınız ayakkabı numarasını tercih etmeniz önerilir.\n\nİrem Comfort\nİrem Comfort olarak her modelimizi kalite, konfor ve zarafeti bir araya getirerek tasarlıyoruz. Modern çizgilere sahip sandalet koleksiyonumuz, gün boyu rahat kullanım sunarken şıklığınızdan ödün vermemeniz için özenle üretilmektedir.\n\n",
+      "image": "/uploads/gallery/3.jpg",
+      "secondaryImage": "/uploads/gallery/2_1.jpg",
       "materials": [
         "Geniş Esnek Hakiki Deri",
         "Jel Dolgulu Anatomik Taban",
@@ -996,16 +1282,19 @@
       ],
       "colors": [
         {
-          "name": "Bordo Gül",
-          "hex": "#800020"
+          "name": "Siyah",
+          "hex": "#1C1C1C",
+          "image": "/uploads/gallery/1.jpg"
         },
         {
-          "name": "Klasik Siyah",
-          "hex": "#1C1C1C"
+          "name": "Bej ",
+          "hex": "#D2B48C",
+          "image": "/uploads/gallery/1_1.jpg"
         },
         {
-          "name": "Bej Bronz",
-          "hex": "#D2B48C"
+          "name": "Taba",
+          "hex": "#8B5A2B",
+          "image": "/uploads/gallery/1_2.jpg"
         }
       ],
       "features": [
@@ -1013,7 +1302,8 @@
         "Taraklı ve hassas ayaklara tam uyum",
         "Darbe emici jel destekli iç tabanık",
         "Ekstra esnek yan deri kaplamalar"
-      ]
+      ],
+      "trendyolUrl": "https://www.trendyol.com/irem-comfort/hakiki-deri-konfor-sandalet-p-1168432804?boutiqueId=61&merchantId=1286942&filterOverPriceListings=false&sav=true"
     }
   ],
   "themeConfig": {
@@ -1090,15 +1380,15 @@
     }
   ],
   "fairConfig": {
-    "enabled": false,
-    "name": "AYMOD Uluslararası Ayakkabı Moda Fuarı",
-    "location": "İstanbul Fuar Merkezi (İFM) - Yeşilköy",
-    "standNumber": "Hall 4 - Stand B214",
-    "startDate": "2026-08-20",
-    "endDate": "2026-08-23",
+    "enabled": true,
+    "name": "Master Shoes Ayakkabı Fuarı",
+    "location": "Konya Fuar Merkezi",
+    "standNumber": "Hall 5 - Stand F108",
+    "startDate": "2026-10-21",
+    "endDate": "2026-10-24",
     "description": "İrem Comfort olarak 2026-2027 Sezonu Erkek & Kadın Hakiki Deri Terlik, Sandalet ve Ortopedik Comfort koleksiyonumuzu sergiliyoruz. Tüm iş ortaklarımızı standımıza bekleriz.",
     "posterUrl": "",
-    "qrCodeUrl": "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://iremcomfort.com/fuar-stanti",
+    "qrCodeUrl": "/uploads/gallery/qrcode__3_.png",
     "badgeText": "RESMİ FUAR DAVETİ",
     "whatsappContact": "905330297125"
   },
@@ -1232,11 +1522,11 @@
   "githubRepo": "kadirkarga25-rgb/irem-comfort",
   "githubBranch": "main",
   "emailConfig": {
-    "smtpHost": "mail.iremcomfort.com",
-    "smtpPort": 587,
+    "smtpHost": "smtp.gmail.com",
+    "smtpPort": 465,
     "smtpUser": "info@iremcomfort.com",
-    "smtpPass": "",
-    "smtpSecure": false,
+    "smtpPass": "ghlb rtol zvna jtet",
+    "smtpSecure": true,
     "adminEmails": "kargakadir4525@gmail.com, info@iremcomfort.com",
     "senderName": "İrem Comfort Ayakkabıcılık",
     "senderEmail": "info@iremcomfort.com",
