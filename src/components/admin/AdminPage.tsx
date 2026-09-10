@@ -449,14 +449,24 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   const [pendingExitAction, setPendingExitAction] = useState<(() => void) | null>(null);
   const [isSavingAll, setIsSavingAll] = useState(false);
 
-  const handleSiteExit = (action: () => void) => {
+  const handleSiteExit = async (action: () => void) => {
+    // Giriş ekranından çıkılıyorsa henüz admin oturumu yoktur; hiçbir ayar
+    // yayınlamadan doğrudan ana siteye dön.
+    if (!isAuthenticated) {
+      action();
+      return;
+    }
+
+    // Giriş yapılmış admin oturumunda çıkış artık mevcut tam ayar paketini
+    // GitHub'a gönderir. Böylece localStorage yalnızca taslak/cache olarak kalır.
     if (isDirty) {
       setPendingExitAction(() => action);
       setShowExitConfirmModal(true);
-    } else {
-      syncAllMediaToGithub(true);
-      action();
+      return;
     }
+
+    const saved = await handleSaveAllSubmit();
+    if (saved) action();
   };
 
   const handleTabSelect = (tabId: string) => {
@@ -472,7 +482,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     }
   };
 
-  const handleSaveAllSubmit = async () => {
+  const handleSaveAllSubmit = async (): Promise<boolean> => {
     setIsSavingAll(true);
     try {
       const res = await saveAllChanges({
@@ -490,13 +500,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
         newsletterOfferBox
       });
       if (res.success) {
-        showToast('✓ Tüm değişiklikler immutable deep merge yöntemiyle başarıyla kaydedildi!');
-        syncAllMediaToGithub(true);
-      } else {
-        showToast('❌ Kaydetme hatası: ' + res.message);
+        showToast("✓ Tüm değişiklikler site_settings.json olarak GitHub'a kalıcı kaydedildi!");
+        return true;
       }
+      showToast('❌ Kaydetme hatası: ' + res.message);
+      return false;
     } catch (err) {
-      showToast('❌ Kaydetme işlemi başarısız.');
+      showToast('❌ Kaydetme işlemi başarısız. Admin panelinden çıkılmadı.');
+      return false;
     } finally {
       setIsSavingAll(false);
     }
@@ -4769,7 +4780,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed">
-              Sayfadan ayrılmadan önce yaptığınız tüm değişiklikleri immutable deep merge ile kaydetmek ister misiniz? Kaydetmeden ayrılırsanız son değişiklikler kaybolacaktır.
+              Sayfadan ayrılmadan önce güncel ayarlarınız site_settings.json olarak GitHub'a kaydedilecek ve Vercel yayını başlatılacaktır. Kayıt başarısız olursa admin panelinden çıkış yapılmaz.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2">
@@ -4784,19 +4795,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
               </button>
 
               <button
-                onClick={() => {
-                  setShowExitConfirmModal(false);
-                  discardUnsavedChanges();
-                  if (pendingExitAction) {
-                    pendingExitAction();
-                  }
-                }}
-                className="w-full sm:w-auto px-4 py-2 bg-rose-900/60 hover:bg-rose-800 text-rose-200 text-xs font-semibold rounded-xl border border-rose-700/50 transition cursor-pointer"
-              >
-                Kaydetmeden Çık
-              </button>
-
-              <button
                 onClick={async () => {
                   setShowExitConfirmModal(false);
                   await handleSaveAllSubmit();
@@ -4807,7 +4805,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                 className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer active:scale-95"
               >
                 <Save className="w-4 h-4" />
-                <span>Kaydet ve Çık</span>
+                <span>GitHub'a Kaydet ve Çık</span>
               </button>
             </div>
           </div>
