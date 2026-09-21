@@ -1,0 +1,5 @@
+import React,{useEffect,useState} from 'react';
+export function navigateCatalog(to:string){window.history.pushState({},'',to);window.dispatchEvent(new PopStateEvent('popstate'));window.scrollTo({top:0,behavior:'smooth'});}
+export function CatalogLink({href,className,children,...rest}:{href:string;className?:string;children:React.ReactNode;[key:string]:any}){return <a href={href} className={className} {...rest} onClick={(e)=>{if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;e.preventDefault();navigateCatalog(href);}}>{children}</a>}
+export function useCatalogLocation(){const [loc,setLoc]=useState(()=>({pathname:window.location.pathname,search:window.location.search}));useEffect(()=>{const f=()=>setLoc({pathname:window.location.pathname,search:window.location.search});window.addEventListener('popstate',f);return()=>window.removeEventListener('popstate',f)},[]);return loc;}
+export function useCatalogQuery(){const {search}=useCatalogLocation();return new URLSearchParams(search);}

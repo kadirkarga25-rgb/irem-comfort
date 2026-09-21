@@ -2858,7 +2858,7 @@ app.post(["/api/deploy-cancel", "/api/deploy-reset"], (_req, res) => {
 });
 
 
-// ===== Catalog Archive Persistence (shared with the separate catalog frontend) =====
+// ===== Catalog Archive Persistence (same main application) =====
 function requireCatalogAdmin(req: express.Request, res: express.Response): boolean {
   const token = req.headers.authorization?.replace(/^Bearer\s+/i, '') || String(req.body?.token || '');
   if (!token || !activeAdminSessions.has(token)) {
@@ -2885,6 +2885,28 @@ app.get('/api/catalogs', async (_req, res) => {
   }
 });
 
+app.get('/api/catalogs/admin/list', async (req, res) => {
+  if (!requireCatalogAdmin(req, res)) return;
+  try {
+    const catalogs = await getCatalogSettings();
+    return res.json({ success: true, catalogs });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Katalog yönetim verileri alınamadı.' });
+  }
+});
+
+app.get('/api/catalogs/admin/:id', async (req, res) => {
+  if (!requireCatalogAdmin(req, res)) return;
+  try {
+    const catalogs = await getCatalogSettings();
+    const catalog = catalogs.find((c: any) => c?.id === req.params.id);
+    if (!catalog) return res.status(404).json({ success: false, error: 'Katalog bulunamadı.' });
+    return res.json({ success: true, catalog });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Katalog alınamadı.' });
+  }
+});
+
 app.get('/api/catalogs/:id', async (req, res) => {
   try {
     const catalogs = await getCatalogSettings();
@@ -2893,16 +2915,6 @@ app.get('/api/catalogs/:id', async (req, res) => {
     return res.json({ success: true, catalog });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err?.message || 'Katalog alınamadı.' });
-  }
-});
-
-app.get('/api/catalogs/admin/list', async (req, res) => {
-  if (!requireCatalogAdmin(req, res)) return;
-  try {
-    const catalogs = await getCatalogSettings();
-    return res.json({ success: true, catalogs });
-  } catch (err: any) {
-    return res.status(500).json({ success: false, error: err?.message || 'Katalog yönetim verileri alınamadı.' });
   }
 });
 

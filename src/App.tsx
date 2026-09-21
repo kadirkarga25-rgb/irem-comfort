@@ -27,6 +27,7 @@ import { LegalModal, LegalDocType } from './components/ui/LegalModal';
 import { CookieConsent } from './components/ui/CookieConsent';
 import { DeployingView } from './components/ui/DeployingView';
 import { MaintenancePage } from './components/ui/MaintenancePage';
+import { CatalogApp } from './catalog/CatalogApp';
 import { ProductsPage } from './components/pages/ProductsPage';
 import { useAppImages } from './context/ImageContext';
 
@@ -62,7 +63,7 @@ function MainAppContent() {
       window.matchMedia?.('(display-mode: standalone)')?.matches || 
       (window.navigator as any)?.standalone === true
     );
-    return path === '/admin' || hash === '#admin' || search.includes('admin') || search.includes('pwa') || !!isStandalone;
+    return !path.startsWith('/katalog') && (path === '/admin' || hash === '#admin' || search.includes('admin') || search.includes('pwa') || !!isStandalone);
   });
 
   // Password reset route state: check if URL contains /sifre-sifirla, /sifre-sifirla-html, #sifre-sifirla, etc.
@@ -102,6 +103,11 @@ function MainAppContent() {
     return path === '/toptananket' || path === '/toptananket.html';
   });
 
+  const [isCatalogView, setIsCatalogView] = useState<boolean>(() => {
+    const { path } = getSafeLocation();
+    return path === '/katalog' || path.startsWith('/katalog/');
+  });
+
   // 404 Not Found route state: check if pathname is not root and not matching any known route
   const [isNotFoundView, setIsNotFoundView] = useState<boolean>(() => {
     const { path, hash, search } = getSafeLocation();
@@ -111,7 +117,8 @@ function MainAppContent() {
       path.includes('sifre-sifirla') || hash.includes('sifre-sifirla') || search.includes('sifre-sifirla') ||
       path.includes('uzak-yonetim') || hash.includes('uzak-yonetim') || search.includes('uzak-yonetim') ||
       path.includes('anket') || hash.includes('anket') || search.includes('anket') ||
-      path === '/toptananket' || path === '/toptananket.html'
+      path === '/toptananket' || path === '/toptananket.html' ||
+      path === '/katalog' || path.startsWith('/katalog/')
     );
     return !isKnown;
   });
@@ -125,7 +132,8 @@ function MainAppContent() {
         window.matchMedia?.('(display-mode: standalone)')?.matches || 
         (window.navigator as any)?.standalone === true
       );
-      const admin = path === '/admin' || hash === '#admin' || search.includes('admin') || search.includes('pwa') || !!isStandalone;
+      const catalog = path === '/katalog' || path.startsWith('/katalog/');
+      const admin = !catalog && (path === '/admin' || hash === '#admin' || search.includes('admin') || search.includes('pwa') || !!isStandalone);
       const reset = (
         path.includes('sifre-sifirla') || 
         path.includes('sifre_sifirla') || 
@@ -152,11 +160,12 @@ function MainAppContent() {
       setIsRemoteView(remote);
       setIsSurveyView(survey);
       setIsWholesaleSurveyView(wholesaleSurvey);
+      setIsCatalogView(catalog);
 
       if (path === '/' || path === '' || path === '/index.html') {
         setIsNotFoundView(false);
       } else {
-        setIsNotFoundView(!admin && !reset && !remote && !survey && !wholesaleSurvey);
+        setIsNotFoundView(!catalog && !admin && !reset && !remote && !survey && !wholesaleSurvey);
       }
     };
 
@@ -367,7 +376,12 @@ function MainAppContent() {
     );
   }
 
-  // 1. Admin view always takes precedence so admin is never locked out
+  // 1. Catalog routes live inside the same Vercel/React application.
+  if (isCatalogView) {
+    return <CatalogApp />;
+  }
+
+  // 2. Admin view always takes precedence so admin is never locked out
   if (isAdminView) {
     return <AdminPage onReturnToSite={returnToPublicSite} />;
   }

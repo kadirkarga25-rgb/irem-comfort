@@ -427,4 +427,4 @@ Böylece günlük site yönetimi için manuel GitHub düzenlemesi veya harici bi
 
 ## Katalog Arşivi Entegrasyonu
 
-Katalog arşivi `/katalog` altında çalışır. Katalog yönetimi ana Admin panelindeki **Katalog Arşivi** sekmesine bağlanmıştır. Katalog kayıtları ve dosyaları ana GitHub App/Vercel persistence altyapısı üzerinden saklanır. Katalog frontend uygulaması `catalog.iremcomfort.com` Vercel projesinde çalışmalı ve ana alan adındaki `/katalog/*` rewrite bu deploymenta yönlenmelidir.
+Katalog arşivi `/katalog` altında çalışır. Katalog yönetimi ana Admin panelindeki **Katalog Arşivi** sekmesine bağlanmıştır. Katalog kayıtları ve dosyaları ana GitHub App/Vercel persistence altyapısı üzerinden saklanır. Katalog frontend uygulaması ana React/Vite uygulamasının içinde çalışır; `/katalog` ayrı Vercel projesi veya `catalog.iremcomfort.com` kullanmaz.
