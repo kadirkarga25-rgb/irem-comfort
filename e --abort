@@ -1,0 +1,131 @@
+ README-INTEGRATION.md                              |  30 [32m+++[m
+ catalog/.env.local.example                         |   3 [32m+[m
+ catalog/.gitignore                                 |   5 [32m+[m
+ catalog/README.md                                  |  93 [32m+++++++++[m
+ catalog/app/admin/catalogs/[id]/page.tsx           |   3 [32m+[m
+ catalog/app/admin/catalogs/new/page.tsx            | 110 [32m+++++++++++[m
+ catalog/app/admin/layout.tsx                       |   1 [32m+[m
+ catalog/app/admin/login/page.tsx                   |  11 [32m++[m
+ catalog/app/admin/page.tsx                         |   3 [32m+[m
+ catalog/app/api/admin/login/route.ts               |   2 [32m+[m
+ catalog/app/api/admin/logout/route.ts              |   1 [32m+[m
+ catalog/app/catalogs/[id]/page.tsx                 |   1 [32m+[m
+ catalog/app/catalogs/page.tsx                      |   1 [32m+[m
+ catalog/app/collections/page.tsx                   |   1 [32m+[m
+ catalog/app/globals.css                            |  45 [32m+++++[m
+ catalog/app/katalog/[id]/page.tsx                  |   3 [32m+[m
+ catalog/app/katalog/favoriler/page.tsx             |  34 [32m++++[m
+ catalog/app/katalog/koleksiyonlar/page.tsx         |   3 [32m+[m
+ catalog/app/katalog/page.tsx                       |  25 [32m+++[m
+ catalog/app/katalog/viewer/[id]/page.tsx           |   3 [32m+[m
+ catalog/app/layout.tsx                             |   5 [32m+[m
+ catalog/app/page.tsx                               |   1 [32m+[m
+ catalog/app/viewer/[id]/page.tsx                   |   1 [32m+[m
+ catalog/components/AppProviders.tsx                |   4 [32m+[m
+ catalog/components/CatalogCard.tsx                 |   2 [32m+[m
+ catalog/components/CatalogViewer.tsx               | 213 [32m+++++++++++++++++++++[m
+ catalog/components/Header.tsx                      |   2 [32m+[m
+ catalog/components/Loader.tsx                      |   3 [32m+[m
+ catalog/lib/admin-auth.ts                          |  13 [32m++[m
+ catalog/lib/db.ts                                  | 103 [32m++++++++++[m
+ catalog/lib/pdf.ts                                 | 156 [32m+++++++++++++++[m
+ catalog/lib/search.ts                              |  21 [32m++[m
+ catalog/next-env.d.ts                              |   3 [32m+[m
+ catalog/next.config.mjs                            |   3 [32m+[m
+ catalog/package.json                               |  14 [32m++[m
+ catalog/proxy.ts                                   |  18 [32m++[m
+ catalog/public/assets/loader-reference.html        | 100 [32m++++++++++[m
+ catalog/public/assets/logo-dark.png                | Bin [31m0[m -> [32m1706246[m bytes
+ .../public/assets/logo-light.png                   | Bin
+ catalog/public/assets/logo-written-dark.png        | Bin [31m0[m -> [32m1693694[m bytes
+ .../public/assets/logo-written-light.png           | Bin
+ catalog/public/robots.txt                          |   2 [32m+[m
+ catalog/tsconfig.json                              |   1 [32m+[m
+ catalog/tsconfig.tsbuildinfo                       |   1 [32m+[m
+ catalog/vercel.json                                |   7 [32m+[m
+ .env.example => main/.env.example                  |   0
+ .gitignore => main/.gitignore                      |   0
+ .../DEPLOY-SISTEMI-YENI.txt                        |   0
+ README.md => main/README.md                        |   5 [32m+[m
+ {api => main/api}/index.ts                         | 105 [32m++++++++++[m
+ bun.lock => main/bun.lock                          |   0
+ index.html => main/index.html                      |   0
+ metadata.json => main/metadata.json                |   0
+ package.json => main/package.json                  |   0
+ {public => main/public}/android-chrome-192x192.png | Bin
+ {public => main/public}/android-chrome-512x512.png | Bin
+ {public => main/public}/apple-touch-icon.png       | Bin
+ {public => main/public}/favicon-16x16.png          | Bin
+ {public => main/public}/favicon-32x32.png          | Bin
+ {public => main/public}/favicon.ico                | Bin
+ {public => main/public}/favicon.svg                |   0
+ .../public}/images/irem-comfort-logo-full.svg      |   0
+ .../public}/images/irem-comfort-logo-icon.svg      |   0
+ {public => main/public}/robots.txt                 |   0
+ {public => main/public}/site.webmanifest           |   0
+ {public => main/public}/site_settings.json         |  10 [32m+[m[31m-[m
+ {public => main/public}/sitemap.xml                |   0
+ {public => main/public}/sw.js                      |   0
+ {public => main/public}/toptananket.html           |   0
+ {public => main/public}/uploads/.gitkeep           |   0
+ {public => main/public}/uploads/gallery/1.jpg      | Bin
+ {public => main/public}/uploads/gallery/1.png      | Bin
+ {public => main/public}/uploads/gallery/1.webp     | Bin
+ {public => main/public}/uploads/gallery/12__1_.png | Bin
+ {public => main/public}/uploads/gallery/12__2_.png | Bin
+ {public => main/public}/uploads/gallery/12__3_.png | Bin
+ {public => main/public}/uploads/gallery/12__4_.png | Bin
+ {public => main/public}/uploads/gallery/1_1.jpg    | Bin
+ {public => main/public}/uploads/gallery/1_1.png    | Bin
+ {public => main/public}/uploads/gallery/1_1.webp   | Bin
+ {public => main/public}/uploads/gallery/1_10.jpg   | Bin
+ {public => main/public}/uploads/gallery/1_11.jpg   | Bin
+ {public => main/public}/uploads/gallery/1_12.jpg   | Bin
+ {public => main/public}/uploads/gallery/1_2.jpg    | Bin
+ {public => main/public}/uploads/gallery/1_2.png    | Bin
+ {public => main/public}/uploads/gallery/1_3.jpg    | Bin
+ {public => main/public}/uploads/gallery/1_4.jpg    | Bin
+ {public => main/public}/uploads/gallery/1_5.jpg    | Bin
+ {public => main/public}/uploads/gallery/1_6.jpg    | Bin
+ {public => main/public}/uploads/gallery/1_7.jpg    | Bin
+ {public => main/public}/uploads/gallery/1_8.jpg    | Bin
+ {public => main/public}/uploads/gallery/1_9.jpg    | Bin
+ {public => main/public}/uploads/gallery/2.jpg      | Bin
+ {public => main/public}/uploads/gallery/2.png      | Bin
+ {public => main/public}/uploads/gallery/2.webp     | Bin
+ {public => main/public}/uploads/gallery/2_1.jpg    | Bin
+ {public => main/public}/uploads/gallery/2_1.png    | Bin
+ {public => main/public}/uploads/gallery/2_1.webp   | Bin
+ {public => main/public}/uploads/gallery/2_10.jpg   | Bin
+ {public => main/public}/uploads/gallery/2_11.jpg   | Bin
+ {public => main/public}/uploads/gallery/2_2.jpg    | Bin
+ {public => main/public}/uploads/gallery/2_3.jpg    | Bin
+ {public => main/public}/uploads/gallery/2_4.jpg    | Bin
+ {public => main/public}/uploads/gallery/2_5.jpg    | Bin
+ {public => main/public}/uploads/gallery/2_6.jpg    | Bin
+ {public => main/public}/uploads/gallery/2_7.jpg    | Bin
+ {public => main/public}/uploads/gallery/2_8.jpg    | Bin
+ {public => main/public}/uploads/gallery/2_9.jpg    | Bin
+ {public => main/public}/uploads/gallery/3.jpg      | Bin
+ {public => main/public}/uploads/gallery/3.png      | Bin
+ {public => main/public}/uploads/gallery/3.webp     | Bin
+ {public => main/public}/uploads/gallery/3_1.jpg    | Bin
+ {public => main/public}/uploads/gallery/3_1.png    | Bin
+ {public => main/public}/uploads/gallery/3_1.webp   | Bin
+ {public => main/public}/uploads/gallery/3_10.jpg   | Bin
+ {public => main/public}/uploads/gallery/3_11.jpg   | Bin
+ {public => main/public}/uploads/gallery/3_2.jpg    | Bin
+ {public => main/public}/uploads/gallery/3_2.png    | Bin
+ {public => main/public}/uploads/gallery/3_3.jpg    | Bin
+ {public => main/public}/uploads/gallery/3_4.jpg    | Bin
+ {public => main/public}/uploads/gallery/3_5.jpg    | Bin
+ {public => main/public}/uploads/gallery/3_6.jpg    | Bin
+ {public => main/public}/uploads/gallery/3_7.jpg    | Bin
+ {public => main/public}/uploads/gallery/3_8.jpg    | Bin
+ {public => main/public}/uploads/gallery/3_9.jpg    | Bin
+ {public => main/public}/uploads/gallery/4.jpg      | Bin
+ {public => main/public}/uploads/gallery/4.png      | Bin
+ {public => main/public}/uploads/gallery/4.webp     | Bin
+ {public => main/public}/uploads/gallery/4_1.jpg    | Bin
+ {public => main/public}/uploads/gallery/4_1.png    | Bin
+ {public => main/public}/uploads/galle
