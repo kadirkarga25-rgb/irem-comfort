@@ -1,26 +1,17 @@
-# İrem Comfort — Katalog Entegrasyonu
-
-Katalog sistemi artık **ana İrem Comfort React/Vite uygulamasının içinde** çalışır.
+# İrem Comfort — Katalog Arşivi Entegrasyonu
 
 ## Tek uygulama mimarisi
+- Katalog public sayfası: `/katalog`
+- Katalog yönetimi: ana `/admin` panelindeki **Katalog Arşivi** sekmesi
+- Ayrı katalog admin girişi yoktur.
+- Ayrı katalog domaini / Vercel projesi yoktur.
+- Katalog verileri ana uygulamanın GitHub/Vercel kalıcı kayıt sistemini kullanır.
+- PDF ve kapak dosyaları `public/katalog-assets/` altında GitHub'a kaydedilir.
 
-- Tek GitHub repository
-- Tek Vercel deployment
-- Tek domain: `www.iremcomfort.com`
-- Public katalog: `/katalog`
-- Katalog yönetimi: `/katalog/admin`
-- Ana admin: `/admin` → **Katalog Arşivi**
+## Yönetim akışı
+Ana Admin → Katalog Arşivi → Yeni Katalog → PDF Analizi → Analiz Sonucunu Kontrol Et → Analizi Onayla ve Kaydet → Düzenle / Yayınla.
 
-`catalog.iremcomfort.com` veya ayrı bir Vercel projesi kullanılmaz.
+PDF analizinde toplam sayfa, metin bulunan sayfa, tespit edilen koleksiyonlar, içindekiler ve analiz uyarıları gösterilir. Otomatik sonuçlar yayınlanmadan önce kontrol edilebilir.
 
-## Kalıcılık
-
-Katalog metadata bilgileri ana sitenin `public/site_settings.json` kaydındaki `catalogs` alanında tutulur.
-
-PDF ve kapak dosyaları ana sitenin GitHub deposunda `public/katalog-assets/<catalog-id>/` altında tutulur.
-
-Katalog kaydetme/yayınlama işlemi mevcut GitHub App + Vercel Deploy Hook persistence altyapısını kullanır.
-
-## Yönetici oturumu
-
-Ana admin panelindeki **Katalog Arşivi → Katalog Yönetimini Aç** butonu mevcut admin session token'ını aynı origin'deki sessionStorage'a aktarır. Katalog yönetimi ayrı bir kullanıcı sistemi veya ayrı deployment kullanmaz.
+## Oturum
+Ana admin oturumu katalog API'leri tarafından da kullanılır. Vercel serverless instance değişikliklerinde oturumun kaybolmaması için imzalı, stateless admin oturumu desteklenir. `ADMIN_SESSION_SECRET` tanımlıysa oturum imzalama için o kullanılır; yoksa `ADMIN_PASSWORD` kullanılır.

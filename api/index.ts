@@ -2,7 +2,7 @@ import express from "express";
 import nodemailer from "nodemailer";
 import fs from "fs";
 import path from "path";
-import { createSign } from "crypto";
+import { createSign, createHmac, timingSafeEqual } from "crypto";
 
 // Self-contained deepMerge utility for serverless environment
 function deepMerge<T extends Record<string, any>>(
@@ -166,6 +166,41 @@ if (sessionCleanupTimer && typeof sessionCleanupTimer.unref === 'function') {
 
 let customAdminPassword = "";
 
+// Stateless admin session signing: survives Vercel serverless instance changes.
+const ADMIN_SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || "irem-comfort-admin-session-secret";
+function signAdminToken(username: string, createdAt: number) {
+  const payload = Buffer.from(JSON.stringify({ u: username, iat: createdAt, exp: createdAt + ADMIN_SESSION_TIMEOUT }), "utf8").toString("base64url");
+  const sig = createHmac("sha256", ADMIN_SESSION_SECRET).update(payload).digest("base64url");
+  return `sess2_${payload}.${sig}`;
+}
+function verifySignedAdminToken(token: string) {
+  if (!token.startsWith("sess2_")) return null;
+  const raw = token.slice(6);
+  const [payload, sig] = raw.split(".");
+  if (!payload || !sig) return null;
+  const expected = createHmac("sha256", ADMIN_SESSION_SECRET).update(payload).digest("base64url");
+  try {
+    if (sig.length !== expected.length || !timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
+  } catch { return null; }
+  try {
+    const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (!data?.u || !data?.exp || Date.now() > Number(data.exp)) return null;
+    return { username: String(data.u), createdAt: Number(data.iat) || Date.now() };
+  } catch { return null; }
+}
+function getAdminSessionFromRequest(req: express.Request) {
+  const token = req.headers.authorization?.replace(/^Bearer\s+/i, "") || String(req.body?.token || "");
+  if (!token) return null;
+  const live = activeAdminSessions.get(token);
+  if (live) {
+    if (Date.now() - live.lastAccess > ADMIN_SESSION_TIMEOUT) { activeAdminSessions.delete(token); return null; }
+    live.lastAccess = Date.now();
+    return live;
+  }
+  const signed = verifySignedAdminToken(token);
+  return signed ? { token, username: signed.username, createdAt: signed.createdAt, lastAccess: Date.now() } : null;
+}
+
 // API Login
 app.post("/api/auth/login", (req, res) => {
   try {
@@ -190,8 +225,8 @@ app.post("/api/auth/login", (req, res) => {
       });
     }
 
-    const token = "sess_" + Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
     const now = Date.now();
+    const token = signAdminToken(cleanUser, now);
 
     activeAdminSessions.set(token, {
       token,
@@ -248,26 +283,15 @@ app.post("/api/auth/verify", (req, res) => {
     const authHeader = req.headers.authorization;
     const token = authHeader?.replace("Bearer ", "") || req.body?.token;
 
-    if (!token || !activeAdminSessions.has(token)) {
+    const session = getAdminSessionFromRequest(req);
+    if (!session) {
       return res.status(401).json({
         authenticated: false,
         error: "Geçersiz veya süresi dolmuş oturum."
       });
     }
 
-    const session = activeAdminSessions.get(token)!;
     const now = Date.now();
-
-    if (now - session.lastAccess > ADMIN_SESSION_TIMEOUT) {
-      activeAdminSessions.delete(token);
-      return res.status(401).json({
-        authenticated: false,
-        reason: "SESSION_EXPIRED",
-        error: "Oturum süreniz doldu. Lütfen tekrar giriş yapın."
-      });
-    }
-
-    session.lastAccess = now;
 
     return res.json({
       authenticated: true,
@@ -2860,13 +2884,11 @@ app.post(["/api/deploy-cancel", "/api/deploy-reset"], (_req, res) => {
 
 // ===== Catalog Archive Persistence (same main application) =====
 function requireCatalogAdmin(req: express.Request, res: express.Response): boolean {
-  const token = req.headers.authorization?.replace(/^Bearer\s+/i, '') || String(req.body?.token || '');
-  if (!token || !activeAdminSessions.has(token)) {
+  const session = getAdminSessionFromRequest(req);
+  if (!session) {
     res.status(401).json({ success: false, error: 'Yönetici oturumu geçersiz veya süresi dolmuş.' });
     return false;
   }
-  const session = activeAdminSessions.get(token)!;
-  session.lastAccess = Date.now();
   return true;
 }
 
