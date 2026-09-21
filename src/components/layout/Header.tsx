@@ -134,6 +134,13 @@ export const Header: React.FC<HeaderProps> = ({
                 );
               })}
 
+              <a
+                href="/katalog"
+                className="px-2 lg:px-3 py-1.5 text-[11px] xl:text-xs font-extrabold tracking-wider uppercase text-[#111111]/70 hover:text-[#0A2D6F] transition-colors whitespace-nowrap"
+              >
+                Katalog
+              </a>
+
               {/* "Daha Fazla / More" Dropdown */}
               <div className="relative">
                 <button
@@ -247,6 +254,15 @@ export const Header: React.FC<HeaderProps> = ({
                   </span>
                 </button>
               </div>
+
+              <a
+                href="/katalog"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-between py-3 px-4 rounded-xl text-left text-sm font-bold text-[#111111] hover:bg-[#0A2D6F]/5"
+              >
+                <span>Katalog</span>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              </a>
 
               {[...primaryNavLinks, ...secondaryNavLinks].map((link) => {
                 const isActive = activeSection === link.id;
