@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/auth/login", "destination": "https://www.iremcomfort.com/api/auth/login" },
+    { "source": "/api/catalogs/:path*", "destination": "https://www.iremcomfort.com/api/catalogs/:path*" }
+  ]
+}

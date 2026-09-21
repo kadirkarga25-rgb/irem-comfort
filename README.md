@@ -423,3 +423,8 @@ Bu projenin temel amacı:
 Böylece günlük site yönetimi için manuel GitHub düzenlemesi veya harici bir yapay zekâ geliştirme ortamına bağımlılık azaltılır.
 
 **İrem Comfort — Yönetim Paneli & Akıllı Yayın Sistemi**
+
+
+## Katalog Arşivi Entegrasyonu
+
+Katalog arşivi `/katalog` altında çalışır. Katalog yönetimi ana Admin panelindeki **Katalog Arşivi** sekmesine bağlanmıştır. Katalog kayıtları ve dosyaları ana GitHub App/Vercel persistence altyapısı üzerinden saklanır. Katalog frontend uygulaması `catalog.iremcomfort.com` Vercel projesinde çalışmalı ve ana alan adındaki `/katalog/*` rewrite bu deploymenta yönlenmelidir.

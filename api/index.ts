@@ -2857,6 +2857,111 @@ app.post(["/api/deploy-cancel", "/api/deploy-reset"], (_req, res) => {
   return res.json({ success: true, message: "Deploy işlemi sıfırlandı ve kapatıldı." });
 });
 
+
+// ===== Catalog Archive Persistence (shared with the separate catalog frontend) =====
+function requireCatalogAdmin(req: express.Request, res: express.Response): boolean {
+  const token = req.headers.authorization?.replace(/^Bearer\s+/i, '') || String(req.body?.token || '');
+  if (!token || !activeAdminSessions.has(token)) {
+    res.status(401).json({ success: false, error: 'Yönetici oturumu geçersiz veya süresi dolmuş.' });
+    return false;
+  }
+  const session = activeAdminSessions.get(token)!;
+  session.lastAccess = Date.now();
+  return true;
+}
+
+async function getCatalogSettings(): Promise<any[]> {
+  await ensureSettingsLoaded();
+  const catalogs = inMemorySettingsCache?.catalogs;
+  return Array.isArray(catalogs) ? catalogs : [];
+}
+
+app.get('/api/catalogs', async (_req, res) => {
+  try {
+    const catalogs = await getCatalogSettings();
+    return res.json({ success: true, catalogs: catalogs.filter((c: any) => c?.published) });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Kataloglar alınamadı.' });
+  }
+});
+
+app.get('/api/catalogs/:id', async (req, res) => {
+  try {
+    const catalogs = await getCatalogSettings();
+    const catalog = catalogs.find((c: any) => c?.id === req.params.id && c?.published);
+    if (!catalog) return res.status(404).json({ success: false, error: 'Katalog bulunamadı.' });
+    return res.json({ success: true, catalog });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Katalog alınamadı.' });
+  }
+});
+
+app.get('/api/catalogs/admin/list', async (req, res) => {
+  if (!requireCatalogAdmin(req, res)) return;
+  try {
+    const catalogs = await getCatalogSettings();
+    return res.json({ success: true, catalogs });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Katalog yönetim verileri alınamadı.' });
+  }
+});
+
+app.post('/api/catalogs/upload', async (req, res) => {
+  if (!requireCatalogAdmin(req, res)) return;
+  try {
+    const { id, filename, data, kind = 'pdf' } = req.body || {};
+    if (!id || !data) return res.status(400).json({ success: false, error: 'Dosya verisi eksik.' });
+    const cleanId = String(id).replace(/[^a-zA-Z0-9_-]/g, '-');
+    const cleanKind = String(kind).replace(/[^a-zA-Z0-9_-]/g, '-');
+    const cleanFilename = String(filename || `${cleanId}.${cleanKind === 'pdf' ? 'pdf' : 'jpg'}`).replace(/[^a-zA-Z0-9._-]/g, '_');
+    const relativePath = `public/katalog-assets/${cleanId}/${cleanFilename}`;
+    const raw = String(data).includes(',') ? String(data).split(',').pop()! : String(data);
+    const buffer = Buffer.from(raw, 'base64');
+    const result = await uploadFileToGithub(relativePath, buffer, `Katalog dosyası: ${cleanFilename}`);
+    if (!result.success) return res.status(500).json({ success: false, error: result.error || 'Dosya GitHub\'a yüklenemedi.' });
+    return res.json({ success: true, url: `/katalog-assets/${cleanId}/${cleanFilename}`, relativePath, commitSha: result.commitSha });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Katalog dosyası yüklenemedi.' });
+  }
+});
+
+app.post('/api/catalogs/save', async (req, res) => {
+  if (!requireCatalogAdmin(req, res)) return;
+  try {
+    const catalog = req.body?.catalog;
+    if (!catalog?.id || !catalog?.title) return res.status(400).json({ success: false, error: 'Geçersiz katalog verisi.' });
+    await ensureSettingsLoaded();
+    const catalogs = Array.isArray(inMemorySettingsCache.catalogs) ? [...inMemorySettingsCache.catalogs] : [];
+    const safeCatalog = { ...catalog };
+    delete safeCatalog.pdf;
+    delete safeCatalog.pageImages;
+    const index = catalogs.findIndex((c: any) => c?.id === safeCatalog.id);
+    if (index >= 0) catalogs[index] = safeCatalog; else catalogs.push(safeCatalog);
+    inMemorySettingsCache = { ...inMemorySettingsCache, catalogs, _updatedAt: Date.now() };
+    const result = await publishSettings(inMemorySettingsCache, undefined, undefined, undefined, `Katalog: ${safeCatalog.title} güncellendi`);
+    if (!result.publishSuccess) return res.status(500).json({ success: false, error: result.error || 'Katalog kalıcı olarak kaydedilemedi.' });
+    return res.json({ success: true, catalog: safeCatalog, commitSha: result.commitSha, vercelDeployTriggered: result.vercelDeployTriggered === true });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Katalog kaydedilemedi.' });
+  }
+});
+
+app.post('/api/catalogs/delete', async (req, res) => {
+  if (!requireCatalogAdmin(req, res)) return;
+  try {
+    const id = String(req.body?.id || '');
+    if (!id) return res.status(400).json({ success: false, error: 'Katalog ID eksik.' });
+    await ensureSettingsLoaded();
+    const catalogs = (Array.isArray(inMemorySettingsCache.catalogs) ? inMemorySettingsCache.catalogs : []).filter((c: any) => c?.id !== id);
+    inMemorySettingsCache = { ...inMemorySettingsCache, catalogs, _updatedAt: Date.now() };
+    const result = await publishSettings(inMemorySettingsCache, undefined, undefined, undefined, `Katalog silindi: ${id}`);
+    if (!result.publishSuccess) return res.status(500).json({ success: false, error: result.error || 'Katalog silinemedi.' });
+    return res.json({ success: true, commitSha: result.commitSha, vercelDeployTriggered: result.vercelDeployTriggered === true });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Katalog silinemedi.' });
+  }
+});
+
 app.get("/api/settings", async (req, res) => {
   try {
     const force = req.query.force === 'true';

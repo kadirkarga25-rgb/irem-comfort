@@ -1,17 +1,11 @@
 {
   "version": 2,
   "rewrites": [
-    {
-      "source": "/toptananket",
-      "destination": "/toptananket.html"
-    },
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index.ts"
-    },
-    {
-      "source": "/((?!api/).*)",
-      "destination": "/index.html"
-    }
+    { "source": "/toptananket", "destination": "/toptananket.html" },
+    { "source": "/katalog", "destination": "https://catalog.iremcomfort.com/katalog" },
+    { "source": "/katalog/:path*", "destination": "https://catalog.iremcomfort.com/katalog/:path*" },
+    { "source": "/katalog-assets/:path*", "destination": "/katalog-assets/:path*" },
+    { "source": "/api/(.*)", "destination": "/api/index.ts" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

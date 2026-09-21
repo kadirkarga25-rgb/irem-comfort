@@ -1,0 +1,1 @@
+import { redirect } from 'next/navigation'; export default async function Page({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{page?:string}>}){const {id}=await params;const sp=await searchParams;redirect(`/katalog/viewer/${id}${sp?.page?`?page=${sp.page}`:''}`);}

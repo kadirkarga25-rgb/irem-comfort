@@ -1,0 +1,2 @@
+import Link from 'next/link';
+export function Header({basePath=''}:{basePath?:string}){ return <header className="site-header"><div className="container header-inner"><Link href="/"><img className="brand-logo" src="/katalog/assets/logo-light.png" alt="İrem Comfort"/></Link><nav className="nav"><Link href={basePath || '/'}>Ana Sayfa</Link><Link href={`${basePath}/`} >Kataloglar</Link><Link href={`${basePath}/koleksiyonlar`}>Koleksiyonlar</Link><Link href={`${basePath}/favoriler`}>Favoriler</Link></nav></div></header>; }

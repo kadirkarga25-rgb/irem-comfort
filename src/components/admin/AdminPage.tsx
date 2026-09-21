@@ -22,11 +22,12 @@ import { BackupAdminTab } from './BackupAdminTab';
 import { AiTrainingAdminTab } from './AiTrainingAdminTab';
 import { InfrastructureAdminTab } from './InfrastructureAdminTab';
 import { ConversationLogsAdminTab } from './ConversationLogsAdminTab';
+import { CatalogAdminTab } from './CatalogAdminTab';
 import { TestimonialsAdminTab } from './TestimonialsAdminTab';
 import { FirstTimeSetupModal } from './FirstTimeSetupModal';
 import { EMAIL_TEMPLATES, renderEmailHtml } from '../../utils/emailTemplates';
 import { 
-  Lock, Key, User, LogOut, ExternalLink, Image as ImageIcon, 
+  Lock, Key, User, LogOut, ExternalLink, Image as ImageIcon, BookOpen, 
   Upload, RotateCcw, Check, Sparkles, Sliders, Layers, Eye, Link, 
   ShieldCheck, AlertCircle, ArrowLeft, Home, Calendar, MapPin, 
   QrCode, ToggleLeft, ToggleRight, Send, MessageSquare, Crop, Info,
@@ -1272,6 +1273,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
         { id: 'craftsmanship', label: 'Atölye & Zanaat', icon: Sparkles },
         { id: 'presets', label: 'Hazır Görseller', icon: Eye },
         { id: 'media', label: 'Medya Kütüphanesi', icon: FileImage, badgeColor: 'text-amber-400' },
+        { id: 'catalog_admin', label: 'Katalog Arşivi', icon: BookOpen, badgeColor: 'text-[#D4AF37]' },
       ]
     },
     {
@@ -4093,6 +4095,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
         {/* Tab: MEDIA LIBRARY */}
         {activeTab === 'media' && <MediaLibraryAdminTab />}
+
+        {/* TAB: CATALOG ARCHIVE */}
+        {activeTab === 'catalog_admin' && <CatalogAdminTab sessionToken={sessionToken} />}
 
         {/* Tab: DEPLOYMENT EXPERIENCE */}
         {activeTab === 'deployment_exp' && (
