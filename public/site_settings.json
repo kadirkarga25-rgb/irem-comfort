@@ -1372,7 +1372,7 @@
       "iconName": "Award"
     }
   ],
-  "_updatedAt": 1789994388111,
+  "_updatedAt": 1789994391786,
   "faqItems": [
     {
       "q": "Soru 1",
@@ -1702,7 +1702,7 @@
         ""
       ],
       "createdAt": 1789992136620,
-      "published": true,
+      "published": false,
       "pdfUrl": "/katalog-assets/catalog-1789992129847/catalog-1789992129847.pdf"
     }
   ]
