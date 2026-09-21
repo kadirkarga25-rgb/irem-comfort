@@ -2923,6 +2923,22 @@ async function loadFreshCanonicalSettingsForCatalog(): Promise<any> {
   return parsed;
 }
 
+async function normalizeCatalogAssetUrls(catalogs: any[]): Promise<any[]> {
+  const { repo, branch } = getGithubConfig();
+  return catalogs.map((c: any) => {
+    if (!c || typeof c !== 'object') return c;
+    const out = { ...c };
+    const toRaw = (url: any) => {
+      if (typeof url !== 'string' || !url.startsWith('/katalog-assets/')) return url;
+      const path = url.replace(/^\/+/, '');
+      return `https://raw.githubusercontent.com/${repo}/${branch}/public/${path}`;
+    };
+    if (out.pdfUrl) out.pdfUrl = toRaw(out.pdfUrl);
+    if (typeof out.cover === 'string') out.cover = toRaw(out.cover);
+    return out;
+  });
+}
+
 async function getCatalogSettings(): Promise<any[]> {
   // Public/admin catalog reads always prefer the canonical GitHub state.
   // This prevents a stale Vercel instance cache from masking the real archive.
@@ -2936,7 +2952,7 @@ async function getCatalogSettings(): Promise<any[]> {
     }
   }
   const catalogs = inMemorySettingsCache?.catalogs;
-  return Array.isArray(catalogs) ? catalogs : [];
+  return Array.isArray(catalogs) ? await normalizeCatalogAssetUrls(catalogs) : [];
 }
 
 app.get('/api/catalogs', async (_req, res) => {
@@ -2994,7 +3010,9 @@ app.post('/api/catalogs/upload', async (req, res) => {
     const buffer = Buffer.from(raw, 'base64');
     const result = await uploadFileToGithub(relativePath, buffer, `Katalog dosyası: ${cleanFilename}`);
     if (!result.success) return res.status(500).json({ success: false, error: result.error || 'Dosya GitHub\'a yüklenemedi.' });
-    return res.json({ success: true, url: `/katalog-assets/${cleanId}/${cleanFilename}`, relativePath, commitSha: result.commitSha });
+    const { repo, branch } = getGithubConfig();
+    const rawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/${relativePath}`;
+    return res.json({ success: true, url: `/katalog-assets/${cleanId}/${cleanFilename}`, rawUrl, relativePath, commitSha: result.commitSha });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err?.message || 'Katalog dosyası yüklenemedi.' });
   }
