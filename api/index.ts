@@ -2986,6 +2986,46 @@ app.get('/api/catalogs/admin/:id', async (req, res) => {
   }
 });
 
+app.get('/api/catalogs/:id/pdf', async (req, res) => {
+  try {
+    const catalogs = await getCatalogSettings();
+    const catalog = catalogs.find((c: any) => c?.id === req.params.id && c?.published);
+    if (!catalog?.pdfUrl) return res.status(404).json({ success: false, error: 'Katalog PDF dosyası bulunamadı.' });
+
+    const { repo, branch } = getGithubConfig();
+    let pdfPath = String(catalog.pdfUrl);
+    if (pdfPath.startsWith('/katalog-assets/')) pdfPath = `public${pdfPath}`;
+    else if (pdfPath.startsWith('https://raw.githubusercontent.com/')) {
+      const marker = `/${repo}/${branch}/`;
+      const idx = pdfPath.indexOf(marker);
+      if (idx >= 0) pdfPath = pdfPath.slice(idx + marker.length);
+    }
+    if (!pdfPath.startsWith('public/')) return res.status(400).json({ success: false, error: 'PDF yolu geçersiz.' });
+
+    const { token } = await getGithubAuth();
+    const ghRes = await fetch(`https://api.github.com/repos/${repo}/contents/${pdfPath}?ref=${encodeURIComponent(branch)}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'User-Agent': 'IremComfortApp'
+      }
+    });
+    if (!ghRes.ok) return res.status(502).json({ success: false, error: `PDF GitHub'dan alınamadı (HTTP ${ghRes.status}).` });
+    const file = await ghRes.json();
+    if (!file?.content) return res.status(502).json({ success: false, error: 'GitHub PDF içeriği alınamadı.' });
+    const buffer = Buffer.from(String(file.content).replace(/\s/g, ''), 'base64');
+    if (!buffer.length) return res.status(502).json({ success: false, error: 'PDF dosyası boş.' });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Length', String(buffer.length));
+    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=86400');
+    res.setHeader('Content-Disposition', 'inline');
+    return res.send(buffer);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'PDF sunulamadı.' });
+  }
+});
+
 app.get('/api/catalogs/:id', async (req, res) => {
   try {
     const catalogs = await getCatalogSettings();

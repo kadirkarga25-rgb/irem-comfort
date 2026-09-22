@@ -7,21 +7,23 @@ export function getCatalogAdminToken(){return typeof window==='undefined'?'':ses
 export function setCatalogAdminToken(v:string){if(typeof window!=='undefined')sessionStorage.setItem(TOKEN_KEY,v);}
 export function clearCatalogAdminToken(){if(typeof window!=='undefined')sessionStorage.removeItem(TOKEN_KEY);}
 async function withPdf(c:Catalog){
-  if(!c.pdf&&c.pdfUrl){
-    const candidates:string[]=[c.pdfUrl];
-    if(c.pdfUrl.startsWith('/katalog-assets/')){
-      const path=c.pdfUrl.replace(/^\/+/,'');
+  if(!c.pdf){
+    const candidates:string[]=[`/api/catalogs/${encodeURIComponent(c.id)}/pdf`];
+    if(c.pdfUrl) candidates.push(c.pdfUrl);
+    if(c.pdfUrl?.startsWith('/katalog-assets/')){
+      const path=c.pdfUrl.replace(/^\/+/, '');
       candidates.push(`https://raw.githubusercontent.com/kadirkarga25-rgb/irem-comfort/main/public/${path}`);
     }
+    let lastError='PDF indirilemedi.';
     for(const url of candidates){
       try{
-        const r=await fetch(url,{cache:'no-store'});
-        if(r.ok){
-          const blob=await r.blob();
-          if(blob.size>0){c.pdf=blob;break;}
-        }
-      }catch{}
+        const r=await fetch(url,{cache:'no-store',headers:{Accept:'application/pdf'}});
+        if(!r.ok){lastError=`PDF alınamadı (HTTP ${r.status}).`;continue;}
+        const blob=await r.blob();
+        if(blob.size>0){c.pdf=new Blob([blob],{type:'application/pdf'});break;}
+      }catch(e){lastError=e instanceof Error?e.message:lastError;}
     }
+    if(!c.pdf) (c as Catalog & {_pdfLoadError?:string})._pdfLoadError=lastError;
   }
   return c;
 }
