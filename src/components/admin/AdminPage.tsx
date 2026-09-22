@@ -23,12 +23,13 @@ import { AiTrainingAdminTab } from './AiTrainingAdminTab';
 import { InfrastructureAdminTab } from './InfrastructureAdminTab';
 import { ConversationLogsAdminTab } from './ConversationLogsAdminTab';
 import { CatalogAdminTab } from './CatalogAdminTab';
+import { PdfLibraryAdminTab } from './PdfLibraryAdminTab';
 import { TestimonialsAdminTab } from './TestimonialsAdminTab';
 import { FirstTimeSetupModal } from './FirstTimeSetupModal';
 import { EMAIL_TEMPLATES, renderEmailHtml } from '../../utils/emailTemplates';
 import { 
   Lock, Key, User, LogOut, ExternalLink, Image as ImageIcon, BookOpen, 
-  Upload, RotateCcw, Check, Sparkles, Sliders, Layers, Eye, Link, 
+  Upload, RotateCcw, FileText, Check, Sparkles, Sliders, Layers, Eye, Link, 
   ShieldCheck, AlertCircle, ArrowLeft, Home, Calendar, MapPin, 
   QrCode, ToggleLeft, ToggleRight, Send, MessageSquare, Crop, Info,
   Mail, Server, AtSign, Save, MailCheck, CheckCircle2, Shield,
@@ -190,7 +191,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   // that old heartbeat could incorrectly log an active admin out.
 
   // Admin Panel Tabs
-  const [activeTab, setActiveTab] = useState<'overview' | 'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'page_builder' | 'presets' | 'leads' | 'crm' | 'testimonials' | 'newsletter' | 'email' | 'system' | 'media' | 'deployment_exp' | 'seo' | 'appearance' | 'analytics' | 'security' | 'ai_arch' | 'live_monitor' | 'backup' | 'ai_training' | 'infrastructure' | 'conv_logs'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'page_builder' | 'presets' | 'leads' | 'crm' | 'testimonials' | 'newsletter' | 'email' | 'system' | 'media' | 'deployment_exp' | 'seo' | 'appearance' | 'analytics' | 'security' | 'ai_arch' | 'live_monitor' | 'backup' | 'ai_training' | 'infrastructure' | 'conv_logs' | 'pdf_library' | 'catalog_admin'>('overview');
 
   // Sidebar Layout States
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
@@ -208,6 +209,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
       case 'craftsmanship': return 'Atölye & Zanaat';
       case 'presets': return 'Hazır Görseller';
       case 'media': return 'Medya Kütüphanesi';
+      case 'pdf_library': return 'PDF Kütüphanesi';
       case 'leads': return 'Müşteri Talepleri';
       case 'crm': return 'Müşteriler & CRM Portalı';
       case 'testimonials': return 'Referanslar & Müşteri Yorumları';
@@ -1273,6 +1275,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
         { id: 'craftsmanship', label: 'Atölye & Zanaat', icon: Sparkles },
         { id: 'presets', label: 'Hazır Görseller', icon: Eye },
         { id: 'media', label: 'Medya Kütüphanesi', icon: FileImage, badgeColor: 'text-amber-400' },
+        { id: 'pdf_library', label: 'PDF Kütüphanesi', icon: FileText, badgeColor: 'text-rose-400' },
         { id: 'catalog_admin', label: 'Katalog Arşivi', icon: BookOpen, badgeColor: 'text-[#D4AF37]' },
       ]
     },
@@ -4095,6 +4098,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
         {/* Tab: MEDIA LIBRARY */}
         {activeTab === 'media' && <MediaLibraryAdminTab />}
+
+        {/* TAB: PDF LIBRARY */}
+        {activeTab === 'pdf_library' && <PdfLibraryAdminTab />}
 
         {/* TAB: CATALOG ARCHIVE */}
         {activeTab === 'catalog_admin' && <CatalogAdminTab sessionToken={sessionToken} />}

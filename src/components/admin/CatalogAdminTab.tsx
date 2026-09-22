@@ -14,7 +14,7 @@ export const CatalogAdminTab: React.FC<Props> = ({ sessionToken }) => {
       </div>
       <a className="catalog-admin-public-link" href="/katalog" target="_blank" rel="noreferrer"><ExternalLink size={16}/> Katalog sayfasını aç</a>
     </div>
-    <div className="catalog-admin-persistence"><ShieldCheck size={18}/><div><strong>Merkezi kalıcı kayıt</strong><span>Katalog bilgileri <code>site_settings.json</code>, PDF ve kapak dosyaları GitHub üzerinde tutulur. Kaydet/Yayınla sonrası mevcut Vercel yayın sistemi devreye girer.</span></div></div>
+    <div className="catalog-admin-persistence"><ShieldCheck size={18}/><div><strong>Merkezi kalıcı kayıt</strong><span>Katalog bilgileri <code>catalog_settings.json</code>, PDF'ler ise ayrı <code>PDF Kütüphanesi</code> alanında GitHub üzerinde tutulur. Ana <code>site_settings.json</code> dosyasına dokunulmaz.</span></div></div>
     <CatalogAdminPanel sessionToken={sessionToken} />
   </div>;
 };

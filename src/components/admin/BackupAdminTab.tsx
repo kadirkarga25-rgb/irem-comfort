@@ -90,6 +90,39 @@ export const BackupAdminTab: React.FC = () => {
       // 5. CRM kayıtları
       const crmRecord = crmService.getActiveRecord();
 
+      // 6. PDF Kütüphanesi: GitHub'daki gerçek PDF dosyalarını da yedeğe göm.
+      // Bu alan büyük olabilir; amaç yedeğin PDF'leri kaybetmemesidir.
+      let pdfLibraryBackup: any = { files: [] };
+      try {
+        const pRes = await fetch('/api/pdf-library/admin/list', {
+          cache: 'no-store',
+          headers: { Authorization: `Bearer ${sessionStorage.getItem('ic_catalog_admin_token') || ''}` }
+        });
+        if (pRes.ok) {
+          const pData = await pRes.json();
+          const libraryFiles = Array.isArray(pData?.files) ? pData.files : [];
+          const filesWithData: any[] = [];
+          for (const pdf of libraryFiles) {
+            try {
+              const r = await fetch(pdf.rawUrl, { cache: 'no-store' });
+              if (!r.ok) continue;
+              const bytes = new Uint8Array(await r.arrayBuffer());
+              let binary = '';
+              const chunk = 0x8000;
+              for (let i = 0; i < bytes.length; i += chunk) {
+                binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+              }
+              filesWithData.push({ ...pdf, data: btoa(binary) });
+            } catch (e) {
+              console.warn('PDF yedeğe alınamadı:', pdf?.filename, e);
+            }
+          }
+          pdfLibraryBackup = { exportedAt: new Date().toISOString(), files: filesWithData };
+        }
+      } catch (e) {
+        console.warn('PDF Kütüphanesi yedeklenirken hata:', e);
+      }
+
       // 6. EKSİKSİZ TAM SİSTEM & ÜRÜN YEDEĞİ
       const fullBackup = {
         backupMetadata: {
@@ -130,7 +163,10 @@ export const BackupAdminTab: React.FC = () => {
         newsletterSubscribers,
         aiTrainingData,
 
-        // --- 6. SUNUCU & YEREL BELLEK DÖKÜMÜ ---
+        // --- 6. PDF KÜTÜPHANESİ ---
+        pdfLibrary: pdfLibraryBackup,
+
+        // --- 7. SUNUCU & YEREL BELLEK DÖKÜMÜ ---
         serverSettingsSnapshot,
         localStorageDump: { ...localStorage }
       };
@@ -179,7 +215,31 @@ export const BackupAdminTab: React.FC = () => {
         // 1. ImageContext üzerinden tüm ürünler ve CMS ayarlarını geri yükle
         const restoreRes = await restoreFullBackup(json);
 
-        // 2. Admin ayarlarını geri yükle
+        // 2. PDF Kütüphanesini GitHub'a geri yükle.
+        if (Array.isArray(json.pdfLibrary?.files)) {
+          for (const pdf of json.pdfLibrary.files) {
+            if (!pdf?.data || !pdf?.filename) continue;
+            try {
+              await fetch('/api/pdf-library/upload', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${sessionStorage.getItem('ic_catalog_admin_token') || ''}`
+                },
+                body: JSON.stringify({
+                  id: pdf.id || `pdf-${Date.now()}`,
+                  filename: pdf.filename,
+                  size: pdf.size || 0,
+                  data: `data:application/pdf;base64,${pdf.data}`
+                })
+              });
+            } catch (e) {
+              console.warn('PDF geri yüklenemedi:', pdf?.filename, e);
+            }
+          }
+        }
+
+        // 3. Admin ayarlarını geri yükle
         if (json.adminSettings) {
           adminSettingsService.updateSettings(json.adminSettings);
         }
@@ -304,7 +364,7 @@ export const BackupAdminTab: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Bu butona bastığınızda, <strong>sisteme eklenen bütün ürünler ({productCount} adet)</strong>, ürün fotoğrafları, fiyatlar, renkler, SSS, kurumsal içerikler ve ayarlar tek bir <code>.json</code> yedekleme dosyasına eksiksiz kaydedilir ve bilgisayarınıza indirilir.
+              Bu butona bastığınızda, <strong>sisteme eklenen bütün ürünler ({productCount} adet)</strong>, ürün fotoğrafları, PDF Kütüphanesi, fiyatlar, renkler, SSS, kurumsal içerikler ve ayarlar tek bir <code>.json</code> yedekleme dosyasına eksiksiz kaydedilir ve bilgisayarınıza indirilir.
             </p>
 
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] space-y-1.5 text-slate-700 font-mono">
@@ -351,7 +411,7 @@ export const BackupAdminTab: React.FC = () => {
             {isExporting ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Ürünler ve Sistem Paketleniyor...</span>
+                <span>Ürünler, PDF'ler ve Sistem Paketleniyor...</span>
               </>
             ) : backupSuccess ? (
               <>

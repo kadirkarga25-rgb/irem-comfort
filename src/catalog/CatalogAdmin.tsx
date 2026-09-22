@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, Settings2, Eye, EyeOff, Check, Trash2, ArrowUp, ArrowDown, Upload, FileSearch, BookOpen } from 'lucide-react';
-import { Catalog, Collection, clearCatalogAdminToken, getCatalog, getCatalogAdminToken, listCatalogs, saveCatalog, deleteCatalog, setCatalogAdminToken } from './db';
+import { Catalog, Collection, clearCatalogAdminToken, getCatalog, getCatalogAdminToken, listCatalogs, saveCatalog, deleteCatalog, setCatalogAdminToken, listPdfLibraryForCatalog } from './db';
 import { detectStructure, extractText, readPdf } from './pdf';
 import { CatalogLink } from './router';
 
@@ -31,8 +31,21 @@ export function CatalogAdminHome({ embedded=false, onNew, onEdit }:{embedded?:bo
 
 export function CatalogAdminNew({ embedded=false, onCancel, onSaved }:{embedded?:boolean;onCancel?:()=>void;onSaved?:(id:string)=>void}){
   const input=useRef<HTMLInputElement>(null);
-  const [title,setTitle]=useState(''),[year,setYear]=useState(String(new Date().getFullYear())),[season,setSeason]=useState('Yeni Sezon'),[tags,setTags]=useState(''),[description,setDescription]=useState(''),[file,setFile]=useState<File>(),[cover,setCover]=useState(''),[busy,setBusy]=useState(false),[status,setStatus]=useState(''),[error,setError]=useState(''),[progress,setProgress]=useState(0),[analysis,setAnalysis]=useState<any>(null),[draft,setDraft]=useState<Catalog|null>(null);
+  const [title,setTitle]=useState(''),[year,setYear]=useState(String(new Date().getFullYear())),[season,setSeason]=useState('Yeni Sezon'),[tags,setTags]=useState(''),[description,setDescription]=useState(''),[file,setFile]=useState<File>(),[selectedPdf,setSelectedPdf]=useState<any>(null),[libraryFiles,setLibraryFiles]=useState<any[]>([]),[cover,setCover]=useState(''),[busy,setBusy]=useState(false),[status,setStatus]=useState(''),[error,setError]=useState(''),[progress,setProgress]=useState(0),[analysis,setAnalysis]=useState<any>(null),[draft,setDraft]=useState<Catalog|null>(null);
   const selectCover=(f?:File)=>{if(!f)return;const r=new FileReader();r.onload=()=>setCover(String(r.result||''));r.readAsDataURL(f)};
+  useEffect(()=>{listPdfLibraryForCatalog().then(setLibraryFiles).catch(()=>setLibraryFiles([]));},[]);
+  const selectLibraryPdf=async(item:any)=>{
+    setBusy(true); setError(''); setStatus('PDF Kütüphanesinden PDF hazırlanıyor…');
+    try{
+      const r=await fetch(item.rawUrl,{cache:'no-store'});
+      if(!r.ok) throw new Error(`PDF alınamadı (HTTP ${r.status}).`);
+      const blob=await r.blob();
+      setFile(new File([blob],item.filename,{type:'application/pdf'}));
+      setSelectedPdf(item);
+      setStatus(`Seçildi: ${item.name}`);
+    }catch(e:any){setError(e?.message||'PDF Kütüphanesindeki dosya alınamadı.');}
+    finally{setBusy(false);}
+  };
   const analyze=async()=>{
     if(!file){setError('Önce PDF seç.');return;}
     setBusy(true);setError('');setStatus('PDF hazırlanıyor…');setAnalysis(null);setDraft(null);
@@ -44,18 +57,29 @@ export function CatalogAdminNew({ embedded=false, onCancel, onSaved }:{embedded?
       const t=await extractText(file);
       setStatus('3/4 · Koleksiyon ve içindekiler analiz ediliyor…');
       const structure=detectStructure(t.pageTexts,r.count);
-      const c:Catalog={id,title:title||file.name.replace(/\.pdf$/i,''),year,season,description,tags:tags.split(',').map(x=>x.trim()).filter(Boolean),cover,pdf:r.data,pages:r.count,collections:structure.collections,contents:structure.contents,pageTexts:t.pageTexts,createdAt:Date.now(),published:false};
+      const c:Catalog={id,pdfLibraryId:selectedPdf?.id,pdfUrl:selectedPdf?.rawUrl,title:title||file.name.replace(/\.pdf$/i,''),year,season,description,tags:tags.split(',').map(x=>x.trim()).filter(Boolean),cover,pdf:r.data,pages:r.count,collections:structure.collections,contents:structure.contents,pageTexts:t.pageTexts,createdAt:Date.now(),published:false};
       setDraft(c);setAnalysis(structure.analysis);setStatus('4/4 · Analiz tamamlandı. Yayınlamadan önce sonuçları kontrol edin.');
     }catch(e:any){setError(e?.message||'PDF analiz edilemedi.')}finally{setBusy(false)}
   };
   const saveAnalyzed=async()=>{if(!draft)return;setBusy(true);setError('');setStatus('Katalog GitHub kalıcı alanına yükleniyor…');try{await saveCatalog(draft);setStatus('Katalog başarıyla kaydedildi. Şimdi koleksiyonları tek tek düzenleyebilirsiniz.');onSaved?.(draft.id)}catch(e:any){setError(e?.message||'Katalog kalıcı olarak kaydedilemedi.')}finally{setBusy(false)}};
   const body=<div className="panel catalog-create-panel">
     <div className="catalog-create-intro"><div><div className="eyebrow">YENİ KATALOG</div><h2 className="serif">Kataloğu sisteme al</h2><p>PDF'yi yükle. Sistem sayfaları, metinleri, koleksiyon başlıklarını ve içindekileri analiz etsin. Sonuçları kontrol ettikten sonra kaydet.</p></div><div className="analysis-badge"><FileSearch size={17}/><span>Akıllı PDF Analizi</span></div></div>
-    <div className="form-grid"><div className="field"><label>Katalog adı</label><input value={title} onChange={e=>setTitle(e.target.value)} placeholder="2026 / 2027 Yeni Sezon"/></div><div className="field"><label>Yıl</label><input value={year} onChange={e=>setYear(e.target.value)}/></div><div className="field"><label>Sezon</label><input value={season} onChange={e=>setSeason(e.target.value)}/></div><div className="field"><label>Etiketler</label><input value={tags} onChange={e=>setTags(e.target.value)} placeholder="Kadın, Comfort, Sabo"/></div><div className="field full"><label>Kapak görseli <span className="field-hint">İsteğe bağlı</span></label><input type="file" accept="image/*" onChange={e=>selectCover(e.target.files?.[0])}/></div><div className="field full"><label>Açıklama</label><textarea rows={3} value={description} onChange={e=>setDescription(e.target.value)} placeholder="Katalog hakkında kısa açıklama…"/></div><div className="field full"><label>PDF katalog</label><div className={`dropzone ${file?'has-file':''}`} onClick={()=>!busy&&input.current?.click()} onDragOver={e=>{e.preventDefault();e.currentTarget.classList.add('is-dragging')}} onDragLeave={e=>e.currentTarget.classList.remove('is-dragging')} onDrop={e=>{e.preventDefault();e.currentTarget.classList.remove('is-dragging');const f=e.dataTransfer.files?.[0];if(f)setFile(f)}}><input ref={input} hidden type="file" accept="application/pdf,.pdf" onChange={e=>setFile(e.target.files?.[0])}/>{file?<><FileSearch size={30}/><strong>{file.name}</strong><span>{(file.size/1024/1024).toFixed(1)} MB · Analize hazır</span></>:<><Upload size={30}/><strong>PDF'yi buraya bırak veya seç</strong><span>PDF sayfaları otomatik taranır.</span></>}</div></div></div>
+    <div className="form-grid"><div className="field"><label>Katalog adı</label><input value={title} onChange={e=>setTitle(e.target.value)} placeholder="2026 / 2027 Yeni Sezon"/></div><div className="field"><label>Yıl</label><input value={year} onChange={e=>setYear(e.target.value)}/></div><div className="field"><label>Sezon</label><input value={season} onChange={e=>setSeason(e.target.value)}/></div><div className="field"><label>Etiketler</label><input value={tags} onChange={e=>setTags(e.target.value)} placeholder="Kadın, Comfort, Sabo"/></div><div className="field full"><label>Kapak görseli <span className="field-hint">İsteğe bağlı</span></label><input type="file" accept="image/*" onChange={e=>selectCover(e.target.files?.[0])}/></div><div className="field full"><label>Açıklama</label><textarea rows={3} value={description} onChange={e=>setDescription(e.target.value)} placeholder="Katalog hakkında kısa açıklama…"/></div><div className="field full"><label>PDF katalog <span className="field-hint">PDF Kütüphanesinden seç</span></label>
+      <div className="panel" style={{padding:14}}>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}>
+          <select value={selectedPdf?.id||''} disabled={busy} onChange={e=>{const item=libraryFiles.find(x=>x.id===e.target.value); if(item) selectLibraryPdf(item);}} style={{flex:1,minWidth:240,padding:'10px 12px',border:'1px solid #e2e8f0',borderRadius:10}}>
+            <option value="">PDF Kütüphanesinden bir PDF seçin…</option>
+            {libraryFiles.map(x=><option key={x.id} value={x.id}>{x.name} · {(Number(x.size||0)/1024/1024).toFixed(2)} MB</option>)}
+          </select>
+          <span style={{fontSize:11,color:'#64748b'}}>{libraryFiles.length} PDF</span>
+        </div>
+        {file&&<div style={{marginTop:10,display:'flex',alignItems:'center',gap:8,fontSize:12,color:'#334155'}}><FileSearch size={18}/><strong>{file.name}</strong><span>{(file.size/1024/1024).toFixed(1)} MB · Analize hazır</span></div>}
+        {!libraryFiles.length&&<div style={{marginTop:10,fontSize:12,color:'#b45309'}}>PDF Kütüphanesinde henüz dosya yok. Önce Admin → PDF Kütüphanesi bölümünden yükleyin.</div>}
+      </div></div></div>
     {busy&&<div className="analysis-progress"><div className="status">{status}</div><div className="progress-track"><div className="progress-fill" style={{width:`${progress}%`}}/></div><span>%{progress} · PDF işleniyor</span></div>}
     {!busy&&status&&<div className="status" style={{marginTop:18}}>{status}</div>}{error&&<div className="status error" style={{marginTop:12}}>{error}</div>}
     {analysis&&draft&&<div className="analysis-report"><div className="analysis-report-head"><div><div className="eyebrow">ANALİZ SONUCU</div><h3 className="serif">Katalog yapısı hazır</h3><p>Otomatik tespitleri yayınlamadan önce kontrol edebilirsiniz.</p></div><div className="confidence"><strong>%{analysis.confidence}</strong><span>analiz güveni</span></div></div><div className="analysis-metrics"><div><strong>{analysis.pages}</strong><span>Toplam sayfa</span></div><div><strong>{analysis.pagesWithText}</strong><span>Metin bulunan sayfa</span></div><div><strong>{analysis.collectionsFound}</strong><span>Tespit edilen koleksiyon</span></div><div><strong>{analysis.contentsFound}</strong><span>İçindekiler girdisi</span></div></div><div className="analysis-columns"><div><h4>Koleksiyonlar</h4><ol>{draft.collections.map((x,i)=><li key={x.id}><span>{String(i+1).padStart(2,'0')}</span><b>{x.name}</b><small>Sy. {x.startPage}–{x.endPage}</small></li>)}</ol></div><div><h4>İçindekiler</h4><ol>{draft.contents.slice(0,16).map((x,i)=><li key={`${x.title}-${i}`}><b>{x.title}</b><small>Sy. {x.page}</small></li>)}</ol></div></div>{analysis.warnings?.length>0&&<div className="analysis-warnings"><strong>Kontrol edilmesi gerekenler</strong>{analysis.warnings.map((w:string,i:number)=><div key={i}>• {w}</div>)}</div>}</div>}
-    <div className="admin-actions">{analysis&&draft?<><button className="btn btn-primary" onClick={saveAnalyzed} disabled={busy}><Check size={18}/> Analizi Onayla ve Kaydet</button><button className="btn btn-secondary" onClick={()=>{setAnalysis(null);setDraft(null);setStatus('')}} disabled={busy}>Tekrar Analiz Et</button></>:<button className="btn btn-primary" onClick={analyze} disabled={busy||!file}><FileSearch size={18}/>{busy?'Analiz ediliyor…':'PDF Yükle ve Analiz Et'}</button>}<button className="btn btn-secondary" onClick={onCancel} disabled={busy}>İptal</button></div>
+    <div className="admin-actions">{analysis&&draft?<><button className="btn btn-primary" onClick={saveAnalyzed} disabled={busy}><Check size={18}/> Analizi Onayla ve Kaydet</button><button className="btn btn-secondary" onClick={()=>{setAnalysis(null);setDraft(null);setStatus('')}} disabled={busy}>Tekrar Analiz Et</button></>:<button className="btn btn-primary" onClick={analyze} disabled={busy||!file}><FileSearch size={18}/>{busy?'Analiz ediliyor…':"Kütüphanedeki PDF'yi Analiz Et"}</button>}<button className="btn btn-secondary" onClick={onCancel} disabled={busy}>İptal</button></div>
   </div>;
   return embedded?body:<EmbeddedFrame>{body}</EmbeddedFrame>;
 }
