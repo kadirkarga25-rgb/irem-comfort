@@ -1082,7 +1082,7 @@
       "iconName": "Award"
     }
   ],
-  "_updatedAt": 1790059874670,
+  "_updatedAt": 1790059891802,
   "faqItems": [
     {
       "q": "Soru 1",
@@ -1232,11 +1232,11 @@
   "githubRepo": "kadirkarga25-rgb/irem-comfort",
   "githubBranch": "main",
   "emailConfig": {
-    "smtpHost": "mail.iremcomfort.com",
-    "smtpPort": 587,
+    "smtpHost": "smtp.gmail.com",
+    "smtpPort": 465,
     "smtpUser": "info@iremcomfort.com",
-    "smtpPass": "",
-    "smtpSecure": false,
+    "smtpPass": "ghlb rtol zvna jtet",
+    "smtpSecure": true,
     "adminEmails": "kargakadir4525@gmail.com, info@iremcomfort.com",
     "senderName": "İrem Comfort Ayakkabıcılık",
     "senderEmail": "info@iremcomfort.com",
@@ -1412,9 +1412,8 @@
         ""
       ],
       "createdAt": 1790059854259,
-      "published": true,
-      "pdfUrl": "https://raw.githubusercontent.com/kadirkarga25-rgb/irem-comfort/main/public/katalog-assets/catalog-1790059846611/catalog-1790059846611.pdf",
-      "_pdfLoadError": "PDF alınamadı (HTTP 404)."
+      "published": false,
+      "pdfUrl": "https://raw.githubusercontent.com/kadirkarga25-rgb/irem-comfort/main/public/katalog-assets/catalog-1790059846611/catalog-1790059846611.pdf"
     }
   ]
 }
