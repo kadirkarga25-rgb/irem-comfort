@@ -2892,35 +2892,69 @@ function requireCatalogAdmin(req: express.Request, res: express.Response): boole
   return true;
 }
 
-async function loadFreshCanonicalSettingsForCatalog(): Promise<any> {
+async function loadFreshCatalogArchive(): Promise<any[]> {
   const { token, repo, branch } = await getGithubAuth();
-  if (!token || !repo) {
-    throw new Error('Katalog kaydı için GitHub kalıcı ayar kaynağına erişilemedi. Mevcut sunucu belleği kullanılmadı; ana site verilerinin ezilmesi engellendi.');
-  }
+  if (!token || !repo) throw new Error('Katalog arşivi için GitHub erişimi bulunamadı.');
 
-  const res = await fetch(`https://api.github.com/repos/${repo}/contents/public/site_settings.json?ref=${branch}`, {
+  const path = 'public/catalog_settings.json';
+  const res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${encodeURIComponent(branch)}`, {
     headers: {
       Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
       'User-Agent': 'IremComfortApp',
       'Cache-Control': 'no-cache'
     }
   });
 
+  if (res.status === 404) {
+    // One-time migration source only. We READ the old catalog field but never write it back.
+    try {
+      const legacy = await loadFreshCanonicalSettingsForCatalogLegacy();
+      return Array.isArray(legacy?.catalogs) ? legacy.catalogs : [];
+    } catch {
+      return [];
+    }
+  }
   if (!res.ok) {
     const detail = await res.text();
-    throw new Error(`Ana site ayarları GitHub'dan okunamadı (HTTP ${res.status}). ${detail.slice(0, 300)}`);
+    throw new Error(`Katalog arşivi GitHub'dan okunamadı (HTTP ${res.status}). ${detail.slice(0, 300)}`);
   }
-
   const data = await res.json();
-  if (!data?.content) throw new Error('GitHub site_settings.json içeriği alınamadı. Katalog kaydı durduruldu.');
+  if (!data?.content) return [];
+  const parsed = JSON.parse(Buffer.from(data.content, 'base64').toString('utf8'));
+  if (Array.isArray(parsed)) return parsed;
+  return Array.isArray(parsed?.catalogs) ? parsed.catalogs : [];
+}
 
-  const raw = Buffer.from(data.content, 'base64').toString('utf-8');
-  const parsed = JSON.parse(raw);
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('GitHub site_settings.json geçersiz. Katalog kaydı durduruldu.');
-  }
+// Legacy reader retained only for migration. Catalog writes never touch site_settings.json.
+async function loadFreshCanonicalSettingsForCatalogLegacy(): Promise<any> {
+  const { token, repo, branch } = await getGithubAuth();
+  if (!token || !repo) throw new Error('GitHub kalıcı ayar kaynağına erişilemedi.');
+  const res = await fetch(`https://api.github.com/repos/${repo}/contents/public/site_settings.json?ref=${encodeURIComponent(branch)}`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'IremComfortApp', 'Cache-Control': 'no-cache' }
+  });
+  if (!res.ok) throw new Error(`site_settings.json okunamadı (HTTP ${res.status}).`);
+  const data = await res.json();
+  if (!data?.content) throw new Error('site_settings.json içeriği alınamadı.');
+  return JSON.parse(Buffer.from(data.content, 'base64').toString('utf8'));
+}
 
-  return parsed;
+async function saveCatalogArchive(catalogs: any[], message: string): Promise<{success:boolean; commitSha?:string; error?:string; vercelDeployTriggered?:boolean}> {
+  const { token, repo, branch } = await getGithubAuth();
+  if (!token || !repo) throw new Error('Katalog arşivi için GitHub erişimi bulunamadı.');
+  const archive = JSON.stringify({ version: 1, updatedAt: Date.now(), catalogs }, null, 2);
+  const result = await commitFilesToGithubAtomically(
+    [{ path: 'public/catalog_settings.json', content: archive }],
+    message,
+    token,
+    repo,
+    branch
+  );
+  if (!result.success) return { success:false, error: result.error };
+  const vercelResult = await triggerVercelDeployHook(result.commitSha);
+  if (!vercelResult.triggered) return { success:false, commitSha:result.commitSha, error:vercelResult.error };
+  return { success:true, commitSha:result.commitSha, vercelDeployTriggered:true };
 }
 
 async function normalizeCatalogAssetUrls(catalogs: any[]): Promise<any[]> {
@@ -2929,9 +2963,10 @@ async function normalizeCatalogAssetUrls(catalogs: any[]): Promise<any[]> {
     if (!c || typeof c !== 'object') return c;
     const out = { ...c };
     const toRaw = (url: any) => {
-      if (typeof url !== 'string' || !url.startsWith('/katalog-assets/')) return url;
-      const path = url.replace(/^\/+/, '');
-      return `https://raw.githubusercontent.com/${repo}/${branch}/public/${path}`;
+      if (typeof url !== 'string') return url;
+      if (url.startsWith('https://raw.githubusercontent.com/')) return url;
+      if (!url.startsWith('/katalog-assets/')) return url;
+      return `https://raw.githubusercontent.com/${repo}/${branch}/public${url}`;
     };
     if (out.pdfUrl) out.pdfUrl = toRaw(out.pdfUrl);
     if (typeof out.cover === 'string') out.cover = toRaw(out.cover);
@@ -2940,19 +2975,8 @@ async function normalizeCatalogAssetUrls(catalogs: any[]): Promise<any[]> {
 }
 
 async function getCatalogSettings(): Promise<any[]> {
-  // Public/admin catalog reads always prefer the canonical GitHub state.
-  // This prevents a stale Vercel instance cache from masking the real archive.
-  try {
-    const fresh = await loadFreshCanonicalSettingsForCatalog();
-    inMemorySettingsCache = fresh;
-  } catch (err) {
-    // Reads can fall back to the already loaded state; writes below never do.
-    if (!inMemorySettingsCache || Object.keys(inMemorySettingsCache).length === 0) {
-      await ensureSettingsLoaded();
-    }
-  }
-  const catalogs = inMemorySettingsCache?.catalogs;
-  return Array.isArray(catalogs) ? await normalizeCatalogAssetUrls(catalogs) : [];
+  const catalogs = await loadFreshCatalogArchive();
+  return normalizeCatalogAssetUrls(catalogs);
 }
 
 app.get('/api/catalogs', async (_req, res) => {
@@ -2992,7 +3016,7 @@ app.get('/api/catalogs/:id/pdf', async (req, res) => {
     const catalog = catalogs.find((c: any) => c?.id === req.params.id && c?.published);
     if (!catalog?.pdfUrl) return res.status(404).json({ success: false, error: 'Katalog PDF dosyası bulunamadı.' });
 
-    const { repo, branch } = getGithubConfig();
+    const { repo, branch, token } = await getGithubAuth();
     let pdfPath = String(catalog.pdfUrl);
     if (pdfPath.startsWith('/katalog-assets/')) pdfPath = `public${pdfPath}`;
     else if (pdfPath.startsWith('https://raw.githubusercontent.com/')) {
@@ -3002,23 +3026,23 @@ app.get('/api/catalogs/:id/pdf', async (req, res) => {
     }
     if (!pdfPath.startsWith('public/')) return res.status(400).json({ success: false, error: 'PDF yolu geçersiz.' });
 
-    const { token } = await getGithubAuth();
-    const ghRes = await fetch(`https://api.github.com/repos/${repo}/contents/${pdfPath}?ref=${encodeURIComponent(branch)}`, {
+    // IMPORTANT: do not use GitHub Contents API for the PDF. Large PDFs may return
+    // an empty/truncated content field and caused the previous HTTP 502 errors.
+    const rawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/${pdfPath}`;
+    const ghRes = await fetch(rawUrl, {
       headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'IremComfortApp'
+        Accept: 'application/pdf,*/*',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'User-Agent': 'IremComfortApp',
+        'Cache-Control': 'no-cache'
       }
     });
-    if (!ghRes.ok) return res.status(502).json({ success: false, error: `PDF GitHub'dan alınamadı (HTTP ${ghRes.status}).` });
-    const file = await ghRes.json();
-    if (!file?.content) return res.status(502).json({ success: false, error: 'GitHub PDF içeriği alınamadı.' });
-    const buffer = Buffer.from(String(file.content).replace(/\s/g, ''), 'base64');
+    if (!ghRes.ok) return res.status(502).json({ success: false, error: `PDF GitHub Raw'dan alınamadı (HTTP ${ghRes.status}).` });
+    const buffer = Buffer.from(await ghRes.arrayBuffer());
     if (!buffer.length) return res.status(502).json({ success: false, error: 'PDF dosyası boş.' });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Length', String(buffer.length));
-    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=86400');
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400');
     res.setHeader('Content-Disposition', 'inline');
     return res.send(buffer);
   } catch (err: any) {
@@ -3063,29 +3087,17 @@ app.post('/api/catalogs/save', async (req, res) => {
   try {
     const catalog = req.body?.catalog;
     if (!catalog?.id || !catalog?.title) return res.status(400).json({ success: false, error: 'Geçersiz katalog verisi.' });
-
-    // CRITICAL SAFETY RULE: never build a catalog publish from a Vercel instance-local
-    // settings cache. Fetch the latest canonical site_settings.json first, then patch
-    // ONLY the catalogs field. This prevents catalog saves from wiping products/images.
-    const canonical = await loadFreshCanonicalSettingsForCatalog();
-    const catalogs = Array.isArray(canonical.catalogs) ? [...canonical.catalogs] : [];
+    const catalogs = await loadFreshCatalogArchive();
     const safeCatalog = { ...catalog };
     delete safeCatalog.pdf;
     delete safeCatalog.pageImages;
     const index = catalogs.findIndex((c: any) => c?.id === safeCatalog.id);
     if (index >= 0) catalogs[index] = safeCatalog; else catalogs.push(safeCatalog);
-
-    const nextSettings = {
-      ...canonical,
-      catalogs,
-      _updatedAt: Date.now()
-    };
-
-    const result = await publishSettings(nextSettings, undefined, undefined, undefined, `Katalog: ${safeCatalog.title} güncellendi`);
-    if (!result.publishSuccess) return res.status(500).json({ success: false, error: result.error || 'Katalog kalıcı olarak kaydedilemedi.' });
+    const result = await saveCatalogArchive(catalogs, `Katalog: ${safeCatalog.title} güncellendi`);
+    if (!result.success) return res.status(500).json({ success: false, error: result.error || 'Katalog kalıcı olarak kaydedilemedi.' });
     return res.json({ success: true, catalog: safeCatalog, commitSha: result.commitSha, vercelDeployTriggered: result.vercelDeployTriggered === true });
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err?.message || 'Katalog kaydedilemedi. Ana site verilerinin korunması için işlem durduruldu.' });
+    return res.status(500).json({ success: false, error: err?.message || 'Katalog kaydedilemedi. Ana site ayarlarına dokunulmadı.' });
   }
 });
 
@@ -3094,16 +3106,12 @@ app.post('/api/catalogs/delete', async (req, res) => {
   try {
     const id = String(req.body?.id || '');
     if (!id) return res.status(400).json({ success: false, error: 'Katalog ID eksik.' });
-
-    // Same safety rule as save: delete only from the latest canonical catalog list.
-    const canonical = await loadFreshCanonicalSettingsForCatalog();
-    const catalogs = (Array.isArray(canonical.catalogs) ? canonical.catalogs : []).filter((c: any) => c?.id !== id);
-    const nextSettings = { ...canonical, catalogs, _updatedAt: Date.now() };
-    const result = await publishSettings(nextSettings, undefined, undefined, undefined, `Katalog silindi: ${id}`);
-    if (!result.publishSuccess) return res.status(500).json({ success: false, error: result.error || 'Katalog silinemedi.' });
+    const catalogs = (await loadFreshCatalogArchive()).filter((c: any) => c?.id !== id);
+    const result = await saveCatalogArchive(catalogs, `Katalog silindi: ${id}`);
+    if (!result.success) return res.status(500).json({ success: false, error: result.error || 'Katalog silinemedi.' });
     return res.json({ success: true, commitSha: result.commitSha, vercelDeployTriggered: result.vercelDeployTriggered === true });
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err?.message || 'Katalog silinemedi. Ana site verilerinin korunması için işlem durduruldu.' });
+    return res.status(500).json({ success: false, error: err?.message || 'Katalog silinemedi. Ana site ayarlarına dokunulmadı.' });
   }
 });
 
