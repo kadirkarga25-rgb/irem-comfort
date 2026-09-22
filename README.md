@@ -1,27 +1,23 @@
-# İrem Comfort — Trendyol Kaldırma + Katalog Modülü UX Fix
+# İrem Comfort — Premium Toptan Satış Tasarım + Trendyol Temizliği
 
-Bu patch:
-- Sitedeki Trendyol yönlendirmelerini, butonlarını ve metinlerini kaldırır.
-- Ürünleri ve toptan fiyat/sipariş akışını korur.
-- Admin'deki Katalog Arşivi adını Katalog Modülü yapar.
-- Katalog viewer'a sağdan sola / soldan sağa kaydırma ile sayfa değiştirme ekler.
-- Aktif sayfa değiştiğinde alttaki küçük sayfa önizlemesini otomatik ortalar.
-- Viewer içindeki dikey kaydırma davranışını iyileştirir.
-- `site_settings.json` dosyasını patch ile ezmez.
+Bu patch mevcut ana site tasarımını daha kurumsal/toptan satış odaklı hale getirir.
 
-İstersen mevcut `public/site_settings.json` içindeki eski Trendyol alanlarını bir kere temizlemek için:
+## Değişiklikler
+- Trendyol header/footer/mobile/product CTA referansları kaldırıldı.
+- Ürünler korunur; ürün görselleri ve ürün kayıtları silinmez.
+- Hero alanı B2B/toptan satış odaklı hale getirildi.
+- Ana CTA: Toptan Koleksiyonu İncele / Toptan Teklif Al.
+- Ürün detay CTA: Toptan Fiyat & Stok Bilgisi Al.
+- Footer daha kurumsal toptan satış diliyle düzenlendi.
+- `site_settings.json` doğrudan patch içinde değiştirilmez.
 
-    node scripts/remove-trendyol.mjs
+## Site ayarlarındaki eski Trendyol metinlerini temizleme
+PowerShell: `node scripts/remove-trendyol-from-settings.mjs`
+Ardından kontrol: `git diff -- public/site_settings.json`
 
-Sonra kontrol:
+## Git
+`git add src scripts`
+`git commit -m "Premium toptan satis tasarimi ve Trendyol temizligi"`
+`git push origin HEAD:main`
 
-    git diff -- public/site_settings.json
-    git grep -ni -E "Trendyol|trendyol|TRENDYOL"
-
-Patch'i uyguladıktan sonra:
-
-    git add .
-    git commit -m "Trendyol kaldirildi ve katalog modulu UX duzeltildi"
-    git push origin HEAD:main
-
-`public/site_settings.json` için diff'i özellikle kontrol et; ana site ayarlarının başka alanlarının değişmediğinden emin olmadan commit etme.
+Not: `public/site_settings.json` üzerinde değişiklik oluşursa commit etmeden önce diff'i kontrol edin.

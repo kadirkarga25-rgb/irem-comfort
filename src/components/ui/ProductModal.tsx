@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CollectionItem } from '../../types';
-import { CONTACT_DATA } from '../../constants/data';
 import { X, Check, ShieldCheck, Layers, Palette, ArrowRight, Share2, Ruler } from 'lucide-react';
 import { useAppImages } from '../../context/ImageContext';
 import { useConversation } from '../../context/ConversationContext';
@@ -425,7 +424,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                   }}
                   className="w-full sm:w-auto flex-1 py-3 sm:py-3.5 px-5 rounded-full bg-[#082C6C] text-white font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-[#163E87] transition-all cursor-pointer shadow-md active:scale-95"
                 >
-                  <span>{language === 'tr' ? 'Fiyat & Toptan Bilgi Al' : language === 'en' ? 'Price & Wholesale Info' : 'طلب الأسعار والبيع بالجملة'}</span>
+                  <span>{language === 'tr' ? 'Toptan Fiyat & Stok Bilgisi Al' : language === 'en' ? 'Wholesale Price & Stock' : 'طلب الأسعار والبيع بالجملة'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
