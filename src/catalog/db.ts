@@ -7,28 +7,10 @@ export function getCatalogAdminToken(){return typeof window==='undefined'?'':ses
 export function setCatalogAdminToken(v:string){if(typeof window!=='undefined')sessionStorage.setItem(TOKEN_KEY,v);}
 export function clearCatalogAdminToken(){if(typeof window!=='undefined')sessionStorage.removeItem(TOKEN_KEY);}
 async function withPdf(c:Catalog){
-  if(!c.pdf){
-    const candidates:string[]=[];
-    // Always try the application endpoint first. It can authorize admin draft
-    // previews and keeps PDF URL/path normalization in one place.
-    candidates.push(`/api/catalogs/${encodeURIComponent(c.id)}/pdf`);
-    if(c.pdfUrl) candidates.push(c.pdfUrl);
-    if(c.pdfUrl?.startsWith('/katalog-assets/')){
-      const path=c.pdfUrl.replace(/^\/+/, '');
-      candidates.push(`https://raw.githubusercontent.com/kadirkarga25-rgb/irem-comfort/main/public/${path}`);
-    }
-    let lastError='PDF indirilemedi.';
-    for(const url of candidates){
-      try{
-        const auth=getCatalogAdminToken();
-        const r=await fetch(url,{cache:'no-store',headers:{Accept:'application/pdf',...(auth?{Authorization:`Bearer ${auth}`}:{})}});
-        if(!r.ok){lastError=`PDF alınamadı (HTTP ${r.status}).`;continue;}
-        const blob=await r.blob();
-        if(blob.size>0){c.pdf=new Blob([blob],{type:'application/pdf'});break;}
-      }catch(e){lastError=e instanceof Error?e.message:lastError;}
-    }
-    if(!c.pdf) (c as Catalog & {_pdfLoadError?:string})._pdfLoadError=lastError;
-  }
+  // PDF is stored as a real file in GitHub. Do not download it through the
+  // Vercel API here; the viewer will let PDF.js read pdfUrl directly with
+  // HTTP range requests. This keeps large PDFs out of the serverless memory
+  // path and avoids the old 302/502/"PDF indirilemedi" failure mode.
   return c;
 }
 export async function listCatalogs(admin=false){const r=await fetch(admin?`${API}/catalogs/admin/list`:`${API}/catalogs`,{cache:'no-store',headers:admin?{Authorization:`Bearer ${getCatalogAdminToken()}`} : undefined});if(!r.ok)return [];const d=await r.json();return(d.catalogs||[]).map(clean).sort((a:Catalog,b:Catalog)=>Number(b.year)-Number(a.year)||b.createdAt-a.createdAt);}

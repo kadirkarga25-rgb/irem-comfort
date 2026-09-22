@@ -10,15 +10,20 @@ function setup() {
   configured = true;
 }
 
-async function openPdf(data: ArrayBuffer) {
+async function openPdf(source: ArrayBuffer | string) {
   setup();
-  try { return await pdfjsLib.getDocument({ data }).promise; }
-  catch (workerError) {
-    try { return await pdfjsLib.getDocument({ data, disableWorker: true }).promise; }
-    catch {
-      const message = workerError instanceof Error ? workerError.message : 'PDF açılamadı.';
-      throw new Error(`PDF okunamadı. Dosyanın bozuk, şifreli veya desteklenmeyen bir PDF olmadığından emin ol. Ayrıntı: ${message}`);
+  try {
+    if (typeof source === 'string') {
+      return await pdfjsLib.getDocument({ url: source, rangeChunkSize: 1024 * 1024 }).promise;
     }
+    return await pdfjsLib.getDocument({ data: source }).promise;
+  } catch (workerError) {
+    if (typeof source !== 'string') {
+      try { return await pdfjsLib.getDocument({ data: source, disableWorker: true }).promise; }
+      catch { /* use the original error below */ }
+    }
+    const message = workerError instanceof Error ? workerError.message : 'PDF açılamadı.';
+    throw new Error(`PDF okunamadı. GitHub PDF bağlantısı erişilemiyor veya dosya bozuk olabilir. Ayrıntı: ${message}`);
   }
 }
 
@@ -101,10 +106,15 @@ export function detectStructure(pageTexts:string[], pageCount:number) {
   return {collections,contents:contents.length?contents:[{title:'Katalog başlangıcı',page:1}],analysis:{pages:pageCount,pagesWithText,collectionsFound:collectionsDetected.length,contentsFound:contents.length,confidence,warnings}};
 }
 
-const documentCache=new WeakMap<Blob,any>();
-export async function renderPdfPage(blob:Blob,pageNumber:number,scale=1){
+const documentCache=new Map<any,any>();
+export async function renderPdfPage(source:Blob|string,pageNumber:number,scale=1){
   if(typeof window==='undefined')throw new Error('PDF sayfası yalnızca tarayıcıda oluşturulabilir.');
-  let pdf=documentCache.get(blob); if(!pdf){pdf=await openPdf(await blob.arrayBuffer());documentCache.set(blob,pdf);}
+  const cacheKey = typeof source === 'string' ? source : source;
+  let pdf=documentCache.get(cacheKey as any);
+  if(!pdf){
+    pdf=await openPdf(typeof source === 'string' ? source : await source.arrayBuffer());
+    documentCache.set(cacheKey as any,pdf);
+  }
   const page=await pdf.getPage(pageNumber); const viewport=page.getViewport({scale});
   const canvas=document.createElement('canvas'); canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
   const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas context oluşturulamadı.');
