@@ -9,16 +9,19 @@ export function clearCatalogAdminToken(){if(typeof window!=='undefined')sessionS
 async function withPdf(c:Catalog){
   if(!c.pdf){
     const candidates:string[]=[];
+    // Always try the application endpoint first. It can authorize admin draft
+    // previews and keeps PDF URL/path normalization in one place.
+    candidates.push(`/api/catalogs/${encodeURIComponent(c.id)}/pdf`);
     if(c.pdfUrl) candidates.push(c.pdfUrl);
     if(c.pdfUrl?.startsWith('/katalog-assets/')){
       const path=c.pdfUrl.replace(/^\/+/, '');
       candidates.push(`https://raw.githubusercontent.com/kadirkarga25-rgb/irem-comfort/main/public/${path}`);
     }
-    candidates.push(`/api/catalogs/${encodeURIComponent(c.id)}/pdf`);
     let lastError='PDF indirilemedi.';
     for(const url of candidates){
       try{
-        const r=await fetch(url,{cache:'no-store',headers:{Accept:'application/pdf'}});
+        const auth=getCatalogAdminToken();
+        const r=await fetch(url,{cache:'no-store',headers:{Accept:'application/pdf',...(auth?{Authorization:`Bearer ${auth}`}:{})}});
         if(!r.ok){lastError=`PDF alınamadı (HTTP ${r.status}).`;continue;}
         const blob=await r.blob();
         if(blob.size>0){c.pdf=new Blob([blob],{type:'application/pdf'});break;}

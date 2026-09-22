@@ -3020,7 +3020,14 @@ app.get('/api/catalogs/admin/:id', async (req, res) => {
 app.get('/api/catalogs/:id/pdf', async (req, res) => {
   try {
     const catalogs = await getCatalogSettings();
-    const catalog = catalogs.find((c: any) => c?.id === req.params.id && c?.published);
+    // Public viewers may only access published catalogs. Admin viewers may
+    // also preview drafts, which is important because a freshly uploaded
+    // catalog is normally still a draft while its PDF is being checked.
+    const adminSession = getAdminSessionFromRequest(req);
+    const catalog = catalogs.find((c: any) => c?.id === req.params.id);
+    if (!catalog || (!catalog.published && !adminSession)) {
+      return res.status(404).json({ success: false, error: 'Katalog yayınlanmamış veya bulunamadı.' });
+    }
     if (!catalog?.pdfUrl) return res.status(404).json({ success: false, error: 'Katalog PDF dosyası bulunamadı.' });
 
     const { repo, branch, token } = await getGithubAuth();
