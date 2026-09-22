@@ -441,6 +441,7 @@ export const FloatingAssistant: React.FC = () => {
                 'Kargo ne zaman gelir?',
                 'Toptan sipariş şartları',
                 'Taraklı ayak terlikleri',
+                'Trendyol linki'
               ].map((prompt, idx) => (
                 <button
                   key={idx}

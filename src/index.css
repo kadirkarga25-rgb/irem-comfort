@@ -114,3 +114,9 @@ body.modal-open {
 @keyframes icLoaderSpin{0%{transform:rotate(0)}61.5%{transform:rotate(1080deg)}66%{transform:rotate(1080deg)}100%{transform:rotate(1080deg)}}
 @keyframes icLoaderPulse{0%,61.5%{transform:scale(1)}64%{transform:scale(1.045)}66.5%{transform:scale(1)}69%{transform:scale(1.045)}71.5%{transform:scale(1)}74%{transform:scale(1.045)}76.5%,100%{transform:scale(1)}}
 @media(max-width:600px){.ic-loader-mark{width:150px;height:150px}.ic-loader-label{font-size:10px}}
+
+/* Premium wholesale homepage */
+.wholesale-home{font-family:'Plus Jakarta Sans','Manrope',sans-serif;}
+.wholesale-home h1,.wholesale-home h2,.wholesale-home h3{font-family:'Cinzel','Plus Jakarta Sans',serif;}
+.wholesale-home button,.wholesale-home a{touch-action:manipulation;}
+@media (prefers-reduced-motion: reduce){.wholesale-home *{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;}}

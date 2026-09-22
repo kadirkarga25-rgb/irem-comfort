@@ -31,6 +31,7 @@ import { CatalogApp } from './catalog/CatalogApp';
 import { ProductsPage } from './components/pages/ProductsPage';
 import { useAppImages } from './context/ImageContext';
 import { IcLoader } from './components/ui/IcLoader';
+import { WholesaleHome } from './components/home/WholesaleHome';
 
 function MainAppContent() {
   const { systemConfig, sectionOrder, isSettingsLoaded, fairConfig } = useAppImages();
@@ -473,9 +474,12 @@ function MainAppContent() {
             onInquireProduct={handleInquireProduct}
           />
         ) : (
-          (sectionOrder || []).map((sec) => (
-            sec.enabled !== false ? renderSection(sec.id) : null
-          ))
+          <WholesaleHome
+            onDiscover={() => scrollToSection('collection')}
+            onProducts={() => scrollToSection('products-page')}
+            onInquireProduct={handleInquireProduct}
+            onContact={() => scrollToSection('contact')}
+          />
         )}
       </main>
 

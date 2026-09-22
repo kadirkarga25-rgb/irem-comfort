@@ -22,7 +22,6 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onAdminClick, onOpen
   return (
     <footer className="bg-[#082C6C] text-white pt-20 pb-12 border-t border-white/10 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-10 inline-flex items-center gap-3 rounded-full border border-[#D4AF37]/30 bg-white/5 px-4 py-2 text-[10px] font-bold tracking-[0.2em] uppercase text-[#D4AF37]">Profesyonel Toptan Çözüm Ortağınız</div>
         
         {/* Top Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 pb-16 border-b border-white/10">
@@ -111,7 +110,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onAdminClick, onOpen
               </li>
               <li>
                 <button onClick={() => onNavigate('contact')} className="hover:text-white transition-colors cursor-pointer">
-                  {t.navContact || (language === 'tr' ? 'Toptan İletişim & Katalog' : language === 'en' ? 'Wholesale Contact & Catalog' : 'الاتصال والكتالوج')}
+                  {t.navContact || (language === 'tr' ? 'İletişim & Katalog' : language === 'en' ? 'Contact & Catalog' : 'الاتصال والكتالوج')}
                 </button>
               </li>
 
@@ -121,7 +120,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onAdminClick, onOpen
           {/* Flagship Showroom Column */}
           <div className="lg:col-span-4 space-y-4">
             <h4 className="text-xs font-bold uppercase tracking-widest text-white/60">
-              {language === 'tr' ? 'Toptan Satış & Manisa Atölye' : language === 'en' ? 'Wholesale Sales & Manisa Workshop' : 'معرض مانيسا والورشة'}
+              {language === 'tr' ? 'Manisa Showroom & Atölye' : language === 'en' ? 'Manisa Showroom & Workshop' : 'معرض مانيسا والورشة'}
             </h4>
             <div className="space-y-3 text-sm text-white/80 font-light">
               <div className="flex items-start gap-2.5">
@@ -130,9 +129,9 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onAdminClick, onOpen
               </div>
               <p className="text-xs text-white/60 pt-2 border-t border-white/10">
                 {language === 'tr'
-                  ? 'Manisa • İstanbul • Toptan Sipariş & Özel Üretim'
+                  ? 'Manisa • İstanbul • Özel Proje Gönderimi'
                   : language === 'en'
-                  ? 'Manisa • Istanbul • Wholesale & Custom Production'
+                  ? 'Manisa • Istanbul • Worldwide & Custom Orders'
                   : 'مانيسا • إسطنبول • شحن الطلبات الخاصة'}
               </p>
             </div>

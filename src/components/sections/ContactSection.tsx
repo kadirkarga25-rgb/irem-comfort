@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CONTACT_DATA } from '../../constants/data';
-import { Phone, MessageCircle, Instagram, Mail, MapPin, Send, CheckCircle2, Clock, BadgeCheck, ExternalLink, Navigation } from 'lucide-react';
+import { Phone, MessageCircle, Instagram, Mail, MapPin, Send, CheckCircle2, Clock, BadgeCheck, ExternalLink, ShoppingBag, Navigation } from 'lucide-react';
 import { useAppImages } from '../../context/ImageContext';
 import { ShowroomMap } from '../ui/ShowroomMap';
 
@@ -100,7 +100,6 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
           
           {/* Left Column: Direct Contact Info Cards */}
           <div className="lg:col-span-5 space-y-6">
-            
 
             {/* Phone Card */}
             <a
@@ -333,7 +332,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
                           {language === 'tr' ? 'Yeni Sezon Terlik & Sandalet Kataloğu' : language === 'en' ? 'New Season Slipper & Sandal Catalog' : 'كتالوج الصنادل والنعال للموسم الجديد'}
                         </option>
                         <option value="Toptan Sipariş">
-                          {language === 'tr' ? 'Toptan Toptan Satış & B2B Siparişi' : language === 'en' ? 'Wholesale Store & B2B Orders' : 'طلبات الجملة والمحلات B2B'}
+                          {language === 'tr' ? 'Toptan Mağaza & B2B Siparişi' : language === 'en' ? 'Wholesale Store & B2B Orders' : 'طلبات الجملة والمحلات B2B'}
                         </option>
                         <option value="Perakende Sipariş">
                           {language === 'tr' ? 'Perakende Sipariş & Model Bilgisi' : language === 'en' ? 'Retail Orders & Model Info' : 'طلبات التجزئة ومعلومات الموديلات'}

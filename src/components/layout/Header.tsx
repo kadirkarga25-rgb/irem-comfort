@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogoFull } from '../brand/LogoFull';
 import { Menu, X, PhoneCall, ChevronRight, Globe, ChevronDown } from 'lucide-react';
-import { CONTACT_DATA } from '../../constants/data';
-import { AnnouncementTicker } from './AnnouncementTicker';
 import { FairInvitationStrip } from './FairInvitationStrip';
 import { useAppImages } from '../../context/ImageContext';
 import { Language } from '../../types';
@@ -188,9 +186,9 @@ export const Header: React.FC<HeaderProps> = ({
 
               <button
                 onClick={() => handleNavClick('contact')}
-                className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#082C6C] text-white text-[11px] xl:text-xs font-bold tracking-[0.12em] uppercase transition-all duration-300 hover:bg-[#163E87] hover:shadow-lg cursor-pointer active:scale-95 border border-[#D4AF37]/20"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#082C6C] text-white text-[11px] xl:text-xs font-bold tracking-wider uppercase transition-all duration-300 hover:bg-[#163E87] hover:shadow-md cursor-pointer active:scale-95"
               >
-                <span>{language === 'tr' ? 'Toptan İletişim' : language === 'en' ? 'Wholesale Contact' : 'تواصل الجملة'}</span>
+                <span>{language === 'tr' ? 'Toptan Sipariş' : language === 'en' ? 'Wholesale' : 'طلب جملة'}</span>
                 <ChevronRight className="w-3.5 h-3.5 text-white/80" />
               </button>
 
@@ -206,8 +204,6 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Continuous Announcement Ticker Right Below Header Nav Bar */}
-        <AnnouncementTicker onContactClick={() => handleNavClick('contact')} />
 
         {/* Fair Invitation Banner (If active) */}
         {onOpenFairModal && (
@@ -276,7 +272,7 @@ export const Header: React.FC<HeaderProps> = ({
                   onClick={() => handleNavClick('contact')}
                   className="w-full py-3.5 rounded-xl bg-[#082C6C] text-white text-center text-sm font-semibold tracking-wider uppercase shadow-md active:scale-98"
                 >
-                  {language === 'tr' ? 'Toptan Teklif Al' : language === 'en' ? 'Request Wholesale Quote' : 'طلب عرض جملة'}
+                  {language === 'tr' ? 'Toptan İletişim' : language === 'en' ? 'Wholesale Contact' : 'اتصال الجملة'}
                 </button>
 
                 <a
