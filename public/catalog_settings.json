@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": 1790063032869,
+  "updatedAt": 1790063044097,
   "catalogs": [
     {
       "id": "catalog-1790059846611",
@@ -324,8 +324,9 @@
         ""
       ],
       "createdAt": 1790063027188,
-      "published": false,
-      "pdfUrl": "https://raw.githubusercontent.com/kadirkarga25-rgb/irem-comfort/main/public/katalog-assets/catalog-1790063019541/catalog-1790063019541.pdf"
+      "published": true,
+      "pdfUrl": "https://raw.githubusercontent.com/kadirkarga25-rgb/irem-comfort/main/public/katalog-assets/catalog-1790063019541/catalog-1790063019541.pdf",
+      "_pdfLoadError": "Failed to fetch"
     }
   ]
 }
