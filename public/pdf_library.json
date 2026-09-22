@@ -1,5 +1,16 @@
 {
   "version": 1,
-  "updatedAt": 0,
-  "files": []
+  "updatedAt": 1790075596230,
+  "files": [
+    {
+      "id": "pdf-1790075581443-s6h2jd",
+      "name": "Katalog_Pdf_D___k_Kalite",
+      "filename": "Katalog_Pdf_D___k_Kalite.pdf",
+      "path": "public/pdf-library/pdf-1790075581443-s6h2jd/Katalog_Pdf_D___k_Kalite.pdf",
+      "rawUrl": "https://raw.githubusercontent.com/kadirkarga25-rgb/irem-comfort/main/public/pdf-library/pdf-1790075581443-s6h2jd/Katalog_Pdf_D___k_Kalite.pdf",
+      "size": 9545778,
+      "createdAt": 1790075596055,
+      "updatedAt": 1790075596055
+    }
+  ]
 }
