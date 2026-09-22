@@ -8,12 +8,13 @@ export function setCatalogAdminToken(v:string){if(typeof window!=='undefined')se
 export function clearCatalogAdminToken(){if(typeof window!=='undefined')sessionStorage.removeItem(TOKEN_KEY);}
 async function withPdf(c:Catalog){
   if(!c.pdf){
-    const candidates:string[]=[`/api/catalogs/${encodeURIComponent(c.id)}/pdf`];
+    const candidates:string[]=[];
     if(c.pdfUrl) candidates.push(c.pdfUrl);
     if(c.pdfUrl?.startsWith('/katalog-assets/')){
       const path=c.pdfUrl.replace(/^\/+/, '');
       candidates.push(`https://raw.githubusercontent.com/kadirkarga25-rgb/irem-comfort/main/public/${path}`);
     }
+    candidates.push(`/api/catalogs/${encodeURIComponent(c.id)}/pdf`);
     let lastError='PDF indirilemedi.';
     for(const url of candidates){
       try{

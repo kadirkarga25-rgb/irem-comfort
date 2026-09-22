@@ -2964,9 +2964,16 @@ async function normalizeCatalogAssetUrls(catalogs: any[]): Promise<any[]> {
     const out = { ...c };
     const toRaw = (url: any) => {
       if (typeof url !== 'string') return url;
-      if (url.startsWith('https://raw.githubusercontent.com/')) return url;
-      if (!url.startsWith('/katalog-assets/')) return url;
-      return `https://raw.githubusercontent.com/${repo}/${branch}/public${url}`;
+      if (url.startsWith('/katalog-assets/')) {
+        return `https://raw.githubusercontent.com/${repo}/${branch}/public${url}`;
+      }
+      if (url.startsWith('https://raw.githubusercontent.com/')) {
+        const marker = '/public/katalog-assets/';
+        const idx = url.indexOf(marker);
+        if (idx >= 0) return `https://raw.githubusercontent.com/${repo}/${branch}${url.slice(idx)}`;
+        return url;
+      }
+      return url;
     };
     if (out.pdfUrl) out.pdfUrl = toRaw(out.pdfUrl);
     if (typeof out.cover === 'string') out.cover = toRaw(out.cover);
@@ -3018,35 +3025,58 @@ app.get('/api/catalogs/:id/pdf', async (req, res) => {
 
     const { repo, branch, token } = await getGithubAuth();
     let pdfPath = String(catalog.pdfUrl);
-    if (pdfPath.startsWith('/katalog-assets/')) pdfPath = `public${pdfPath}`;
-    else if (pdfPath.startsWith('https://raw.githubusercontent.com/')) {
-      const marker = `/${repo}/${branch}/`;
-      const idx = pdfPath.indexOf(marker);
-      if (idx >= 0) pdfPath = pdfPath.slice(idx + marker.length);
-    }
-    if (!pdfPath.startsWith('public/')) return res.status(400).json({ success: false, error: 'PDF yolu geçersiz.' });
-
-    // IMPORTANT: do not use GitHub Contents API for the PDF. Large PDFs may return
-    // an empty/truncated content field and caused the previous HTTP 502 errors.
-    const rawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/${pdfPath}`;
-    const ghRes = await fetch(rawUrl, {
-      headers: {
-        Accept: 'application/pdf,*/*',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        'User-Agent': 'IremComfortApp',
-        'Cache-Control': 'no-cache'
+    if (pdfPath.startsWith('/katalog-assets/')) {
+      pdfPath = `public${pdfPath}`;
+    } else if (pdfPath.startsWith('https://raw.githubusercontent.com/')) {
+      const marker = `/${repo}/`;
+      const markerIndex = pdfPath.indexOf(marker);
+      if (markerIndex >= 0) {
+        const afterRepo = pdfPath.slice(markerIndex + marker.length);
+        const slash = afterRepo.indexOf('/');
+        if (slash >= 0) {
+          const afterBranch = afterRepo.slice(slash + 1);
+          pdfPath = afterBranch;
+        }
       }
-    });
-    if (!ghRes.ok) return res.status(502).json({ success: false, error: `PDF GitHub Raw'dan alınamadı (HTTP ${ghRes.status}).` });
-    const buffer = Buffer.from(await ghRes.arrayBuffer());
-    if (!buffer.length) return res.status(502).json({ success: false, error: 'PDF dosyası boş.' });
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Length', String(buffer.length));
+    }
+    if (!pdfPath.startsWith('public/')) {
+      return res.status(400).json({ success: false, error: 'PDF yolu geçersiz.' });
+    }
+
+    // IMPORTANT: never download the PDF through the Vercel function. Large PDF
+    // responses can trigger a 502/timeout. Verify only the metadata with GitHub,
+    // then redirect the browser directly to GitHub's download URL.
+    const metaRes = await fetch(
+      `https://api.github.com/repos/${repo}/contents/${pdfPath}?ref=${encodeURIComponent(branch)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'User-Agent': 'IremComfortApp',
+          'Cache-Control': 'no-cache'
+        }
+      }
+    );
+    if (!metaRes.ok) {
+      const detail = await metaRes.text();
+      return res.status(metaRes.status === 404 ? 404 : 502).json({
+        success: false,
+        error: `PDF GitHub'da bulunamadı (HTTP ${metaRes.status}).`,
+        detail: detail.slice(0, 300)
+      });
+    }
+    const meta = await metaRes.json();
+    if (meta?.type !== 'file') {
+      return res.status(404).json({ success: false, error: 'PDF yolu bir dosyaya işaret etmiyor.' });
+    }
+
+    const downloadUrl = String(meta.download_url || `https://raw.githubusercontent.com/${repo}/${encodeURIComponent(branch)}/${pdfPath}`);
     res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400');
-    res.setHeader('Content-Disposition', 'inline');
-    return res.send(buffer);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return res.redirect(302, downloadUrl);
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err?.message || 'PDF sunulamadı.' });
+    return res.status(500).json({ success: false, error: err?.message || 'PDF bağlantısı oluşturulamadı.' });
   }
 });
 
