@@ -166,7 +166,6 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
   const modalImages = Array.from(modalImagesMap.values());
   const currentColor = selectedColor || (item.colors && item.colors[0]?.name);
-  const targetTrendyolUrl = item.trendyolUrl || contactData?.trendyolUrl || CONTACT_DATA.trendyolUrl;
 
   const handleColorClick = (c: { name: string; hex: string; image?: string }) => {
     setSelectedColor(c.name);
@@ -418,20 +417,6 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                     </>
                   )}
                 </button>
-
-                {targetTrendyolUrl && (
-                  <a
-                    href={targetTrendyolUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full sm:w-auto py-3 sm:py-3.5 px-5 rounded-full bg-[#F27A1A] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-[#d9660c] transition-all cursor-pointer shadow-md active:scale-95 shrink-0"
-                  >
-                    <span>
-                      {language === 'tr' ? "Trendyol'dan Satın Al" : language === 'en' ? 'Buy on Trendyol' : 'شراء عبر ترينديول'}
-                    </span>
-                    <ArrowRight className="w-4 h-4" />
-                  </a>
-                )}
 
                 <button
                   onClick={() => {

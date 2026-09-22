@@ -314,17 +314,6 @@ export const FloatingAssistant: React.FC = () => {
                               >
                                 <span>Soru Sor</span>
                               </button>
-                              {card.product.trendyolUrl && (
-                                <a
-                                  href={card.product.trendyolUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="py-1 px-2 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-md font-bold text-[10px] transition-colors"
-                                  title="Trendyol Mağazası"
-                                >
-                                  <span>Trendyol ↗</span>
-                                </a>
-                              )}
                             </div>
                           </div>
                         ))}
@@ -452,7 +441,6 @@ export const FloatingAssistant: React.FC = () => {
                 'Kargo ne zaman gelir?',
                 'Toptan sipariş şartları',
                 'Taraklı ayak terlikleri',
-                'Trendyol linki'
               ].map((prompt, idx) => (
                 <button
                   key={idx}

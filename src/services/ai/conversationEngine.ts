@@ -73,7 +73,6 @@ export class ConversationEngine {
     const qLower = (query || '').toLowerCase().trim();
 
     const isExplicitPurchaseRequested = 
-      qLower.includes('trendyol') || 
       qLower.includes('satın al') || 
       qLower.includes('nereden alabilirim') || 
       qLower.includes('satınal') || 
@@ -172,7 +171,7 @@ export class ConversationEngine {
           addUniqueSentence(`Taraklı veya ödemli ayaklar için cırt cırtlı ve ayarlanabilir tokalı terlik modellerimiz ekstra rahatlık sunmaktadır.`);
         }
       } else if (intent.primaryIntent === 'purchase_location' || intent.isExplicitPurchaseRequested) {
-        addUniqueSentence(`"${activeProd.name}" modelimizi Trendyol yetkili satıcımız **Anavelle** mağazamızdan veya Manisa atölyemizden sipariş verebilirsiniz.`);
+        addUniqueSentence(`"${activeProd.name}" modelimiz için toptan fiyat, stok ve sipariş koşullarını Manisa atölyemizden veya WhatsApp sipariş hattımızdan öğrenebilirsiniz.`);
       }
     }
 
@@ -389,10 +388,11 @@ export class ConversationEngine {
       { label: 'Atölye İletişim & Konum', type: 'quick_reply', payload: 'Atölyeniz nerede, adres bilgisi alabilir miyim?' },
       { label: 'Canlı Desteğe Bağlan', type: 'quick_reply', payload: 'Canlı destek ekibinizle görüşmek istiyorum.' }
     ];
-
     if (intent.isExplicitPurchaseRequested) {
-      const trendyolUrl = context.activeProduct?.trendyolUrl || CONTACT_DATA.trendyolUrl;
-      actionButtons.unshift({ label: 'Trendyol Mağazamız ↗', type: 'link', url: trendyolUrl });
+      actionButtons = [
+        { label: 'Toptan Fiyat Bilgisi', type: 'quick_reply', payload: 'Bu ürünün toptan fiyatı ve sipariş şartları nedir?' },
+        { label: 'Canlı Desteğe Bağlan', type: 'quick_reply', payload: 'Canlı destek ekibinizle görüşmek istiyorum.' }
+      ];
     } else if (intent.primaryIntent === 'wholesale_inquiry') {
       actionButtons = [
         { label: 'Toptan Katalog Bilgisi', type: 'quick_reply', payload: 'Toptan sipariş ve koli imalat şartları nelerdir?' },

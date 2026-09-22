@@ -1,7 +1,7 @@
 import React from 'react';
 import { LogoFull } from '../brand/LogoFull';
 import { CONTACT_DATA, BRAND_NAME } from '../../constants/data';
-import { ArrowUp, Instagram, MessageCircle, Mail, MapPin, ShoppingBag } from 'lucide-react';
+import { ArrowUp, Instagram, MessageCircle, Mail, MapPin } from 'lucide-react';
 import { useAppImages } from '../../context/ImageContext';
 import { LegalDocType } from '../ui/LegalModal';
 
@@ -41,18 +41,6 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onAdminClick, onOpen
             </p>
 
             <div className="flex items-center space-x-3 pt-2">
-              {contact.trendyolUrl && (
-                <a
-                  href={contact.trendyolUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3.5 py-2 rounded-full bg-[#F27A1A] hover:bg-[#d9660c] text-white text-xs font-bold tracking-wider uppercase flex items-center gap-1.5 transition-all shadow-md"
-                  aria-label="Trendyol Mağazamız"
-                >
-                  <ShoppingBag className="w-4 h-4" />
-                  <span>Trendyol</span>
-                </a>
-              )}
 
               <a
                 href={contact.instagramUrl || "https://www.instagram.com/irem.comfort"}

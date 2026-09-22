@@ -335,7 +335,7 @@ export function SurveyPage({ onReturnToSite }: SurveyPageProps) {
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-slate-700">Satın Alınan Platform *</label>
                   <div className="grid grid-cols-3 gap-2">
-                    {['Trendyol', 'Web Sitesi', 'Diğer'].map((plat) => (
+                    {['Web Sitesi', 'Diğer'].map((plat) => (
                       <button
                         key={plat}
                         type="button"
@@ -921,30 +921,11 @@ export function SurveyPage({ onReturnToSite }: SurveyPageProps) {
                   THANKS50
                 </span>
                 <p className="text-[11px] text-amber-900 font-medium">
-                  <strong>Trendyol Mağazamızda</strong>, web sitemizde ve WhatsApp sipariş hattımızda geçerlidir.
+                  Web sitemizde ve WhatsApp sipariş hattımızda geçerlidir.
                 </p>
               </div>
 
               <div className="space-y-2 pt-2">
-                <a
-                  href="https://www.trendyol.com/magaza/irem-comfort-m-1286942?sst=0&channelId=1"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full py-3 bg-[#f27a1a] hover:bg-[#d6650d] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-orange-500/20"
-                >
-                  <ShoppingBag className="w-4 h-4 text-white" />
-                  <span>Trendyol Anavelle Mağazamıza Git ve Alışveriş Yap</span>
-                </a>
-
-                <a
-                  href="https://www.trendyol.com/magaza/irem-comfort-m-1286942?sst=0&channelId=1"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full py-3 bg-[#082C6C] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2"
-                >
-                  <ShoppingBag className="w-4 h-4 text-[#C8A96E]" />
-                  <span>Trendyol Anavelle'de Değerlendirme Yap</span>
-                </a>
 
                 <a
                   href="https://www.instagram.com/irem.comfort"
@@ -990,20 +971,8 @@ export function SurveyPage({ onReturnToSite }: SurveyPageProps) {
                   THANKS50
                 </span>
                 <p className="text-[11px] text-amber-900 font-medium">
-                  <strong>Trendyol Mağazamızda</strong>, web sitemizde ve WhatsApp sipariş hattımızda geçerlidir.
+                  Web sitemizde ve WhatsApp sipariş hattımızda geçerlidir.
                 </p>
-              </div>
-
-              <div className="pb-2">
-                <a
-                  href="https://www.trendyol.com/magaza/irem-comfort-m-1286942?sst=0&channelId=1"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full py-2.5 bg-[#f27a1a] hover:bg-[#d6650d] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm"
-                >
-                  <ShoppingBag className="w-4 h-4 text-white" />
-                  <span>Trendyol Mağazamıza Git</span>
-                </a>
               </div>
 
               {onReturnToSite && (
@@ -1042,7 +1011,7 @@ export function SurveyPage({ onReturnToSite }: SurveyPageProps) {
                   THANKS50
                 </span>
                 <p className="text-[11px] text-amber-900 font-medium">
-                  <strong>Trendyol Mağazamızda</strong>, web sitemizde ve WhatsApp sipariş hattımızda geçerlidir.
+                  Web sitemizde ve WhatsApp sipariş hattımızda geçerlidir.
                 </p>
               </div>
 

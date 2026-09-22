@@ -71,18 +71,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 <ArrowDownRight className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:translate-y-1" />
               </button>
 
-              {CONTACT_DATA.trendyolUrl && (
-                <a
-                  href={CONTACT_DATA.trendyolUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2.5 px-7 py-4 rounded-full bg-[#F27A1A] text-white font-bold text-sm tracking-wider uppercase transition-all duration-300 hover:bg-[#d9660c] hover:shadow-xl hover:shadow-[#F27A1A]/30 active:scale-95 cursor-pointer"
-                >
-                  <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
-                  <span>{t.buyOnTrendyol || (language === 'tr' ? "Trendyol'dan Satın Al" : language === 'en' ? 'Buy on Trendyol' : 'شراء عبر ترينديول')}</span>
-                </a>
-              )}
-
               <button
                 onClick={onCraftsmanshipClick}
                 className="inline-flex items-center gap-2 px-6 py-4 rounded-full border border-[#082C6C]/20 text-[#082C6C] font-semibold text-sm tracking-wider uppercase transition-all duration-300 hover:bg-[#082C6C]/5 hover:border-[#082C6C] cursor-pointer"

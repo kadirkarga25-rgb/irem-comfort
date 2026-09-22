@@ -19,7 +19,6 @@ export interface CollectionItem {
   colors: ColorOption[];
   features: string[];
   isFeatured?: boolean;
-  trendyolUrl?: string;
 }
 
 export interface CraftsmanshipStep {
@@ -53,7 +52,6 @@ export interface ContactInfo {
   email: string;
   address: string;
   showroomHours: string;
-  trendyolUrl?: string;
   lat?: number;
   lng?: number;
   googleMapsUrl?: string;

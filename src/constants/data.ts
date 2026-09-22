@@ -15,13 +15,11 @@ export const CONTACT_DATA: ContactInfo = {
   email: "info@iremcomfort.com",
   address: "Manisa Ayakkabıcılar Sitesi (Güzelyurt Mahallesi) 5757.Sokak No:21/A Yunusemre / Manisa 45030",
   showroomHours: "Pzt - Cmt: 08:30 - 19:00 | Pazar: Özel Randevu İle",
-  trendyolUrl: "https://www.trendyol.com/magaza/irem-comfort-m-1286942?sst=0&channelId=1",
   googleMapsUrl: "https://www.google.com/maps/search/?api=1&query=%C4%B0rem+Comfort+Manisa+Ayakkab%C4%B1c%C4%B1lar+Sitesi"
 };
 
 export const ANNOUNCEMENT_TICKER = [
   "YENİ SEZON HAKİKİ DERİ BAYAN COMFORT SANDALET VE TERLİK KOLEKSİYONU ÇIKTI",
-  "TRENDYOL'DA ANAVELLE MAĞAZAMIZ AÇILDI — ONLİNE ALIŞVERİŞ İÇİN BİZE ULAŞIN",
   "ANATOMİK TABANLI YUMUŞAK SAYA BAYAN TERLİK VE SABO İMALATI",
   "YENİ SEZON KATALOĞU VE TOPTAN / PERAKENDE BİLGİ HATTI: 0533 029 71 25",
   "MANİSA AYAKKABICILAR SİTESİ ÜRETİM ATÖLYEMİZDEN DOĞRUDAN DANIŞMA"
@@ -420,7 +418,7 @@ export const DEFAULT_TESTIMONIALS: TestimonialItem[] = [
     role: 'Günlük Kullanıcı',
     location: 'Bursa',
     rating: 5,
-    comment: 'Trendyol Anavelle mağazanızdan sipariş verdim. Ertesi gün kargolandı. Kutuyu açtığımda mis gibi gerçek deri kokuyordu. Tabanı tam ortopedik, tatile giderken yanımdan ayırmayacağım.',
+    comment: 'İrem Comfort atölyesinden sipariş verdim. Ürün çok kaliteli, deri dokusu ve taban konforu gerçekten başarılı.',
     productName: 'İrem Comfort Çift Tokalı Terlik (Taba)',
     date: '18 Haziran 2026',
     type: 'perakende',

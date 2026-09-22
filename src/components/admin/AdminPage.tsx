@@ -23,13 +23,12 @@ import { AiTrainingAdminTab } from './AiTrainingAdminTab';
 import { InfrastructureAdminTab } from './InfrastructureAdminTab';
 import { ConversationLogsAdminTab } from './ConversationLogsAdminTab';
 import { CatalogAdminTab } from './CatalogAdminTab';
-import { PdfLibraryAdminTab } from './PdfLibraryAdminTab';
 import { TestimonialsAdminTab } from './TestimonialsAdminTab';
 import { FirstTimeSetupModal } from './FirstTimeSetupModal';
 import { EMAIL_TEMPLATES, renderEmailHtml } from '../../utils/emailTemplates';
 import { 
   Lock, Key, User, LogOut, ExternalLink, Image as ImageIcon, BookOpen, 
-  Upload, RotateCcw, FileText, Check, Sparkles, Sliders, Layers, Eye, Link, 
+  Upload, RotateCcw, Check, Sparkles, Sliders, Layers, Eye, Link, 
   ShieldCheck, AlertCircle, ArrowLeft, Home, Calendar, MapPin, 
   QrCode, ToggleLeft, ToggleRight, Send, MessageSquare, Crop, Info,
   Mail, Server, AtSign, Save, MailCheck, CheckCircle2, Shield,
@@ -191,7 +190,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   // that old heartbeat could incorrectly log an active admin out.
 
   // Admin Panel Tabs
-  const [activeTab, setActiveTab] = useState<'overview' | 'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'page_builder' | 'presets' | 'leads' | 'crm' | 'testimonials' | 'newsletter' | 'email' | 'system' | 'media' | 'deployment_exp' | 'seo' | 'appearance' | 'analytics' | 'security' | 'ai_arch' | 'live_monitor' | 'backup' | 'ai_training' | 'infrastructure' | 'conv_logs' | 'pdf_library' | 'catalog_admin'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'page_builder' | 'presets' | 'leads' | 'crm' | 'testimonials' | 'newsletter' | 'email' | 'system' | 'media' | 'deployment_exp' | 'seo' | 'appearance' | 'analytics' | 'security' | 'ai_arch' | 'live_monitor' | 'backup' | 'ai_training' | 'infrastructure' | 'conv_logs'>('overview');
 
   // Sidebar Layout States
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
@@ -209,7 +208,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
       case 'craftsmanship': return 'Atölye & Zanaat';
       case 'presets': return 'Hazır Görseller';
       case 'media': return 'Medya Kütüphanesi';
-      case 'pdf_library': return 'PDF Kütüphanesi';
       case 'leads': return 'Müşteri Talepleri';
       case 'crm': return 'Müşteriler & CRM Portalı';
       case 'testimonials': return 'Referanslar & Müşteri Yorumları';
@@ -1275,8 +1273,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
         { id: 'craftsmanship', label: 'Atölye & Zanaat', icon: Sparkles },
         { id: 'presets', label: 'Hazır Görseller', icon: Eye },
         { id: 'media', label: 'Medya Kütüphanesi', icon: FileImage, badgeColor: 'text-amber-400' },
-        { id: 'pdf_library', label: 'PDF Kütüphanesi', icon: FileText, badgeColor: 'text-rose-400' },
-        { id: 'catalog_admin', label: 'Katalog Arşivi', icon: BookOpen, badgeColor: 'text-[#D4AF37]' },
+        { id: 'catalog_admin', label: 'Katalog Modülü', icon: BookOpen, badgeColor: 'text-[#D4AF37]' },
       ]
     },
     {
@@ -2412,10 +2409,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
               <div>
                 <p className="font-bold text-amber-950 flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-amber-600" />
-                  <span>Koleksiyon Ürünleri, Trendyol Yönlendirme Linkleri ve Detay Yönetimi</span>
+                  <span>Koleksiyon Ürünleri ve Detay Yönetimi</span>
                 </p>
                 <p className="text-[#111111]/70 text-[11px] mt-0.5">
-                  "Detayları İncele" penceresinde görünen tüm başlık, açıklama, renk seçenekleri, özellikler ve **ürüne özel Trendyol satın alma linklerini** buradan yönetebilirsiniz.
+                  "Detayları İncele" penceresinde görünen tüm başlık, açıklama, renk seçenekleri ve özellikleri buradan yönetebilirsiniz.
                 </p>
               </div>
 
@@ -2439,7 +2436,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                         { name: 'Taba Bronz', hex: '#8B5A2B' }
                       ],
                       features: ['Anatomik taban desteği', '%100 Hakiki deri saya'],
-                      trendyolUrl: ''
                     });
                     showToast('Yeni ürün koleksiyona başarıyla eklendi!');
                   }}
@@ -2485,12 +2481,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                             <span className="text-[10px] uppercase font-extrabold text-[#082C6C] bg-[#082C6C]/10 px-2 py-0.5 rounded">
                               {item.category}
                             </span>
-                            {item.trendyolUrl && (
-                              <span className="text-[10px] uppercase font-bold text-[#F27A1A] bg-[#F27A1A]/10 px-2 py-0.5 rounded flex items-center gap-1">
-                                <ExternalLink className="w-2.5 h-2.5" />
-                                Trendyol Linki Var
-                              </span>
-                            )}
                           </div>
                           <h4 className="font-bold text-[#111111] text-base mt-0.5">{item.name}</h4>
                         </div>
@@ -2520,11 +2510,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                       </div>
                     </div>
 
-                    {/* Section 1: Main Text Details & Direct Trendyol Link */}
+                    {/* Section 1: Main Text Details */}
                     <div className="space-y-4">
                       <h5 className="text-xs font-bold uppercase tracking-wider text-[#082C6C] flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                        <span>1. Temel Bilgiler & Trendyol Satın Alma Linki</span>
+                        <span>1. Temel Bilgiler</span>
                       </h5>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/70 p-4 rounded-xl border border-slate-200">
@@ -2568,30 +2558,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                           />
                         </div>
 
-                        {/* Direct Trendyol Purchase Link */}
-                        <div className="sm:col-span-2 p-3.5 rounded-xl bg-orange-50/80 border border-orange-200 space-y-1.5">
-                          <label className="text-xs font-bold text-orange-950 flex items-center justify-between">
-                            <span className="flex items-center gap-1.5">
-                              <span className="px-2 py-0.5 rounded bg-[#F27A1A] text-white text-[10px] font-black tracking-wider uppercase">
-                                TRENDYOL
-                              </span>
-                              <span>Doğrudan Ürün Trendyol Satın Alma Linki (URL)</span>
-                            </span>
-                            <span className="text-[10px] font-normal text-orange-800 italic">
-                              (Detayları İncele butonundaki 'Trendyol'dan Satın Al' buraya yönlendirir)
-                            </span>
-                          </label>
-                          <input
-                            type="text"
-                            value={item.trendyolUrl || ''}
-                            onChange={(e) => updateCollectionItem(item.id, { trendyolUrl: e.target.value })}
-                            placeholder="https://www.trendyol.com/irem-comfort/..."
-                            className="w-full px-3 py-2 text-xs rounded-lg border border-orange-300 focus:border-[#F27A1A] focus:outline-none bg-white text-orange-950 font-mono text-[11px]"
-                          />
-                          <p className="text-[11px] text-orange-800">
-                            * Bu alanı doldurursanız müşteriler modal pencereden doğrudan bu özel ürünün Trendyol sayfasına yönlendirilir. Boş bırakılırsa genel Trendyol mağaza linkine gider.
-                          </p>
-                        </div>
 
                         <div className="sm:col-span-2">
                           <label className="text-xs font-bold text-slate-700 block mb-1">Ürün Detay Açıklaması</label>
@@ -3056,7 +3022,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                     <span>İletişim, Adres & Sosyal Medya Bağlantıları</span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">
-                    Header, Footer ve İletişim sayfasında görüntülenen telefon, adres ve Trendyol mağaza bilgileri.
+                    Header, Footer ve İletişim sayfasında görüntülenen telefon, adres ve iletişim bilgileri.
                   </p>
                 </div>
                 <button
@@ -3136,46 +3102,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Trendyol Mağaza Bağlantısı (URL)</label>
-                  <input
-                    type="text"
-                    value={contactData.trendyolUrl}
-                    onChange={(e) => updateContactData({ trendyolUrl: e.target.value })}
-                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50"
-                    placeholder="https://www.trendyol.com/..."
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Instagram Profil URL</label>
-                  <input
-                    type="text"
-                    value={contactData.instagramUrl || ''}
-                    onChange={(e) => updateContactData({ instagramUrl: e.target.value })}
-                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50"
-                    placeholder="https://www.instagram.com/irem.comfort"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Google Haritalar Yol Tarifi / Konum Bağlantısı (URL)</label>
-                  <input
-                    type="text"
-                    value={contactData.googleMapsUrl || ''}
-                    onChange={(e) => updateContactData({ googleMapsUrl: e.target.value })}
-                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-mono text-[11px]"
-                    placeholder="https://maps.google.com/?q=..."
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Manisa Atölye & Showroom Açık Adresi</label>
-                  <textarea
-                    rows={2}
-                    value={contactData.address}
-                    onChange={(e) => updateContactData({ address: e.target.value })}
-                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-medium"
-                  />
                 </div>
               </div>
             </div>
@@ -4098,9 +4024,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
         {/* Tab: MEDIA LIBRARY */}
         {activeTab === 'media' && <MediaLibraryAdminTab />}
-
-        {/* TAB: PDF LIBRARY */}
-        {activeTab === 'pdf_library' && <PdfLibraryAdminTab />}
 
         {/* TAB: CATALOG ARCHIVE */}
         {activeTab === 'catalog_admin' && <CatalogAdminTab sessionToken={sessionToken} />}

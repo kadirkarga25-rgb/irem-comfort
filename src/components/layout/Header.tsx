@@ -170,7 +170,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </nav>
 
-            {/* Right Side: Language Selector, Trendyol & Contact Buttons & Mobile Toggle */}
+            {/* Right Side: Language Selector, Contact Buttons & Mobile Toggle */}
             <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
               {/* Language Selector — click to cycle: Türkçe → English → العربية → Türkçe */}
               <button
@@ -185,18 +185,6 @@ export const Header: React.FC<HeaderProps> = ({
                   {language === 'tr' ? '🇹🇷' : language === 'en' ? '🇬🇧' : '🇸🇦'}
                 </span>
               </button>
-
-              {CONTACT_DATA.trendyolUrl && (
-                <a
-                  href={CONTACT_DATA.trendyolUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F27A1A] text-white text-[11px] font-bold tracking-wider uppercase transition-all duration-300 hover:bg-[#d9660c] hover:shadow-md cursor-pointer active:scale-95"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                  <span>Trendyol</span>
-                </a>
-              )}
 
               <button
                 onClick={() => handleNavClick('contact')}
@@ -283,23 +271,6 @@ export const Header: React.FC<HeaderProps> = ({
               })}
 
               <div className="pt-4 border-t border-[#0A2D6F]/10 flex flex-col gap-3">
-                {CONTACT_DATA.trendyolUrl && (
-                  <a
-                    href={CONTACT_DATA.trendyolUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-3.5 rounded-xl bg-[#F27A1A] text-white text-center text-sm font-bold tracking-wider uppercase shadow-md flex items-center justify-center gap-2 active:scale-98"
-                  >
-                    <span>
-                      {language === 'tr'
-                        ? 'Trendyol Mağazamıza Git'
-                        : language === 'en'
-                        ? 'Visit Trendyol Store'
-                        : 'زيارة متجر ترينديول'}
-                    </span>
-                    <ChevronRight className="w-4 h-4" />
-                  </a>
-                )}
 
                 <button
                   onClick={() => handleNavClick('contact')}

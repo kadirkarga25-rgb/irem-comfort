@@ -2986,177 +2986,6 @@ async function getCatalogSettings(): Promise<any[]> {
   return normalizeCatalogAssetUrls(catalogs);
 }
 
-
-// ===== PDF Library Persistence =====
-// PDF files live independently from catalog_settings.json and site_settings.json.
-// catalog records store only pdfLibraryId/pdfUrl references.
-type PdfLibraryFile = {
-  id: string;
-  name: string;
-  filename: string;
-  path: string;
-  rawUrl: string;
-  size: number;
-  createdAt: number;
-  updatedAt: number;
-};
-
-async function loadPdfLibrary(): Promise<PdfLibraryFile[]> {
-  const { token, repo, branch } = await getGithubAuth();
-  const path = 'public/pdf_library.json';
-  const r = await fetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${encodeURIComponent(branch)}`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'IremComfortApp', 'Cache-Control': 'no-cache' }
-  });
-  if (r.status === 404) return [];
-  if (!r.ok) throw new Error(`PDF kütüphanesi okunamadı (HTTP ${r.status}).`);
-  const d = await r.json();
-  if (!d?.content) return [];
-  const parsed = JSON.parse(Buffer.from(d.content, 'base64').toString('utf8'));
-  return Array.isArray(parsed) ? parsed : Array.isArray(parsed?.files) ? parsed.files : [];
-}
-
-async function savePdfLibrary(files: PdfLibraryFile[], message: string) {
-  const { token, repo, branch } = await getGithubAuth();
-  const content = JSON.stringify({ version: 1, updatedAt: Date.now(), files }, null, 2);
-  return commitFilesToGithubAtomically(
-    [{ path: 'public/pdf_library.json', content }],
-    message,
-    token,
-    repo,
-    branch
-  );
-}
-
-async function deleteGithubFile(relativePath: string, message: string): Promise<{success:boolean;error?:string}> {
-  const { token, repo, branch } = await getGithubAuth();
-  const r = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}?ref=${encodeURIComponent(branch)}`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'IremComfortApp' }
-  });
-  if (r.status === 404) return { success: true };
-  if (!r.ok) return { success: false, error: `GitHub dosyası okunamadı (HTTP ${r.status}).` };
-  const d = await r.json();
-  if (!d?.sha) return { success: false, error: 'GitHub dosya SHA alınamadı.' };
-  const del = await fetch(`https://api.github.com/repos/${repo}/contents/${relativePath}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'IremComfortApp', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, sha: d.sha, branch })
-  });
-  if (!del.ok) return { success: false, error: `GitHub dosyası silinemedi (HTTP ${del.status}).` };
-  return { success: true };
-}
-
-app.get('/api/pdf-library/admin/list', async (req, res) => {
-  if (!requireCatalogAdmin(req, res)) return;
-  try {
-    const { repo, branch } = getGithubConfig();
-    const files = (await loadPdfLibrary()).map((f:any) => ({
-      ...f,
-      rawUrl: f.rawUrl || `https://raw.githubusercontent.com/${repo}/${branch}/${f.path}`
-    }));
-    return res.json({ success: true, files });
-  } catch (err:any) {
-    return res.status(500).json({ success:false, error: err?.message || 'PDF kütüphanesi alınamadı.' });
-  }
-});
-
-app.post('/api/pdf-library/upload-session', async (req, res) => {
-  if (!requireCatalogAdmin(req, res)) return;
-  try {
-    const filename = String(req.body?.filename || 'catalog.pdf');
-    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\.pdf$/i, '') + '.pdf';
-    const id = `pdf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const relativePath = `public/pdf-library/${id}/${cleanFilename}`;
-    const { token, repo, branch } = await getGithubAuth();
-    if (!token || !repo) return res.status(500).json({ success:false, error:'GitHub yükleme yetkisi alınamadı.' });
-    const expiresAt = githubAppTokenCache?.expiresAt || Date.now() + 50 * 60 * 1000;
-    res.setHeader('Cache-Control', 'no-store');
-    return res.json({ success:true, id, filename:cleanFilename, path:relativePath, repo, branch, token, rawUrl:`https://raw.githubusercontent.com/${repo}/${branch}/${relativePath}`, expiresAt });
-  } catch (err:any) {
-    return res.status(500).json({ success:false, error:err?.message || 'GitHub yükleme oturumu oluşturulamadı.' });
-  }
-});
-
-app.post('/api/pdf-library/register', async (req, res) => {
-  if (!requireCatalogAdmin(req, res)) return;
-  try {
-    const { id, filename, path: relativePath, size } = req.body || {};
-    if (!id || !filename || !relativePath) return res.status(400).json({success:false,error:'PDF kayıt bilgileri eksik.'});
-    const cleanId = String(id).replace(/[^a-zA-Z0-9_-]/g, '-');
-    const cleanFilename = String(filename).replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\.pdf$/i, '') + '.pdf';
-    const expectedPath = `public/pdf-library/${cleanId}/${cleanFilename}`;
-    if (String(relativePath) !== expectedPath) return res.status(400).json({success:false,error:'PDF yolu geçersiz.'});
-    const { token, repo, branch } = await getGithubAuth();
-    const metaRes = await fetch(`https://api.github.com/repos/${repo}/contents/${expectedPath}?ref=${encodeURIComponent(branch)}`, { headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'IremComfortApp','Cache-Control':'no-cache'} });
-    if (!metaRes.ok) { const detail=await metaRes.text(); return res.status(metaRes.status===404?404:502).json({success:false,error:`PDF GitHub'da doğrulanamadı (HTTP ${metaRes.status}).`,detail:detail.slice(0,300)}); }
-    const meta=await metaRes.json();
-    if (meta?.type !== 'file') return res.status(400).json({success:false,error:'GitHub yolu bir dosyaya işaret etmiyor.'});
-    const item: PdfLibraryFile = { id:cleanId, name:cleanFilename.replace(/\.pdf$/i,''), filename:cleanFilename, path:expectedPath, rawUrl:`https://raw.githubusercontent.com/${repo}/${branch}/${expectedPath}`, size:Number(size)||Number(meta.size)||0, createdAt:Date.now(), updatedAt:Date.now() };
-    const files=await loadPdfLibrary(); const index=files.findIndex((x:any)=>x?.id===item.id); if(index>=0) files[index]=item; else files.unshift(item);
-    const saved=await savePdfLibrary(files,`PDF Kütüphanesi kaydı: ${cleanFilename}`);
-    if(!saved.success) return res.status(500).json({success:false,error:saved.error||'PDF kütüphanesi kaydı kaydedilemedi.'});
-    return res.json({success:true,file:item,commitSha:saved.commitSha});
-  } catch(err:any) { return res.status(500).json({success:false,error:err?.message||'PDF kütüphanesi kaydı oluşturulamadı.'}); }
-});
-
-app.post('/api/pdf-library/upload', async (req, res) => {
-  if (!requireCatalogAdmin(req, res)) return;
-  try {
-    const { id, filename, data, size = 0 } = req.body || {};
-    if (!id || !data || !filename) return res.status(400).json({ success:false, error:'PDF verisi eksik.' });
-    const cleanId = String(id).replace(/[^a-zA-Z0-9_-]/g, '-');
-    const cleanFilename = String(filename).replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\.pdf$/i, '') + '.pdf';
-    const relativePath = `public/pdf-library/${cleanId}/${cleanFilename}`;
-    const raw = String(data).includes(',') ? String(data).split(',').pop()! : String(data);
-    const buffer = Buffer.from(raw, 'base64');
-    if (!buffer.length) return res.status(400).json({success:false,error:'PDF dosyası boş.'});
-    const upload = await uploadFileToGithub(relativePath, buffer, `PDF Kütüphanesi: ${cleanFilename}`);
-    if (!upload.success) return res.status(500).json({success:false,error:upload.error || 'PDF GitHub’a yüklenemedi.'});
-    const { repo, branch } = getGithubConfig();
-    const item: PdfLibraryFile = {
-      id: cleanId,
-      name: cleanFilename.replace(/\.pdf$/i, ''),
-      filename: cleanFilename,
-      path: relativePath,
-      rawUrl: `https://raw.githubusercontent.com/${repo}/${branch}/${relativePath}`,
-      size: Number(size) || buffer.length,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    };
-    const files = await loadPdfLibrary();
-    const index = files.findIndex((x:any) => x?.id === item.id);
-    if (index >= 0) files[index] = item; else files.unshift(item);
-    const saved = await savePdfLibrary(files, `PDF Kütüphanesi kaydı: ${cleanFilename}`);
-    if (!saved.success) return res.status(500).json({success:false,error:saved.error || 'PDF kütüphanesi kaydı kaydedilemedi.'});
-    return res.json({success:true,file:item,commitSha:saved.commitSha});
-  } catch(err:any) {
-    return res.status(500).json({success:false,error:err?.message || 'PDF kütüphanesine yüklenemedi.'});
-  }
-});
-
-app.post('/api/pdf-library/delete', async (req, res) => {
-  if (!requireCatalogAdmin(req, res)) return;
-  try {
-    const id = String(req.body?.id || '');
-    if (!id) return res.status(400).json({success:false,error:'PDF ID eksik.'});
-    const files = await loadPdfLibrary();
-    const item = files.find((x:any) => x?.id === id);
-    if (!item) return res.status(404).json({success:false,error:'PDF kütüphanede bulunamadı.'});
-
-    const catalogs = await loadFreshCatalogArchive();
-    const usedBy = catalogs.find((c:any) => c?.pdfLibraryId === id);
-    if (usedBy) return res.status(409).json({success:false,error:`Bu PDF "${usedBy.title}" kataloğunda kullanılıyor. Önce katalog bağlantısını kaldırın.`});
-
-    const deleted = await deleteGithubFile(item.path, `PDF Kütüphanesinden silindi: ${item.filename}`);
-    if (!deleted.success) return res.status(500).json({success:false,error:deleted.error});
-    const next = files.filter((x:any) => x?.id !== id);
-    const saved = await savePdfLibrary(next, `PDF Kütüphanesi kaydı silindi: ${item.filename}`);
-    if (!saved.success) return res.status(500).json({success:false,error:saved.error || 'PDF kütüphanesi güncellenemedi.'});
-    return res.json({success:true,commitSha:saved.commitSha});
-  } catch(err:any) {
-    return res.status(500).json({success:false,error:err?.message || 'PDF silinemedi.'});
-  }
-});
-
 app.get('/api/catalogs', async (_req, res) => {
   try {
     const catalogs = await getCatalogSettings();
@@ -3299,13 +3128,6 @@ app.post('/api/catalogs/save', async (req, res) => {
     const safeCatalog = { ...catalog };
     delete safeCatalog.pdf;
     delete safeCatalog.pageImages;
-    if (safeCatalog.pdfLibraryId) {
-      const library = await loadPdfLibrary();
-      const libraryFile = library.find((x:any) => x?.id === safeCatalog.pdfLibraryId);
-      if (!libraryFile) return res.status(400).json({ success:false, error:'Seçilen PDF Kütüphanede bulunamadı.' });
-      safeCatalog.pdfUrl = libraryFile.rawUrl;
-      safeCatalog.pdfLibraryId = libraryFile.id;
-    }
     const index = catalogs.findIndex((c: any) => c?.id === safeCatalog.id);
     if (index >= 0) catalogs[index] = safeCatalog; else catalogs.push(safeCatalog);
     const result = await saveCatalogArchive(catalogs, `Katalog: ${safeCatalog.title} güncellendi`);
@@ -3656,7 +3478,6 @@ app.post("/api/survey", async (req, res) => {
           .coupon-title { color: #78350f; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
           .coupon-code { font-family: monospace, monospace; font-size: 28px; font-weight: 900; color: #082C6C; background: #ffffff; padding: 10px 24px; border-radius: 10px; display: inline-block; margin: 12px 0; border: 1px solid #f59e0b; letter-spacing: 3px; }
           .coupon-desc { color: #92400e; font-size: 13px; font-weight: bold; margin: 0; }
-          .btn-trendyol { display: inline-block; background: #f27a1a; color: #ffffff !important; text-decoration: none; padding: 14px 28px; border-radius: 30px; font-weight: bold; font-size: 13px; margin: 8px 4px; text-align: center; box-shadow: 0 4px 12px rgba(242,122,26,0.25); }
           .btn-wa { display: inline-block; background: #25D366; color: #ffffff !important; text-decoration: none; padding: 14px 28px; border-radius: 30px; font-weight: bold; font-size: 13px; margin: 8px 4px; text-align: center; box-shadow: 0 4px 12px rgba(37,211,102,0.25); }
           .footer { font-size: 11px; color: #64748b; text-align: center; padding: 20px; border-top: 1px solid #e2e8f0; background: #fafafa; }
         </style>
@@ -3682,18 +3503,15 @@ app.post("/api/survey", async (req, res) => {
               <p class="coupon-title">🎁 Ankete Katılım Teşekkür Hediyeniz</p>
               <div class="coupon-code">THANKS50</div>
               <p class="coupon-desc">
-                Tüm siparişlerinizde ve <strong>Trendyol Mağazamızda</strong> geçerli <strong>50 TL İndirim Kodunuz</strong> tanımlanmıştır!
+                Tüm siparişlerinizde ve <strong>web sitemizde</strong> geçerli <strong>50 TL İndirim Kodunuz</strong> tanımlanmıştır!
               </p>
             </div>
 
             <p style="text-align: center; color: #475569; font-size: 13px; margin-bottom: 20px;">
-              İndirim kodunuzu Trendyol resmi mağazamızda, web sitemizde veya WhatsApp sipariş hattımızda belirterek anında 50 TL indirimden faydalanabilirsiniz.
+              İndirim kodunuzu web sitemizde veya WhatsApp sipariş hattımızda belirterek anında 50 TL indirimden faydalanabilirsiniz.
             </p>
 
             <div style="text-align: center;">
-              <a href="https://www.trendyol.com/magaza/irem-comfort-m-1286942?sst=0&channelId=1" class="btn-trendyol" target="_blank">
-                🛍️ Trendyol Mağazamıza Git ve Alışveriş Yap
-              </a>
               <a href="https://wa.me/905330297125?text=Merhaba%2C%20anket%20kat%C4%B1l%C4%B1m%20indirim%20kodum%3A%20THANKS50" class="btn-wa" target="_blank">
                 💬 WhatsApp Sipariş Hattı (50 TL İndirimli)
               </a>

@@ -173,8 +173,8 @@ export class KnowledgeEngine {
       id: 'doc-contact-main',
       category: 'contact_shipping',
       title: 'İrem Comfort İletişim, Adres ve Atölye Konumu',
-      content: `İrem Comfort Üretim Atölyesi: ${contact.address}. Telefon: ${contact.phoneDisplay}. WhatsApp Sipariş Hattı: ${contact.whatsappDisplay}. E-posta: ${contact.email}. Instagram: ${contact.instagram}. Çalışma Saatleri: ${contact.showroomHours}. Trendyol Yetkili Mağazamız: Anavelle (${contact.trendyolUrl})`,
-      keywords: ['adres', 'telefon', 'whatsapp', 'trendyol', 'çalışma saatleri', 'konum', 'manisa ayakkabıcılar sitesi', 'mesai', 'pazar'],
+      content: `İrem Comfort Üretim Atölyesi: ${contact.address}. Telefon: ${contact.phoneDisplay}. WhatsApp Sipariş Hattı: ${contact.whatsappDisplay}. E-posta: ${contact.email}. Instagram: ${contact.instagram}. Çalışma Saatleri: ${contact.showroomHours}. Toptan sipariş ve katalog talepleri için WhatsApp hattımızdan iletişime geçebilirsiniz.`,
+      keywords: ['adres', 'telefon', 'whatsapp', 'toptan', 'çalışma saatleri', 'konum', 'manisa ayakkabıcılar sitesi', 'mesai', 'pazar'],
       metadata: {
         sectionUrl: `#iletisim`
       },

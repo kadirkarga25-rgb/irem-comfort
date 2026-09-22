@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CONTACT_DATA } from '../../constants/data';
-import { Phone, MessageCircle, Instagram, Mail, MapPin, Send, CheckCircle2, Clock, BadgeCheck, ExternalLink, ShoppingBag, Navigation } from 'lucide-react';
+import { Phone, MessageCircle, Instagram, Mail, MapPin, Send, CheckCircle2, Clock, BadgeCheck, Navigation } from 'lucide-react';
 import { useAppImages } from '../../context/ImageContext';
 import { ShowroomMap } from '../ui/ShowroomMap';
 
@@ -101,43 +101,6 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
           {/* Left Column: Direct Contact Info Cards */}
           <div className="lg:col-span-5 space-y-6">
             
-            {/* Trendyol Online Store Card */}
-            {CONTACT_DATA.trendyolUrl && (
-              <a
-                href={CONTACT_DATA.trendyolUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-6 rounded-2xl bg-gradient-to-r from-[#F27A1A] to-[#E05C00] text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 flex items-center justify-between group cursor-pointer border border-orange-400/30"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-white text-[#F27A1A] flex items-center justify-center font-black text-xl shadow-md shrink-0">
-                    <ShoppingBag className="w-6 h-6 text-[#F27A1A]" />
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="bg-white/20 text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded tracking-wider">
-                        {language === 'tr' ? 'Online Alışveriş' : language === 'en' ? 'Online Shopping' : 'تسوق إلكتروني'}
-                      </span>
-                      <span className="text-xs text-white/90 font-medium">Trendyol</span>
-                    </div>
-                    <h4 className="text-lg font-bold font-serif-luxury text-white">
-                      Trendyol Anavelle
-                    </h4>
-                    <p className="text-xs text-white/90 font-light">
-                      {language === 'tr'
-                        ? "İrem Comfort modellerimizi Trendyol'da Anavelle mağazamız güvencesiyle sipariş verin"
-                        : language === 'en'
-                        ? 'Order our genuine leather models with peace of mind via our Anavelle Trendyol store'
-                        : 'اطلب موديلاتنا عبر متجر أنافيل على ترينديول بكل سهولة وثقة'}
-                    </p>
-                  </div>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-white/20 group-hover:bg-white group-hover:text-[#F27A1A] flex items-center justify-center transition-colors text-white shrink-0 ml-2">
-                  <ExternalLink className="w-5 h-5" />
-                </div>
-              </a>
-            )}
-
             {/* Phone Card */}
             <a
               href={`tel:${CONTACT_DATA.phone}`}

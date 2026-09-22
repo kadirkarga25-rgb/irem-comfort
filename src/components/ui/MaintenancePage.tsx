@@ -166,19 +166,6 @@ export function MaintenancePage() {
                 <span>Instagram: {contactData.instagram || '@iremcomfort'}</span>
               </a>
             )}
-
-            {/* Trendyol */}
-            {contactData?.trendyolUrl && (
-              <a
-                href={contactData.trendyolUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/30 text-amber-300 text-xs font-medium transition-all duration-200"
-              >
-                <ShoppingBag className="w-4 h-4 text-amber-400" />
-                <span>Trendyol Mağazamız</span>
-              </a>
-            )}
           </div>
 
           {contactData?.address && (
