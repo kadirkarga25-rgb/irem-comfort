@@ -3059,6 +3059,45 @@ app.get('/api/pdf-library/admin/list', async (req, res) => {
   }
 });
 
+app.post('/api/pdf-library/upload-session', async (req, res) => {
+  if (!requireCatalogAdmin(req, res)) return;
+  try {
+    const filename = String(req.body?.filename || 'catalog.pdf');
+    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\.pdf$/i, '') + '.pdf';
+    const id = `pdf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const relativePath = `public/pdf-library/${id}/${cleanFilename}`;
+    const { token, repo, branch } = await getGithubAuth();
+    if (!token || !repo) return res.status(500).json({ success:false, error:'GitHub yükleme yetkisi alınamadı.' });
+    const expiresAt = githubAppTokenCache?.expiresAt || Date.now() + 50 * 60 * 1000;
+    res.setHeader('Cache-Control', 'no-store');
+    return res.json({ success:true, id, filename:cleanFilename, path:relativePath, repo, branch, token, rawUrl:`https://raw.githubusercontent.com/${repo}/${branch}/${relativePath}`, expiresAt });
+  } catch (err:any) {
+    return res.status(500).json({ success:false, error:err?.message || 'GitHub yükleme oturumu oluşturulamadı.' });
+  }
+});
+
+app.post('/api/pdf-library/register', async (req, res) => {
+  if (!requireCatalogAdmin(req, res)) return;
+  try {
+    const { id, filename, path: relativePath, size } = req.body || {};
+    if (!id || !filename || !relativePath) return res.status(400).json({success:false,error:'PDF kayıt bilgileri eksik.'});
+    const cleanId = String(id).replace(/[^a-zA-Z0-9_-]/g, '-');
+    const cleanFilename = String(filename).replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\.pdf$/i, '') + '.pdf';
+    const expectedPath = `public/pdf-library/${cleanId}/${cleanFilename}`;
+    if (String(relativePath) !== expectedPath) return res.status(400).json({success:false,error:'PDF yolu geçersiz.'});
+    const { token, repo, branch } = await getGithubAuth();
+    const metaRes = await fetch(`https://api.github.com/repos/${repo}/contents/${expectedPath}?ref=${encodeURIComponent(branch)}`, { headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'IremComfortApp','Cache-Control':'no-cache'} });
+    if (!metaRes.ok) { const detail=await metaRes.text(); return res.status(metaRes.status===404?404:502).json({success:false,error:`PDF GitHub'da doğrulanamadı (HTTP ${metaRes.status}).`,detail:detail.slice(0,300)}); }
+    const meta=await metaRes.json();
+    if (meta?.type !== 'file') return res.status(400).json({success:false,error:'GitHub yolu bir dosyaya işaret etmiyor.'});
+    const item: PdfLibraryFile = { id:cleanId, name:cleanFilename.replace(/\.pdf$/i,''), filename:cleanFilename, path:expectedPath, rawUrl:`https://raw.githubusercontent.com/${repo}/${branch}/${expectedPath}`, size:Number(size)||Number(meta.size)||0, createdAt:Date.now(), updatedAt:Date.now() };
+    const files=await loadPdfLibrary(); const index=files.findIndex((x:any)=>x?.id===item.id); if(index>=0) files[index]=item; else files.unshift(item);
+    const saved=await savePdfLibrary(files,`PDF Kütüphanesi kaydı: ${cleanFilename}`);
+    if(!saved.success) return res.status(500).json({success:false,error:saved.error||'PDF kütüphanesi kaydı kaydedilemedi.'});
+    return res.json({success:true,file:item,commitSha:saved.commitSha});
+  } catch(err:any) { return res.status(500).json({success:false,error:err?.message||'PDF kütüphanesi kaydı oluşturulamadı.'}); }
+});
+
 app.post('/api/pdf-library/upload', async (req, res) => {
   if (!requireCatalogAdmin(req, res)) return;
   try {

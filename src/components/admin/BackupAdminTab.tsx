@@ -217,22 +217,15 @@ export const BackupAdminTab: React.FC = () => {
 
         // 2. PDF Kütüphanesini GitHub'a geri yükle.
         if (Array.isArray(json.pdfLibrary?.files)) {
+          const { uploadPdfToLibrary } = await import('../../catalog/pdfLibrary');
           for (const pdf of json.pdfLibrary.files) {
             if (!pdf?.data || !pdf?.filename) continue;
             try {
-              await fetch('/api/pdf-library/upload', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${sessionStorage.getItem('ic_catalog_admin_token') || ''}`
-                },
-                body: JSON.stringify({
-                  id: pdf.id || `pdf-${Date.now()}`,
-                  filename: pdf.filename,
-                  size: pdf.size || 0,
-                  data: `data:application/pdf;base64,${pdf.data}`
-                })
-              });
+              const binary = atob(pdf.data);
+              const bytes = new Uint8Array(binary.length);
+              for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+              const restoredFile = new File([bytes], pdf.filename, { type: 'application/pdf' });
+              await uploadPdfToLibrary(restoredFile);
             } catch (e) {
               console.warn('PDF geri yüklenemedi:', pdf?.filename, e);
             }
