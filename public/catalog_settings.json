@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": 1790075719005,
+  "updatedAt": 1790075735190,
   "catalogs": [
     {
       "id": "catalog-1790075705299",
@@ -163,7 +163,7 @@
         ""
       ],
       "createdAt": 1790075713255,
-      "published": false
+      "published": true
     }
   ]
 }
