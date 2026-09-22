@@ -1082,7 +1082,7 @@
       "iconName": "Award"
     }
   ],
-  "_updatedAt": 1790059891802,
+  "_updatedAt": 1790060104119,
   "faqItems": [
     {
       "q": "Soru 1",
@@ -1412,8 +1412,9 @@
         ""
       ],
       "createdAt": 1790059854259,
-      "published": false,
-      "pdfUrl": "https://raw.githubusercontent.com/kadirkarga25-rgb/irem-comfort/main/public/katalog-assets/catalog-1790059846611/catalog-1790059846611.pdf"
+      "published": true,
+      "pdfUrl": "https://raw.githubusercontent.com/kadirkarga25-rgb/irem-comfort/main/public/katalog-assets/catalog-1790059846611/catalog-1790059846611.pdf",
+      "_pdfLoadError": "PDF alınamadı (HTTP 404)."
     }
   ]
 }
