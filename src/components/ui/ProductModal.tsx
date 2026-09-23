@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CollectionItem } from '../../types';
-import { CONTACT_DATA } from '../../constants/data';
 import { X, Check, ShieldCheck, Layers, Palette, ArrowRight, Share2, Ruler } from 'lucide-react';
 import { useAppImages } from '../../context/ImageContext';
 import { useConversation } from '../../context/ConversationContext';
@@ -20,7 +19,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   onClose,
   onInquire
 }) => {
-  const { images: storeImages, contactData, language } = useAppImages();
+  const { images: storeImages, language } = useAppImages();
   const { setActiveProduct } = useConversation();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -40,7 +39,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
   const handleShare = () => {
     if (!item) return;
-    const shareUrl = `${window.location.origin}${window.location.pathname}?product=${encodeURIComponent(item.id)}`;
+    const shareUrl = `${window.location.origin}/urunler/${encodeURIComponent(item.id)}`;
     const shareData = {
       title: `${item.name} | İrem Comfort`,
       text: `${item.name} - %100 Hakiki Deri Bayan Comfort Terlik & Sandalet`,

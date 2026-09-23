@@ -58,10 +58,10 @@ export const FloatingAssistant: React.FC = () => {
       // Prevent background body scroll on mobile viewports when chat is open
       const originalOverflow = document.body.style.overflow;
       if (window.innerWidth < 640) {
-        document.body.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden'; document.documentElement.style.overscrollBehavior = 'none';
       }
       return () => {
-        document.body.style.overflow = originalOverflow;
+        document.body.style.overflow = originalOverflow; document.documentElement.style.overscrollBehavior = '';
       };
     }
   }, [messages, isOpen]);
@@ -104,7 +104,7 @@ export const FloatingAssistant: React.FC = () => {
             <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2 mb-2">
               <div className="flex items-center gap-2 text-[#082C6C] font-bold text-xs uppercase tracking-wider">
                 <Sparkles className="w-4 h-4 text-amber-500" />
-                <span>İrem Comfort Satış Danışmanı</span>
+                <span>İrem Comfort Dijital Danışman</span>
               </div>
               <button
                 onClick={dismissProactiveBubble}
@@ -150,10 +150,10 @@ export const FloatingAssistant: React.FC = () => {
 
           <div className="text-left pr-1">
             <span className="block text-xs sm:text-sm font-extrabold tracking-tight text-white leading-none">
-              Canlı Danışman
+              Dijital Danışman
             </span>
             <span className="block text-[9px] sm:text-[10px] text-amber-300 font-medium leading-tight mt-0.5">
-              Online Asistan
+              Toptan ürün ve satış desteği
             </span>
           </div>
 
@@ -174,26 +174,26 @@ export const FloatingAssistant: React.FC = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="w-[92vw] sm:w-[420px] h-[560px] max-h-[85vh] bg-white rounded-3xl shadow-2xl border border-[#082C6C]/15 flex flex-col overflow-hidden z-50 select-text overscroll-contain"
+            className="w-[min(94vw,420px)] sm:w-[420px] h-[min(640px,88vh)] max-h-[88dvh] bg-white rounded-3xl shadow-2xl border border-[#082C6C]/15 flex flex-col overflow-hidden z-50 select-text overscroll-contain"
             onWheel={(e) => e.stopPropagation()}
             onTouchMove={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#062050] via-[#082C6C] to-[#0D3B8B] p-4 text-white flex items-center justify-between shrink-0 shadow-md">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-400/20 backdrop-blur border border-amber-300/40 flex items-center justify-center text-amber-300">
+            <div className="bg-gradient-to-r from-[#062050] via-[#082C6C] to-[#0D3B8B] px-3.5 py-3 text-white flex items-center justify-between shrink-0 shadow-md">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-full bg-amber-400/20 backdrop-blur border border-amber-300/40 flex items-center justify-center text-amber-300">
                   <Bot className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
                     <h3 className="text-sm font-bold tracking-tight">İrem Comfort Danışman</h3>
-                    <span className="px-1.5 py-0.5 rounded bg-amber-400/20 border border-amber-300/40 text-amber-300 font-extrabold text-[9px] tracking-widest uppercase shadow-sm">
-                      CANLI
+                    <span className="px-1.5 py-0.5 rounded bg-emerald-400/15 border border-emerald-300/30 text-emerald-200 font-extrabold text-[9px] tracking-widest uppercase shadow-sm">
+                      ONLINE
                     </span>
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
                   </div>
-                  <p className="text-[10px] text-amber-200/80 font-light">
-                    {crmRecord.isHumanOperatorActive ? '🟢 Canlı Müşteri Temsilcisi Bağlandı' : 'Manisa Atölye Dijital Asistanı'}
+                  <p className="text-[10px] text-white/70 font-medium">
+                    {crmRecord.isHumanOperatorActive ? '🟢 İnsan temsilci bağlandı' : 'Dijital satış danışmanı • Toptan ürün & koleksiyon'}
                   </p>
                 </div>
               </div>
@@ -215,7 +215,7 @@ export const FloatingAssistant: React.FC = () => {
                   title="Canlı Temsilciye Bağlan"
                 >
                   <Headset className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Canlı Destek</span>
+                  <span className="hidden sm:inline">İnsan Temsilci</span>
                 </button>
                 <button
                   onClick={clearConversation}
@@ -434,14 +434,14 @@ export const FloatingAssistant: React.FC = () => {
                   className="px-2.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-950 border border-amber-500 rounded-full text-[10px] font-extrabold whitespace-nowrap transition-colors cursor-pointer shrink-0 shadow-sm flex items-center gap-1"
                 >
                   <Star className="w-3 h-3 fill-slate-950" />
-                  <span>Sohbeti Bitir & Değerlendir</span>
+                  <span>Sohbeti Değerlendir</span>
                 </button>
               )}
               {[
                 'Kargo ne zaman gelir?',
                 'Toptan sipariş şartları',
                 'Taraklı ayak terlikleri',
-                'Trendyol linki'
+                'toptan bağlantı'
               ].map((prompt, idx) => (
                 <button
                   key={idx}

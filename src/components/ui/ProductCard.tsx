@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Eye, Share2, MessageCircle, Sparkles, ArrowUpRight, Check } from 'lucide-react';
 import { CollectionItem } from '../../types';
 import { useAppImages } from '../../context/ImageContext';
+import { PREMIUM_PRODUCT_IMAGE_FALLBACKS } from '../../constants/data';
 
 interface ProductCardProps {
   item: CollectionItem;
@@ -22,7 +23,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onShare
 }) => {
   const { language } = useAppImages();
-  const defaultImage = images.collectionImages[item.id]?.image || item.image;
+  const defaultImage = images.collectionImages[item.id]?.image || item.image || PREMIUM_PRODUCT_IMAGE_FALLBACKS[item.id] || '';
   const [activeImage, setActiveImage] = useState<string>(defaultImage);
   const [activeColorName, setActiveColorName] = useState<string | undefined>(item.colors?.[0]?.name);
 
@@ -178,17 +179,26 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {getTranslatedMaterial(item.materials[0])}
           </span>
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onInquire(item.name);
-            }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 hover:bg-blue-100 text-[#062050] text-[11px] font-extrabold uppercase transition-all cursor-pointer"
-            title={language === 'tr' ? 'Sipariş / Bilgi Al' : language === 'en' ? 'Inquire / Order' : 'استفسار / طلب'}
-          >
-            <MessageCircle className="w-3.5 h-3.5" />
-            <span>{language === 'tr' ? 'Sipariş' : language === 'en' ? 'Inquire' : 'طلب'}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <a
+              href={`/urunler/${encodeURIComponent(item.id)}`}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#102f59] hover:bg-[#0b2445] text-white text-[11px] font-extrabold uppercase transition-all"
+            >
+              Detay
+            </a>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onInquire(item.name);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 hover:bg-blue-100 text-[#062050] text-[11px] font-extrabold uppercase transition-all cursor-pointer"
+              title={language === 'tr' ? 'Toptan bilgi al' : language === 'en' ? 'Wholesale inquiry' : 'استفسار بالجملة'}
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              <span>{language === 'tr' ? 'Toptan' : language === 'en' ? 'Wholesale' : 'جملة'}</span>
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>

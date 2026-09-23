@@ -100,25 +100,6 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ prefilledSubject
           
           {/* Left Column: Direct Contact Info Cards */}
           <div className="lg:col-span-5 space-y-6">
-
-            {/* Phone Card */}
-            <a
-              href={`tel:${CONTACT_DATA.phone}`}
-              className="p-6 rounded-2xl bg-white border border-[#0A2D6F]/10 hover:border-[#0A2D6F] hover:shadow-lg transition-all duration-300 flex items-center gap-5 group"
-            >
-              <div className="w-12 h-12 rounded-xl bg-[#0A2D6F]/5 text-[#0A2D6F] group-hover:bg-[#0A2D6F] group-hover:text-white flex items-center justify-center transition-colors">
-                <Phone className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-[11px] font-bold text-[#0A2D6F] uppercase tracking-wider block">
-                  {t.customerService || 'Müşteri Hizmetleri & Telefon'}
-                </span>
-                <span className="text-lg font-bold text-[#111111] font-serif-luxury">
-                  {CONTACT_DATA.phoneDisplay}
-                </span>
-              </div>
-            </a>
-
             {/* WhatsApp Card */}
             <a
               href={`https://wa.me/${CONTACT_DATA.whatsapp}?text=Merhaba%20%C4%B0rem%20Comfort%2C%20yeni%20sezon%20ürünleriniz%20ve%20kataloğunuz%20hakkında%20bilgi%20almak%20istiyorum.`}

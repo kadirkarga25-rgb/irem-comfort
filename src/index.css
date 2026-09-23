@@ -115,8 +115,26 @@ body.modal-open {
 @keyframes icLoaderPulse{0%,61.5%{transform:scale(1)}64%{transform:scale(1.045)}66.5%{transform:scale(1)}69%{transform:scale(1.045)}71.5%{transform:scale(1)}74%{transform:scale(1.045)}76.5%,100%{transform:scale(1)}}
 @media(max-width:600px){.ic-loader-mark{width:150px;height:150px}.ic-loader-label{font-size:10px}}
 
-/* Premium wholesale homepage */
-.wholesale-home{font-family:'Plus Jakarta Sans','Manrope',sans-serif;}
-.wholesale-home h1,.wholesale-home h2,.wholesale-home h3{font-family:'Cinzel','Plus Jakarta Sans',serif;}
-.wholesale-home button,.wholesale-home a{touch-action:manipulation;}
-@media (prefers-reduced-motion: reduce){.wholesale-home *{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;}}
+/* 2026 Premium B2B design system */
+:root {
+  --ic-navy: #102f59;
+  --ic-navy-deep: #0d223e;
+  --ic-gold: #b58b42;
+  --ic-ivory: #f7f5f1;
+}
+html { scroll-behavior: smooth; }
+body { background: var(--ic-ivory); }
+button, a { -webkit-tap-highlight-color: transparent; }
+.ic-site-page { min-height: 100vh; }
+.ic-site-page img { image-rendering: auto; }
+.ic-page-hero { background-image: linear-gradient(90deg, rgba(247,245,241,.65), rgba(255,255,255,0)); }
+.ic-premium-header { backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+
+/* Admin visual refresh without touching its data model */
+.admin-premium-shell { background: #f4f2ee !important; }
+.admin-premium-shell .admin-sidebar { background: #102f59 !important; }
+.admin-premium-shell .admin-card { border-radius: 20px !important; border-color: rgba(16,47,89,.10) !important; box-shadow: 0 12px 36px rgba(16,47,89,.06) !important; }
+
+@media (max-width: 768px) {
+  .ic-page-hero h1 { font-size: clamp(2.3rem, 10vw, 4rem); }
+}

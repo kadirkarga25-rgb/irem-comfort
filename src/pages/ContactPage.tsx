@@ -1,0 +1,10 @@
+import React from 'react';
+import { Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
+import { SitePageShell } from './SitePageShell';
+import { CONTACT_DATA } from '../constants/data';
+import { ContactSection } from '../components/sections/ContactSection';
+import { FaqSection } from '../components/sections/FaqSection';
+
+export const ContactPage: React.FC<{onAdminClick?:()=>void;openLegal?:(d:any)=>void}> = ({onAdminClick,openLegal}) => <SitePageShell title="İletişim ve toptan teklif" eyebrow="İLETİŞİM" intro="Model, seri, numara ve mağaza ihtiyaçlarınız için bize doğrudan ulaşın." activePath="/iletisim" onAdminClick={onAdminClick} legal={{open:openLegal!}}>
+ <section className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10 py-12 sm:py-20"><div className="grid md:grid-cols-3 gap-5 mb-12">{[[Phone,CONTACT_DATA.phoneDisplay,'Telefon'],[MessageCircle,CONTACT_DATA.whatsappDisplay,'WhatsApp'],[Mail,CONTACT_DATA.email,'E-posta']].map(([I,v,t]:any)=><a key={t} href={t==='Telefon'?`tel:${CONTACT_DATA.phone}`:t==='WhatsApp'?`https://wa.me/${CONTACT_DATA.whatsapp}`:`mailto:${CONTACT_DATA.email}`} className="bg-white border border-slate-200 rounded-3xl p-6 hover:shadow-lg transition"><I className="w-7 h-7 text-[#8b6a2b]"/><div className="mt-4 text-[11px] uppercase tracking-[.18em] text-slate-400 font-bold">{t}</div><div className="mt-1 font-bold text-[#102f59]">{v}</div></a>)}</div><div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden"><ContactSection prefilledSubject="Toptan satış hakkında bilgi almak istiyorum" /></div><div className="mt-10 bg-white rounded-[2rem] border border-slate-200 p-6 sm:p-8 flex gap-4"><MapPin className="w-6 h-6 text-[#8b6a2b] shrink-0"/><div><h2 className="font-serif-luxury font-bold text-xl text-[#102f59]">Manisa Atölye</h2><p className="mt-2 text-sm text-slate-600">{CONTACT_DATA.address}</p><a className="inline-block mt-3 text-sm font-bold text-[#102f59]" href={CONTACT_DATA.googleMapsUrl} target="_blank" rel="noreferrer">Haritada görüntüle →</a></div></div><div className="mt-10"><FaqSection/></div></section>
+ </SitePageShell>

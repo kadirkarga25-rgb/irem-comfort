@@ -40,10 +40,17 @@ interface ConversationContextType {
 
 const ConversationContext = createContext<ConversationContextType | undefined>(undefined);
 
+const ADVISOR_NAMES = ['Elif', 'Derya', 'Selin', 'Merve'];
+const getSessionAdvisorName = (sessionId: string) => {
+  let hash = 0;
+  for (let i = 0; i < sessionId.length; i++) hash = (hash * 31 + sessionId.charCodeAt(i)) >>> 0;
+  return ADVISOR_NAMES[hash % ADVISOR_NAMES.length];
+};
+
 const INITIAL_WELCOME_MSG: ConversationMessage = {
   id: 'welcome-0',
   sender: 'assistant',
-  text: 'Merhaba 👋 Ben İrem Comfort Dijital Satış Danışmanınız.\n\nManisa Ayakkabıcılar Sitesindeki atölyemizde imal ettiğimiz %100 hakiki deri bayan terlik, sandalet ve ortopedik sabo koleksiyonumuz hakkında sorularınızı yanıtlamaktan mutluluk duyarım.',
+  text: 'Merhaba 👋 Ben İrem Comfort dijital satış danışmanınız.\n\nMağazanız için model, koleksiyon, numara veya toptan sipariş konusunda birlikte bakalım. Ne aradığınızı yazmanız yeterli.',
   timestamp: 'Şimdi',
   actionButtons: [
     { label: 'Toptan Sipariş Koşulları', type: 'quick_reply', payload: 'Toptan sipariş şartları nelerdir?' },
@@ -70,6 +77,7 @@ export const ConversationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [proactiveBubbleText, setProactiveBubbleText] = useState<string | null>(null);
   const [proactiveTriggered, setProactiveTriggered] = useState(false);
   const [isHumanSupportModalOpen, setIsHumanSupportModalOpen] = useState(false);
+  const [lowConfidenceStreak, setLowConfidenceStreak] = useState(0);
 
   const [behaviourState, setBehaviourState] = useState<VisitorBehaviourState>(visitorBehaviourEngine.getBehaviourState());
   const [crmRecord, setCrmRecord] = useState<VisitorCrmRecord>(crmService.getActiveRecord());
@@ -115,26 +123,7 @@ export const ConversationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, [setActiveProduct]);
 
   // Beta Notice Display Check
-  const checkAndShowBetaNotice = useCallback(() => {
-    try {
-      const noticeShown = sessionStorage.getItem('irem_beta_notice_shown');
-      if (!noticeShown) {
-        sessionStorage.setItem('irem_beta_notice_shown', 'true');
-        const betaNoticeMsg: ConversationMessage = {
-          id: `beta-notice-${Date.now()}`,
-          sender: 'assistant',
-          text: `Merhaba 👋\n\nİrem Comfort Akıllı Asistanı şu anda Beta sürümündedir.\n\nSize en doğru şekilde yardımcı olmaya çalışıyorum.\n\nBeklenmeyen bir durum yaşarsanız canlı destek ekibimize bağlanabilirsiniz.`,
-          timestamp: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
-          actionButtons: [
-            { label: 'Canlı Desteğe Bağlan', type: 'quick_reply', payload: 'Canlı destek ekibinizle görüşmek istiyorum.' }
-          ]
-        };
-        setMessages(prev => [...prev, betaNoticeMsg]);
-      }
-    } catch {
-      // Session storage protection
-    }
-  }, []);
+  const checkAndShowBetaNotice = useCallback(() => {}, []);
 
   // Handle sending a user message
   const sendMessage = useCallback((text: string) => {
@@ -184,29 +173,75 @@ export const ConversationProvider: React.FC<{ children: ReactNode }> = ({ childr
       shoppingInterest: activeProduct ? activeProduct.category : null
     };
 
-    setTimeout(() => {
-      const assistantReply = conversationEngine.generateResponse(text, sessionContext);
+    setTimeout(async () => {
+      let assistantReply: ConversationMessage | null = null;
+      try {
+        const productsForAi = (activeProduct ? [activeProduct, ...viewedProducts] : viewedProducts).slice(0, 8);
+        const aiRes = await fetch('/api/assistant/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            page: window.location.pathname,
+            activeProduct,
+            products: productsForAi,
+            messages: newMessages.slice(-10)
+          })
+        });
+        const aiData = await aiRes.json().catch(() => null);
+        if (aiRes.ok && aiData?.success && aiData.text) {
+          assistantReply = {
+            id: `msg-${Date.now()}`,
+            sender: 'assistant',
+            text: String(aiData.text),
+            timestamp: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+            confidenceLevel: 'High',
+            confidenceScore: 96,
+            matchedProduct: activeProduct || undefined,
+            actionButtons: [
+              { label: 'Toptan Bilgi Al', type: 'quick_reply', payload: 'Toptan sipariş ve seri şartları hakkında bilgi almak istiyorum.' },
+              { label: 'Canlı Desteğe Bağlan', type: 'quick_reply', payload: 'Canlı destek ekibinizle görüşmek istiyorum.' }
+            ]
+          };
+        }
+      } catch {
+        // Local deterministic fallback below.
+      }
+
+      if (!assistantReply) {
+        assistantReply = conversationEngine.generateResponse(text, sessionContext);
+      }
+
+      if (newMessages.filter(m => m.sender === 'visitor').length === 1 && !/^ben (elif|derya|selin|merve)\b/i.test(assistantReply.text)) {
+        const advisorName = getSessionAdvisorName(sessionId);
+        assistantReply = { ...assistantReply, text: `Tabii, ben ${advisorName}. ${assistantReply.text}` };
+      }
+
+      const confidence = Number(assistantReply.confidenceScore || 0);
+      const looksLikeFailure = /\b(anlamadım|anlayamadım|bilmiyorum|yardımcı olamam|netleştireyim)\b/i.test(assistantReply.text);
+      if (confidence < 60 || looksLikeFailure) {
+        const nextStreak = lowConfidenceStreak + 1;
+        setLowConfidenceStreak(nextStreak);
+        if (nextStreak >= 2) {
+          setIsHumanSupportModalOpen(true);
+          assistantReply = {
+            ...assistantReply,
+            text: `Bu konuda sizi daha fazla bekletmeyeyim. Benim elimdeki bilgilerle net ve doğru bir cevap veremiyorsam, satış ekibimizden bir yetkiliyle görüştüreyim. İsterseniz iletişim bilgilerinizi bırakın; talebiniz doğrudan ekibe iletilsin.`,
+            actionButtons: [
+              { label: 'Yetkiliye Bağlan', type: 'live_support' },
+              { label: 'Soruyu Bir Kez Daha Açıklayın', type: 'quick_reply', payload: text }
+            ]
+          };
+        }
+      } else {
+        setLowConfidenceStreak(0);
+      }
+
       const fullHistory = [...newMessages, assistantReply];
       setMessages(fullHistory);
-
-      // Log assistant response to conversationLogger
-      conversationLogger.logAssistantResponse(
-        sessionId,
-        assistantReply,
-        undefined,
-        undefined,
-        window.location.hash || 'home',
-        activeProduct
-      );
-
-      crmService.updateRecord({
-        conversationHistory: fullHistory
-      });
-
-      if (!isOpen) {
-        setHasUnread(true);
-      }
-    }, 400);
+      conversationLogger.logAssistantResponse(sessionId, assistantReply, undefined, undefined, window.location.pathname || 'home', activeProduct);
+      crmService.updateRecord({ conversationHistory: fullHistory });
+      if (!isOpen) setHasUnread(true);
+    }, 120);
   }, [activeProduct, viewedProducts, messages, isOpen, crmRecord.isHumanOperatorActive, sessionId]);
 
   // Proactive greeting trigger: 20 seconds after landing if visitor hasn't opened chat

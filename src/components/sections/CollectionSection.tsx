@@ -21,7 +21,9 @@ export const CollectionSection: React.FC<CollectionSectionProps> = ({
   const [selectedColorForModal, setSelectedColorForModal] = useState<string | undefined>(undefined);
   const [featuredIndex, setFeaturedIndex] = useState(0);
 
-  const itemsToDisplay = collectionItems && collectionItems.length > 0 ? collectionItems : COLLECTION_ITEMS;
+  const allItems = collectionItems && collectionItems.length > 0 ? collectionItems : COLLECTION_ITEMS;
+  const selectedFeatured = allItems.filter(item => item.isFeatured).slice(0, 6);
+  const itemsToDisplay = selectedFeatured.length > 0 ? selectedFeatured : allItems;
 
   // Auto-rotate the featured banner models every 5 seconds
   useEffect(() => {

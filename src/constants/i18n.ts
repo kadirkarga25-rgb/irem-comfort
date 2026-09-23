@@ -13,6 +13,7 @@ export interface TranslationDictionary {
   navFaq: string;
   navFair: string;
   navCatalog: string;
+  navOnlineStore: string;
   moreNav: string;
 
   // Products Page
@@ -170,6 +171,8 @@ export interface TranslationDictionary {
   contactHoursTitle: string;
   contactDirectCall: string;
   contactGetDirections: string;
+  contactTrendyolStoreTitle: string;
+  contactTrendyolStoreDesc: string;
   contactSentSuccessTitle: string;
   contactSentSuccessDesc: string;
 
@@ -208,6 +211,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     navFaq: "Sıkça Sorulan Sorular",
     navFair: "Fuar Daveti",
     navCatalog: "Katalog İndir",
+    navOnlineStore: "Toptan Satış",
     moreNav: "Diğer",
 
     productsTitle: "Tüm Ürünlerimiz & Sezon Kataloğu",
@@ -355,6 +359,8 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     contactHoursTitle: "Çalışma Saatleri",
     contactDirectCall: "Doğrudan İletişim Hatları",
     contactGetDirections: "Yol Tarifi Al",
+    contactTrendyolStoreTitle: "Toptan Satış",
+    contactTrendyolStoreDesc: "İrem Comfort modellerimiz için toptan teklif ve seri bilgisi alın.",
     contactSentSuccessTitle: "Mesajınız Bize Ulaştı!",
     contactSentSuccessDesc: "Atölye müşteri temsilcimiz en kısa sürede sizinle iletişime geçecektir.",
 
@@ -390,6 +396,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     navFaq: "FAQ",
     navFair: "Fair Invitation",
     navCatalog: "Download Catalog",
+    navOnlineStore: "Wholesale Sales",
     moreNav: "More",
 
     productsTitle: "All Products & Seasonal Catalog",
@@ -537,6 +544,8 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     contactHoursTitle: "Working Hours",
     contactDirectCall: "Direct Contact Lines",
     contactGetDirections: "Get Directions",
+    contactTrendyolStoreTitle: "Wholesale Sales",
+    contactTrendyolStoreDesc: "Request wholesale collection and series information from İrem Comfort.",
     contactSentSuccessTitle: "Message Sent Successfully!",
     contactSentSuccessDesc: "Our workshop representative will get back to you shortly.",
 
@@ -572,6 +581,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     navFaq: "الأسئلة الشائعة",
     navFair: "دعوة المعرض",
     navCatalog: "تحميل الكتالوج",
+    navOnlineStore: "متجر ترينديول",
     moreNav: "المزيد",
 
     productsTitle: "جميع المنتجات وكتالوج الموسم",
@@ -719,6 +729,8 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     contactHoursTitle: "ساعات العمل",
     contactDirectCall: "خطوط الاتصال المباشر",
     contactGetDirections: "الحصول على الاتجاهات",
+    contactTrendyolStoreTitle: "مبيعات الجملة",
+    contactTrendyolStoreDesc: "اطلب موديلات إيريم كومفورت أونلاين بكل ثقة وضمان من مبيعات الجملة.",
     contactSentSuccessTitle: "تم استلام رسالتك بنجاح!",
     contactSentSuccessDesc: "سيتواصل معك ممثل الورشة في أقرب وقت ممكن.",
 

@@ -8,7 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Activity, Server, GitBranch, Globe, ShieldCheck, Users, 
   MessageSquare, Radio, CheckCircle2, AlertTriangle, Clock, 
-  ArrowUpRight, RefreshCw, Power, Zap, BarChart3, FileText, Database
+  ArrowUpRight, RefreshCw, Power, Zap, BarChart3, FileText, Database, Image as ImageIcon, BookOpen, ShoppingBag
 } from 'lucide-react';
 import { useAppImages } from '../../context/ImageContext';
 import { crmService } from '../../services/crmService';
@@ -16,7 +16,7 @@ import { adminSettingsService } from '../../services/adminSettings';
 import { conversationLogger } from '../../services/ai/conversationLogger';
 
 export const DashboardOverviewAdminTab: React.FC = () => {
-  const { systemConfig, updateSystemConfig, triggerDeploy } = useAppImages();
+  const { systemConfig, updateSystemConfig, triggerDeploy, images, collectionItems } = useAppImages();
   const settings = adminSettingsService.getSettings();
   const crmRecord = crmService.getActiveRecord();
 
@@ -86,6 +86,36 @@ export const DashboardOverviewAdminTab: React.FC = () => {
             <RefreshCw className={`w-4 h-4 ${systemConfig.isDeploying ? 'animate-spin' : ''}`} />
             <span>{systemConfig.isDeploying ? 'Yayınlanıyor...' : 'Yeni Sürüm Yayınla'}</span>
           </button>
+        </div>
+      </div>
+
+      {/* Live Site Content Snapshot */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-extrabold text-sm text-slate-900">Canlı Site İçerik Özeti</h3>
+            <p className="text-[11px] text-slate-500 mt-1">Admin paneli yalnızca sitede gerçekten kullanılan içerikleri yönetir.</p>
+          </div>
+          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full">Gerçek veri</span>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          {[
+            ['Hero', images.heroImage],
+            ['Hakkımızda', images.aboutImage],
+            ['Atölye', Object.values(images.craftsmanshipImages || {})[0] || ''],
+            ['Koleksiyon', collectionItems?.[0]?.image || images.collectionImages?.[collectionItems?.[0]?.id]?.image],
+          ].map(([label, src]) => (
+            <div key={String(label)} className="rounded-xl border border-slate-200 overflow-hidden bg-slate-50">
+              <div className="aspect-[4/3] bg-slate-100">
+                {src ? <img src={String(src)} alt="" className="w-full h-full object-cover" /> : <div className="h-full flex items-center justify-center text-slate-400"><ImageIcon className="w-6 h-6" /></div>}
+              </div>
+              <div className="p-2.5"><div className="text-[10px] font-bold text-slate-700">{label}</div></div>
+            </div>
+          ))}
+          <div className="rounded-xl border border-[#082C6C]/10 bg-[#082C6C]/5 p-4 flex flex-col justify-between">
+            <ShoppingBag className="w-6 h-6 text-[#082C6C]" />
+            <div><div className="text-2xl font-extrabold text-[#082C6C]">{collectionItems?.length || 0}</div><div className="text-[10px] font-bold text-slate-600">Aktif ürün</div></div>
+          </div>
         </div>
       </div>
 

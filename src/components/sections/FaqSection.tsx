@@ -73,8 +73,8 @@ export const FaqSection: React.FC = () => {
       return {
         question: language === 'en' ? 'What are your delivery times and shipping conditions?' : 'ما هي مدة التوصيل وشروط الشحن؟',
         answer: language === 'en'
-          ? 'Wholesale orders are dispatched within 3-7 business days depending on production volume. Please contact our workshop for current shipping and delivery conditions.'
-          : 'يتم شحن طلبات الجملة خلال 3-7 أيام عمل بحسب حجم الإنتاج. يرجى التواصل مع الورشة لمعرفة شروط الشحن والتسليم الحالية.'
+          ? 'Wholesale orders are dispatched within 3-7 business days depending on production volume. Siparişler üretim ve sevkiyat planına göre hazırlanır.'
+          : 'يتم شحن طلبات الجملة خلال 3-7 أيام عمل بحسب حجم الإنتاج. وتُشحن طلبات التجزئة عبر ترينديول خلال يوم العمل نفسه أو التالي.'
       };
     }
     if (qLower.includes('deri bakımı') || qLower.includes('bakım') || qLower.includes('temizlen')) {

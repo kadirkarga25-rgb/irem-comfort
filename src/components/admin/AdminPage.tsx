@@ -17,6 +17,7 @@ import { SecurityAdminTab } from './SecurityAdminTab';
 import { AiArchitectureAdminTab } from './AiArchitectureAdminTab';
 import { LiveMonitorAdminTab } from './LiveMonitorAdminTab';
 import { DashboardOverviewAdminTab } from './DashboardOverviewAdminTab';
+import { SitePageEditorAdminTab } from './SitePageEditorAdminTab';
 import { PageBuilderAdminTab } from './PageBuilderAdminTab';
 import { BackupAdminTab } from './BackupAdminTab';
 import { AiTrainingAdminTab } from './AiTrainingAdminTab';
@@ -34,7 +35,7 @@ import {
   Mail, Server, AtSign, Save, MailCheck, CheckCircle2, Shield,
   Users, Download, Copy, Trash2, Plus, Search, Phone, HelpCircle,
   GitBranch, Globe, FileImage, Video, RefreshCw, PowerOff, Palette, BarChart3, Activity,
-  Layout, Database, GraduationCap, ChevronLeft, ChevronRight, Menu, X, Smartphone, BellRing, BellOff, Volume2, Star
+  Layout, Database, GraduationCap, ShoppingBag, ChevronLeft, ChevronRight, Menu, X, Smartphone, BellRing, BellOff, Volume2, Star
 } from 'lucide-react';
 import { pwaNotificationService } from '../../services/pwaNotificationService';
 
@@ -190,7 +191,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   // that old heartbeat could incorrectly log an active admin out.
 
   // Admin Panel Tabs
-  const [activeTab, setActiveTab] = useState<'overview' | 'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'page_builder' | 'presets' | 'leads' | 'crm' | 'testimonials' | 'newsletter' | 'email' | 'system' | 'media' | 'deployment_exp' | 'seo' | 'appearance' | 'analytics' | 'security' | 'ai_arch' | 'live_monitor' | 'backup' | 'ai_training' | 'infrastructure' | 'conv_logs'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'page_builder' | 'presets' | 'leads' | 'crm' | 'testimonials' | 'newsletter' | 'email' | 'system' | 'media' | 'deployment_exp' | 'seo' | 'appearance' | 'analytics' | 'security' | 'ai_arch' | 'live_monitor' | 'backup' | 'ai_training' | 'infrastructure' | 'conv_logs' | 'site_home' | 'site_brand' | 'site_workshop' | 'site_wholesale' | 'site_contact'>('overview');
 
   // Sidebar Layout States
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
@@ -201,6 +202,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     switch (tab) {
       case 'overview': return 'Control Center (Dashboard)';
       case 'page_builder': return 'CMS Sayfa Oluşturucu';
+      case 'site_home': return 'Ana Sayfa';
+      case 'site_brand': return 'Markamız';
+      case 'site_workshop': return 'Atölye';
+      case 'site_wholesale': return 'Toptan Satış';
+      case 'site_contact': return 'İletişim';
       case 'fair': return 'Fuar & Etkinlik Modülü';
       case 'appearance': return 'Görünüm, Tema & Sıralama';
       case 'general': return 'Ana Sayfa & Hakkımızda';
@@ -1257,23 +1263,28 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
     }[];
   }[] = [
     {
-      groupTitle: 'YÖNETİM & SİTE',
+      groupTitle: 'SİTE SAYFALARI',
       items: [
-        { id: 'overview', label: 'Control Center (Dashboard)', icon: Activity, badgeColor: 'text-emerald-400' },
-        { id: 'page_builder', label: 'Sayfa Oluşturucu (CMS)', icon: Layout, badgeColor: 'text-amber-400' },
-        { id: 'fair', label: 'Fuar & Etkinlik Modülü', icon: Calendar, hasPulse: true },
-        { id: 'appearance', label: 'Görünüm, Tema & Sıralama', icon: Palette, badgeColor: 'text-[#D4AF37]' },
+        { id: 'overview', label: 'Dashboard', icon: Activity, badgeColor: 'text-emerald-400' },
+        { id: 'site_home', label: 'Ana Sayfa', icon: Home, badgeColor: 'text-[#D4AF37]' },
+        { id: 'site_brand', label: 'Markamız', icon: Star, badgeColor: 'text-[#D4AF37]' },
+        { id: 'site_workshop', label: 'Atölye', icon: Sparkles, badgeColor: 'text-amber-400' },
+        { id: 'site_wholesale', label: 'Toptan Satış', icon: ShoppingBag, badgeColor: 'text-emerald-400' },
+        { id: 'site_contact', label: 'İletişim', icon: Phone, badgeColor: 'text-blue-400' },
+        { id: 'page_builder', label: 'Sayfa Yerleşimi / CMS', icon: Layout, badgeColor: 'text-amber-400' },
+        { id: 'fair', label: 'Fuar & Etkinlik', icon: Calendar, hasPulse: true },
+        { id: 'appearance', label: 'Görünüm & Tema', icon: Palette, badgeColor: 'text-[#D4AF37]' },
       ]
     },
     {
       groupTitle: 'GÖRSEL & İÇERİK',
       items: [
         { id: 'general', label: 'Ana Sayfa & Hakkımızda', icon: Sliders },
-        { id: 'collection', label: `Koleksiyon Ürünleri (${COLLECTION_ITEMS.length})`, icon: Layers },
+        { id: 'collection', label: `Ürün & Koleksiyon Yönetimi (${collectionItems.length})`, icon: Layers },
         { id: 'craftsmanship', label: 'Atölye & Zanaat', icon: Sparkles },
         { id: 'presets', label: 'Hazır Görseller', icon: Eye },
         { id: 'media', label: 'Medya Kütüphanesi', icon: FileImage, badgeColor: 'text-amber-400' },
-        { id: 'catalog_admin', label: 'Katalog Modülü', icon: BookOpen, badgeColor: 'text-[#D4AF37]' },
+        { id: 'catalog_admin', label: 'Katalog Modülü & PDF Kütüphanesi', icon: BookOpen, badgeColor: 'text-[#D4AF37]' },
       ]
     },
     {
@@ -1312,7 +1323,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-100 text-[#111111] font-sans flex flex-col md:flex-row">
+    <div className="admin-premium-shell min-h-screen bg-slate-100 text-[#111111] font-sans flex flex-col md:flex-row">
       {/* Mandatory Onboarding Wizard Modal if explicitly not completed */}
       {isSettingsLoaded && systemConfig.isOnboardingCompleted === false && localStorage.getItem('irem_onboarding_completed') !== 'true' && (
         <FirstTimeSetupModal 
@@ -2412,7 +2423,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                   <span>Koleksiyon Ürünleri ve Detay Yönetimi</span>
                 </p>
                 <p className="text-[#111111]/70 text-[11px] mt-0.5">
-                  "Detayları İncele" penceresinde görünen tüm başlık, açıklama, renk seçenekleri ve özellikleri buradan yönetebilirsiniz.
+                  "Detayları İncele" penceresinde görünen başlık, açıklama, renk seçenekleri ve özellikleri buradan yönetebilirsiniz.
                 </p>
               </div>
 
@@ -2557,8 +2568,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                             className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-white"
                           />
                         </div>
-
-
                         <div className="sm:col-span-2">
                           <label className="text-xs font-bold text-slate-700 block mb-1">Ürün Detay Açıklaması</label>
                           <textarea
@@ -3022,7 +3031,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                     <span>İletişim, Adres & Sosyal Medya Bağlantıları</span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">
-                    Header, Footer ve İletişim sayfasında görüntülenen telefon, adres ve iletişim bilgileri.
+                    Header, Footer ve İletişim sayfasında görüntülenen telefon, adres ve sosyal medya bilgileri.
                   </p>
                 </div>
                 <button
@@ -3100,8 +3109,36 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                     placeholder="Hafta İçi: 08:30 - 19:00"
                   />
                 </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Instagram Profil URL</label>
+                  <input
+                    type="text"
+                    value={contactData.instagramUrl || ''}
+                    onChange={(e) => updateContactData({ instagramUrl: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50"
+                    placeholder="https://www.instagram.com/irem.comfort"
+                  />
+                </div>
 
                 <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Google Haritalar Yol Tarifi / Konum Bağlantısı (URL)</label>
+                  <input
+                    type="text"
+                    value={contactData.googleMapsUrl || ''}
+                    onChange={(e) => updateContactData({ googleMapsUrl: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-mono text-[11px]"
+                    placeholder="https://maps.google.com/?q=..."
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Manisa Atölye & Showroom Açık Adresi</label>
+                  <textarea
+                    rows={2}
+                    value={contactData.address}
+                    onChange={(e) => updateContactData({ address: e.target.value })}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:border-[#082C6C] focus:outline-none bg-slate-50 font-medium"
+                  />
                 </div>
               </div>
             </div>
@@ -4528,6 +4565,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
         )}
 
         {/* Overview Tab */}
+        {activeTab === 'site_home' && <SitePageEditorAdminTab page="home" />}
+        {activeTab === 'site_brand' && <SitePageEditorAdminTab page="brand" />}
+        {activeTab === 'site_workshop' && <SitePageEditorAdminTab page="workshop" />}
+        {activeTab === 'site_wholesale' && <SitePageEditorAdminTab page="wholesale" />}
+        {activeTab === 'site_contact' && <SitePageEditorAdminTab page="contact" />}
         {activeTab === 'overview' && <DashboardOverviewAdminTab />}
 
         {/* Page Builder Tab */}

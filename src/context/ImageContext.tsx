@@ -564,8 +564,8 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (s.images) setImages(s.images);
         if (s.heroConfig) setHeroConfig(s.heroConfig);
         if (s.fairConfig) setFairConfig(s.fairConfig);
-        if (s.contactData) setContactData(s.contactData);
-        if (s.announcements) setAnnouncements(s.announcements);
+        if (s.contactData) setContactData(({...s.contactData} as any));
+        if (s.announcements) setAnnouncements(s.announcements.filter((x:any)=>!String(x).toLowerCase().includes('trendyol')));
         if (s.collectionItems) setCollectionItems(s.collectionItems);
         if (s.craftsmanshipSteps) setCraftsmanshipSteps(s.craftsmanshipSteps);
         if (s.faqItems) setFaqItems(s.faqItems);
@@ -643,8 +643,8 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             if (s.images) setImages(s.images);
             if (s.heroConfig) setHeroConfig(s.heroConfig);
             if (s.fairConfig) setFairConfig(s.fairConfig);
-            if (s.contactData) setContactData(s.contactData);
-            if (s.announcements) setAnnouncements(s.announcements);
+            if (s.contactData) setContactData(({...s.contactData} as any));
+            if (s.announcements) setAnnouncements(s.announcements.filter((x:any)=>!String(x).toLowerCase().includes('trendyol')));
             if (s.collectionItems) setCollectionItems(s.collectionItems);
             if (s.craftsmanshipSteps) setCraftsmanshipSteps(s.craftsmanshipSteps);
             if (s.faqItems) setFaqItems(s.faqItems);
@@ -1307,8 +1307,8 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (s.images) setImages(s.images);
         if (s.heroConfig) setHeroConfig(s.heroConfig);
         if (s.fairConfig) setFairConfig(s.fairConfig);
-        if (s.contactData) setContactData(s.contactData);
-        if (s.announcements) setAnnouncements(s.announcements);
+        if (s.contactData) setContactData(({...s.contactData} as any));
+        if (s.announcements) setAnnouncements(s.announcements.filter((x:any)=>!String(x).toLowerCase().includes('trendyol')));
         if (s.collectionItems) setCollectionItems(s.collectionItems);
         if (s.craftsmanshipSteps) setCraftsmanshipSteps(s.craftsmanshipSteps);
         if (s.faqItems) setFaqItems(s.faqItems);

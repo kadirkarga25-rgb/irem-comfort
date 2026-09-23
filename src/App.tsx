@@ -1,520 +1,75 @@
-import React, { useEffect, useState, useRef } from 'react';
-import Lenis from 'lenis';
-import { OpeningExperience } from './components/opening/OpeningExperience';
-import { Header } from './components/layout/Header';
-import { HeroSection } from './components/sections/HeroSection';
-import { AboutSection } from './components/sections/AboutSection';
-import { CollectionSection } from './components/sections/CollectionSection';
-import { CraftsmanshipSection } from './components/sections/CraftsmanshipSection';
-import { WhyIremComfortSection } from './components/sections/WhyIremComfortSection';
-import { FaqSection } from './components/sections/FaqSection';
-import { ContactSection } from './components/sections/ContactSection';
-import { TestimonialsSection } from './components/sections/TestimonialsSection';
-
-import { NewsletterSection } from './components/sections/NewsletterSection';
-import { Footer } from './components/layout/Footer';
-import { ImageProvider } from './context/ImageContext';
+import React, { useEffect, useState } from 'react';
+import { ImageProvider, useAppImages } from './context/ImageContext';
 import { ConversationProvider } from './context/ConversationContext';
-import { FloatingAssistant } from './components/ui/FloatingAssistant';
+import { IcLoader } from './components/ui/IcLoader';
 import { AdminPage } from './components/admin/AdminPage';
-import { FairTopBanner } from './components/ui/FairTopBanner';
-import { FairModal } from './components/ui/FairModal';
+import { CatalogApp } from './catalog/CatalogApp';
+import { SurveyPage } from './components/secret/SurveyPage';
 import { PasswordResetPage } from './components/secret/PasswordResetPage';
 import { RemoteManagementPage } from './components/secret/RemoteManagementPage';
-import { SurveyPage } from './components/secret/SurveyPage';
 import { NotFoundPage } from './components/ui/NotFoundPage';
 import { LegalModal, LegalDocType } from './components/ui/LegalModal';
-import { CookieConsent } from './components/ui/CookieConsent';
-import { DeployingView } from './components/ui/DeployingView';
 import { MaintenancePage } from './components/ui/MaintenancePage';
-import { CatalogApp } from './catalog/CatalogApp';
 import { ProductsPage } from './components/pages/ProductsPage';
-import { useAppImages } from './context/ImageContext';
-import { IcLoader } from './components/ui/IcLoader';
-import { WholesaleHome } from './components/home/WholesaleHome';
+import { SitePageShell } from './pages/SitePageShell';
+import { HomePage } from './pages/HomePage';
+import { CollectionLandingPage } from './pages/CollectionLandingPage';
+import { ProductDetailPage } from './pages/ProductDetailPage';
+import { WholesalePage } from './pages/WholesalePage';
+import { BrandPage } from './pages/BrandPage';
+import { WorkshopPage } from './pages/WorkshopPage';
+import { ContactPage } from './pages/ContactPage';
 
 function MainAppContent() {
-  const { systemConfig, sectionOrder, isSettingsLoaded, fairConfig } = useAppImages();
+  const { isSettingsLoaded, systemConfig } = useAppImages();
+  const getPath = () => (typeof window === 'undefined' ? '/' : window.location.pathname.replace(/\/+$/, '') || '/');
+  const [path, setPath] = useState(getPath);
+  const [legalDoc, setLegalDoc] = useState<LegalDocType | null>(null);
 
-  const [scrollY, setScrollY] = useState(0);
-  const [activeSection, setActiveSection] = useState('hero');
-  const [contactPrefill, setContactPrefill] = useState('');
-  const [isFairModalOpen, setIsFairModalOpen] = useState(false);
-  const [legalModalDoc, setLegalModalDoc] = useState<LegalDocType | null>(null);
-  const [isProductsPage, setIsProductsPage] = useState<boolean>(false);
-  
-  // Preview route state: standard root / route now renders the complete live site directly
-  const [isPreviewView, setIsPreviewView] = useState<boolean>(true);
-
-  // Helper for safe location string extraction
-  const getSafeLocation = () => {
-    if (typeof window === 'undefined' || !window.location) {
-      return { path: '', hash: '', search: '' };
-    }
-    return {
-      path: (window.location.pathname || '').toLowerCase(),
-      hash: (window.location.hash || '').toLowerCase(),
-      search: (window.location.search || '').toLowerCase()
-    };
-  };
-
-  // Route state: check if URL contains /admin, #admin, or ?admin
-  const [isAdminView, setIsAdminView] = useState<boolean>(() => {
-    const { path, hash, search } = getSafeLocation();
-    const isStandalone = typeof window !== 'undefined' && (
-      window.matchMedia?.('(display-mode: standalone)')?.matches || 
-      (window.navigator as any)?.standalone === true
-    );
-    return !path.startsWith('/katalog') && (path === '/admin' || hash === '#admin' || search.includes('admin') || search.includes('pwa') || !!isStandalone);
-  });
-
-  // Password reset route state: check if URL contains /sifre-sifirla, /sifre-sifirla-html, #sifre-sifirla, etc.
-  const [isResetView, setIsResetView] = useState<boolean>(() => {
-    const { path, hash, search } = getSafeLocation();
-    return (
-      path.includes('sifre-sifirla') || 
-      path.includes('sifre_sifirla') || 
-      hash.includes('sifre-sifirla') || 
-      search.includes('sifre-sifirla')
-    );
-  });
-
-  // Remote Management route state: check if URL contains /uzak-yonetim, #uzak-yonetim, etc.
-  const [isRemoteView, setIsRemoteView] = useState<boolean>(() => {
-    const { path, hash, search } = getSafeLocation();
-    return (
-      path.includes('uzak-yonetim') || 
-      path.includes('uzak_yonetim') || 
-      hash.includes('uzak-yonetim') || 
-      search.includes('uzak-yonetim')
-    );
-  });
-
-  // Survey route state: check if URL contains /anket, /anket-html, #anket, etc.
-  const [isSurveyView, setIsSurveyView] = useState<boolean>(() => {
-    const { path, hash, search } = getSafeLocation();
-    return (
-      path.includes('anket') || 
-      hash.includes('anket') || 
-      search.includes('anket')
-    );
-  });
-
-  const [isWholesaleSurveyView, setIsWholesaleSurveyView] = useState<boolean>(() => {
-    const { path } = getSafeLocation();
-    return path === '/toptananket' || path === '/toptananket.html';
-  });
-
-  const [isCatalogView, setIsCatalogView] = useState<boolean>(() => {
-    const { path } = getSafeLocation();
-    return path === '/katalog' || path.startsWith('/katalog/');
-  });
-
-  // 404 Not Found route state: check if pathname is not root and not matching any known route
-  const [isNotFoundView, setIsNotFoundView] = useState<boolean>(() => {
-    const { path, hash, search } = getSafeLocation();
-    if (path === '/' || path === '' || path === '/index.html') return false;
-    const isKnown = (
-      path.includes('admin') || hash.includes('admin') || search.includes('admin') ||
-      path.includes('sifre-sifirla') || hash.includes('sifre-sifirla') || search.includes('sifre-sifirla') ||
-      path.includes('uzak-yonetim') || hash.includes('uzak-yonetim') || search.includes('uzak-yonetim') ||
-      path.includes('anket') || hash.includes('anket') || search.includes('anket') ||
-      path === '/toptananket' || path === '/toptananket.html' ||
-      path === '/katalog' || path.startsWith('/katalog/')
-    );
-    return !isKnown;
-  });
-
-  // Listen for hash and popstate changes
   useEffect(() => {
-    const checkRoutes = () => {
-      const { path, hash, search } = getSafeLocation();
-
-      const isStandalone = typeof window !== 'undefined' && (
-        window.matchMedia?.('(display-mode: standalone)')?.matches || 
-        (window.navigator as any)?.standalone === true
-      );
-      const catalog = path === '/katalog' || path.startsWith('/katalog/');
-      const admin = !catalog && (path === '/admin' || hash === '#admin' || search.includes('admin') || search.includes('pwa') || !!isStandalone);
-      const reset = (
-        path.includes('sifre-sifirla') || 
-        path.includes('sifre_sifirla') || 
-        hash.includes('sifre-sifirla') || 
-        search.includes('sifre-sifirla')
-      );
-      const remote = (
-        path.includes('uzak-yonetim') || 
-        path.includes('uzak_yonetim') || 
-        hash.includes('uzak-yonetim') || 
-        search.includes('uzak-yonetim')
-      );
-      const survey = (
-        path.includes('anket') || 
-        hash.includes('anket') || 
-        search.includes('anket')
-      );
-      const wholesaleSurvey = path === '/toptananket' || path === '/toptananket.html';
-
-      setIsPreviewView(true);
-
-      setIsAdminView(admin);
-      setIsResetView(reset);
-      setIsRemoteView(remote);
-      setIsSurveyView(survey);
-      setIsWholesaleSurveyView(wholesaleSurvey);
-      setIsCatalogView(catalog);
-
-      if (path === '/' || path === '' || path === '/index.html') {
-        setIsNotFoundView(false);
-      } else {
-        setIsNotFoundView(!catalog && !admin && !reset && !remote && !survey && !wholesaleSurvey);
-      }
-    };
-
-    window.addEventListener('hashchange', checkRoutes);
-    window.addEventListener('popstate', checkRoutes);
-    return () => {
-      window.removeEventListener('hashchange', checkRoutes);
-      window.removeEventListener('popstate', checkRoutes);
-    };
+    const onPop = () => setPath(getPath());
+    window.addEventListener('popstate', onPop);
+    window.addEventListener('hashchange', onPop);
+    return () => { window.removeEventListener('popstate', onPop); window.removeEventListener('hashchange', onPop); };
   }, []);
 
-  const lenisRef = useRef<Lenis | null>(null);
-
-  // Initialize Lenis Smooth Scroll
-  useEffect(() => {
-    if (isAdminView || isResetView || isRemoteView || isSurveyView || isNotFoundView || !isPreviewView || systemConfig.isDeploying) return;
-
-    const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
-      prevent: (node) => node.classList?.contains('lenis-prevent') || node.hasAttribute('data-lenis-prevent'),
-    });
-
-    lenisRef.current = lenis;
-
-    if (isFairModalOpen || Boolean(legalModalDoc)) {
-      lenis.stop();
-    } else {
-      lenis.start();
-    }
-
-    let animationFrameId: number;
-    function raf(time: number) {
-      lenis.raf(time);
-      animationFrameId = requestAnimationFrame(raf);
-    }
-
-    animationFrameId = requestAnimationFrame(raf);
-
-    const activeSectionIds = (sectionOrder || []).filter(s => s.enabled !== false).map(s => s.id);
-
-    const updateActiveSection = () => {
-      const currentScroll = window.scrollY + 140;
-
-      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 60) {
-        setActiveSection('contact');
-        return;
-      }
-
-      let foundSection = 'hero';
-      for (let i = activeSectionIds.length - 1; i >= 0; i--) {
-        const id = activeSectionIds[i];
-        const el = document.getElementById(id);
-        if (el) {
-          if (currentScroll >= el.offsetTop - 20) {
-            foundSection = id;
-            break;
-          }
-        }
-      }
-      setActiveSection((prev) => (prev !== foundSection ? foundSection : prev));
-    };
-
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-      updateActiveSection();
-    };
-
-    lenis.on('scroll', handleScroll);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
-    updateActiveSection();
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('scroll', handleScroll);
-      lenis.off('scroll', handleScroll);
-      lenis.destroy();
-      lenisRef.current = null;
-    };
-  }, [isAdminView, isResetView, isRemoteView, isSurveyView, isNotFoundView, isPreviewView, systemConfig.isDeploying, isFairModalOpen, legalModalDoc, sectionOrder]);
-
-  // Secondary Intersection Observer backup for static positions
-  useEffect(() => {
-    if (isAdminView || isNotFoundView || !isPreviewView || systemConfig.isDeploying) return;
-
-    const activeSectionIds = (sectionOrder || []).filter(s => s.enabled !== false).map(s => s.id);
-    
-    const handleObserver = (entries: IntersectionObserverEntry[]) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          setActiveSection(entry.target.id);
-        }
-      });
-    };
-
-    const observer = new IntersectionObserver(handleObserver, {
-      rootMargin: '-30% 0px -50% 0px',
-      threshold: 0
-    });
-
-    activeSectionIds.forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el);
-    });
-
-    return () => observer.disconnect();
-  }, [isAdminView, isNotFoundView, isPreviewView, systemConfig.isDeploying, sectionOrder]);
-
-  // 10 second activity timer: Auto popup fair invitation with confetti if fair exists
-  useEffect(() => {
-    if (isAdminView || isResetView || isRemoteView || isSurveyView || isNotFoundView || !isPreviewView) return;
-
-    const timer = setTimeout(() => {
-      if (fairConfig && fairConfig.enabled && fairConfig.name) {
-        const alreadyShown = typeof window !== 'undefined' && sessionStorage.getItem('irem_fair_invitation_auto_shown');
-        if (!alreadyShown) {
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('irem_fair_invitation_auto_shown', 'true');
-          }
-          setIsFairModalOpen(true);
-        }
-      }
-    }, 10000);
-
-    return () => clearTimeout(timer);
-  }, [fairConfig, isAdminView, isResetView, isRemoteView, isSurveyView, isNotFoundView, isPreviewView]);
-
-
-  const scrollToSection = (sectionId: string) => {
-    if (sectionId === 'products-page') {
-      setIsProductsPage(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    if (isProductsPage) {
-      setIsProductsPage(false);
-      setTimeout(() => {
-        const target = document.getElementById(sectionId);
-        if (target) {
-          const offset = window.innerWidth < 768 ? -150 : -90;
-          if (lenisRef.current) {
-            lenisRef.current.scrollTo(target, { offset });
-          } else {
-            const y = target.getBoundingClientRect().top + window.pageYOffset + offset;
-            window.scrollTo({ top: y, behavior: 'smooth' });
-          }
-        }
-      }, 100);
-      return;
-    }
-
-    const target = document.getElementById(sectionId);
-    if (!target) return;
-
-    const offset = window.innerWidth < 768 ? -150 : -90;
-
-    if (lenisRef.current) {
-      lenisRef.current.scrollTo(target, { offset });
-    } else {
-      const y = target.getBoundingClientRect().top + window.pageYOffset + offset;
-      window.scrollTo({ top: y, behavior: 'smooth' });
-    }
-  };
-
-  const handleInquireProduct = (productName: string) => {
-    setContactPrefill(productName);
-    scrollToSection('contact');
-  };
-
-  const returnToPublicSite = () => {
-    // Admin sayfasından ayrılma zamanı kaydedilir (ana sayfadayken süre sayar, 2 saat boyunca korur)
-    localStorage.setItem('irem_admin_left_at', Date.now().toString());
-
-    setIsAdminView(false);
-    setIsResetView(false);
-    setIsRemoteView(false);
-    setIsSurveyView(false);
-    setIsNotFoundView(false);
-    setIsPreviewView(true);
-    
-    window.history.pushState('', document.title, '/');
+  const navigate = (next: string) => {
+    const clean = next || '/';
+    if (window.location.pathname !== clean) window.history.pushState({}, '', clean);
+    setPath(clean);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // 0. Single Source of Truth Startup Gate: Never render app until fetchSettings completes
-  if (!isSettingsLoaded) {
-    return <IcLoader fullscreen label="İrem Comfort yükleniyor" />;
-  }
+  if (!isSettingsLoaded) return <IcLoader fullscreen label="İrem Comfort yükleniyor" />;
 
-  // 1. Catalog routes live inside the same Vercel/React application.
-  if (isCatalogView) {
-    return <CatalogApp />;
-  }
+  const isAdmin = path === '/admin' || window.location.hash === '#admin' || new URLSearchParams(window.location.search).has('admin');
+  const isCatalog = path === '/katalog' || path.startsWith('/katalog/');
+  if (isCatalog) return <CatalogApp />;
+  if (isAdmin) return <AdminPage onReturnToSite={() => navigate('/')} />;
+  if (systemConfig.isDeploying) return <MaintenancePage />;
+  if (path.includes('sifre-sifirla')) return <PasswordResetPage onReturnToSite={() => navigate('/')} />;
+  if (path.includes('uzak-yonetim')) return <RemoteManagementPage onReturnToSite={() => navigate('/')} />;
+  if (path === '/toptananket' || path === '/toptananket.html') return <SurveyPage onReturnToSite={() => navigate('/')} />;
+  if (path === '/anket' || path.startsWith('/anket/')) return <SurveyPage onReturnToSite={() => navigate('/')} />;
 
-  // 2. Admin view always takes precedence so admin is never locked out
-  if (isAdminView) {
-    return <AdminPage onReturnToSite={returnToPublicSite} />;
-  }
+  const shared = { onAdminClick: () => navigate('/admin'), openLegal: (d:LegalDocType) => setLegalDoc(d) };
+  let content: React.ReactNode;
+  if (path === '/') content = <HomePage {...shared}/>;
+  else if (path === '/koleksiyonlar') content = <CollectionLandingPage {...shared}/>;
+  else if (path === '/urunler') content = <SitePageShell title="Kadın comfort ürün koleksiyonu" eyebrow="ÜRÜNLER" intro="Mağazanız için model, renk ve konfor seçeneklerini inceleyin." activePath="/urunler" {...shared}><ProductsPage onBackToHome={()=>navigate('/')} onInquireProduct={()=>navigate('/toptan-satis')}/></SitePageShell>;
+  else if (path.startsWith('/urunler/')) content = <ProductDetailPage productId={decodeURIComponent(path.split('/').slice(2).join('/'))} {...shared}/>;
+  else if (path === '/markamiz') content = <BrandPage {...shared}/>;
+  else if (path === '/toptan-satis') content = <WholesalePage {...shared}/>;
+  else if (path === '/atolye') content = <WorkshopPage {...shared}/>;
+  else if (path === '/iletisim') content = <ContactPage {...shared}/>;
+  else content = <NotFoundPage onReturnToSite={()=>navigate('/')}/>;
 
-  // 2. Deployment Experience for public site (Active deploy or new deployment revision)
-  const hasNewDeploymentRevision = Boolean(
-    systemConfig.enableDeploymentIntro && 
-    systemConfig.deploymentRevision && 
-    systemConfig.deploymentRevision !== localStorage.getItem('last_watched_deployment_revision')
-  );
-
-  if (systemConfig.isDeploying || hasNewDeploymentRevision) {
-    return <DeployingView />;
-  }
-
-  if (isResetView) {
-    return <PasswordResetPage onReturnToSite={returnToPublicSite} />;
-  }
-
-  if (isRemoteView) {
-    return <RemoteManagementPage onReturnToSite={returnToPublicSite} />;
-  }
-
-  if (isWholesaleSurveyView) {
-    return (
-      <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', background: '#f4f6f8' }}>
-        <iframe
-          src="/toptananket.html"
-          title="İrem Comfort Toptan Müşteri Anketi"
-          style={{ width: '100%', height: '100%', border: '0', display: 'block' }}
-        />
-      </div>
-    );
-  }
-
-  if (isSurveyView) {
-    return <SurveyPage onReturnToSite={returnToPublicSite} />;
-  }
-
-  if (isNotFoundView) {
-    return <NotFoundPage onReturnToSite={returnToPublicSite} />;
-  }
-
-  if (!isPreviewView) {
-    return <MaintenancePage />;
-  }
-
-  const renderSection = (sectionId: string) => {
-    switch (sectionId) {
-      case 'hero':
-        return (
-          <HeroSection
-            key="hero"
-            onDiscoverClick={() => scrollToSection('collection')}
-            onCraftsmanshipClick={() => scrollToSection('craftsmanship')}
-          />
-        );
-      case 'about':
-        return <AboutSection key="about" />;
-      case 'collection':
-        return (
-          <CollectionSection
-            key="collection"
-            onInquireProduct={handleInquireProduct}
-            onOpenProductsPage={() => scrollToSection('products-page')}
-          />
-        );
-      case 'craftsmanship':
-        return <CraftsmanshipSection key="craftsmanship" />;
-      case 'why-us':
-        return <WhyIremComfortSection key="why-us" />;
-      case 'testimonials':
-        return <TestimonialsSection key="testimonials" />;
-      case 'faq':
-        return <FaqSection key="faq" />;
-      case 'contact':
-        return <ContactSection key="contact" prefilledSubject={contactPrefill} />;
-      case 'newsletter':
-        return <NewsletterSection key="newsletter" />;
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-white text-[#111111] relative selection:bg-[#0A2D6F] selection:text-white">
-      {/* Fair Modal (When activated from Admin) */}
-      <FairModal isOpen={isFairModalOpen} onClose={() => setIsFairModalOpen(false)} />
-
-      {/* 1. Opening Experience Overlay */}
-      <OpeningExperience scrollY={scrollY} />
-
-      {/* 2. Glassmorphic Header Navigation */}
-      <Header
-        scrollY={scrollY}
-        activeSection={isProductsPage ? 'products-page' : activeSection}
-        onNavigate={scrollToSection}
-        onOpenFairModal={() => setIsFairModalOpen(true)}
-      />
-
-      {/* 3. Main Sections or Dedicated Products Page */}
-      <main>
-        {isProductsPage ? (
-          <ProductsPage
-            onBackToHome={() => setIsProductsPage(false)}
-            onInquireProduct={handleInquireProduct}
-          />
-        ) : (
-          <WholesaleHome
-            onDiscover={() => scrollToSection('collection')}
-            onProducts={() => scrollToSection('products-page')}
-            onInquireProduct={handleInquireProduct}
-            onContact={() => scrollToSection('contact')}
-          />
-        )}
-      </main>
-
-      {/* 4. Footer */}
-      <Footer
-        onNavigate={scrollToSection}
-        onAdminClick={() => setIsAdminView(true)}
-        onOpenLegalDoc={(doc) => setLegalModalDoc(doc)}
-      />
-
-      {/* Legal Modal (Privacy, KVKK, Cookies) */}
-      <LegalModal
-        isOpen={Boolean(legalModalDoc)}
-        initialType={legalModalDoc || 'privacy'}
-        onClose={() => setLegalModalDoc(null)}
-      />
-
-      {/* Cookie Consent Banner */}
-      <CookieConsent
-        onOpenLegalDoc={(doc) => setLegalModalDoc(doc)}
-      />
-
-      {/* Floating AI Sales Consultant Assistant */}
-      <FloatingAssistant />
-    </div>
-  );
+  return <>
+    {content}
+    <LegalModal isOpen={Boolean(legalDoc)} initialType={legalDoc || 'privacy'} onClose={()=>setLegalDoc(null)} />
+  </>;
 }
 
 export default function App() {
-  return (
-    <ImageProvider>
-      <ConversationProvider>
-        <MainAppContent />
-      </ConversationProvider>
-    </ImageProvider>
-  );
+  return <ImageProvider><ConversationProvider><MainAppContent/></ConversationProvider></ImageProvider>;
 }
-

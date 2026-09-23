@@ -3478,6 +3478,7 @@ app.post("/api/survey", async (req, res) => {
           .coupon-title { color: #78350f; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
           .coupon-code { font-family: monospace, monospace; font-size: 28px; font-weight: 900; color: #082C6C; background: #ffffff; padding: 10px 24px; border-radius: 10px; display: inline-block; margin: 12px 0; border: 1px solid #f59e0b; letter-spacing: 3px; }
           .coupon-desc { color: #92400e; font-size: 13px; font-weight: bold; margin: 0; }
+          .btn-trendyol { display: inline-block; background: #f27a1a; color: #ffffff !important; text-decoration: none; padding: 14px 28px; border-radius: 30px; font-weight: bold; font-size: 13px; margin: 8px 4px; text-align: center; box-shadow: 0 4px 12px rgba(242,122,26,0.25); }
           .btn-wa { display: inline-block; background: #25D366; color: #ffffff !important; text-decoration: none; padding: 14px 28px; border-radius: 30px; font-weight: bold; font-size: 13px; margin: 8px 4px; text-align: center; box-shadow: 0 4px 12px rgba(37,211,102,0.25); }
           .footer { font-size: 11px; color: #64748b; text-align: center; padding: 20px; border-top: 1px solid #e2e8f0; background: #fafafa; }
         </style>
@@ -3503,15 +3504,18 @@ app.post("/api/survey", async (req, res) => {
               <p class="coupon-title">🎁 Ankete Katılım Teşekkür Hediyeniz</p>
               <div class="coupon-code">THANKS50</div>
               <p class="coupon-desc">
-                Tüm siparişlerinizde ve <strong>web sitemizde</strong> geçerli <strong>50 TL İndirim Kodunuz</strong> tanımlanmıştır!
+                Tüm siparişlerinizde ve <strong>Trendyol Mağazamızda</strong> geçerli <strong>50 TL İndirim Kodunuz</strong> tanımlanmıştır!
               </p>
             </div>
 
             <p style="text-align: center; color: #475569; font-size: 13px; margin-bottom: 20px;">
-              İndirim kodunuzu web sitemizde veya WhatsApp sipariş hattımızda belirterek anında 50 TL indirimden faydalanabilirsiniz.
+              İndirim kodunuzu Trendyol resmi mağazamızda, web sitemizde veya WhatsApp sipariş hattımızda belirterek anında 50 TL indirimden faydalanabilirsiniz.
             </p>
 
             <div style="text-align: center;">
+              <a href="https://www.trendyol.com/magaza/irem-comfort-m-1286942?sst=0&channelId=1" class="btn-trendyol" target="_blank">
+                🛍️ Trendyol Mağazamıza Git ve Alışveriş Yap
+              </a>
               <a href="https://wa.me/905330297125?text=Merhaba%2C%20anket%20kat%C4%B1l%C4%B1m%20indirim%20kodum%3A%20THANKS50" class="btn-wa" target="_blank">
                 💬 WhatsApp Sipariş Hattı (50 TL İndirimli)
               </a>
@@ -3600,6 +3604,49 @@ const resetHandler = (req: express.Request, res: express.Response) => {
 
 app.post("/_functions/submitReset", resetHandler);
 app.post("/api/reset-password", resetHandler);
+
+
+// Free-tier Gemini conversational sales assistant.
+// Requires GEMINI_API_KEY in Vercel/hosting environment.
+app.post('/api/assistant/chat', async (req, res) => {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY || '';
+    if (!apiKey) return res.status(503).json({ success: false, error: 'AI anahtarı yapılandırılmamış.' });
+    const body = req.body || {};
+    const page = String(body.page || '/');
+    const activeProduct = body.activeProduct || null;
+    const products = Array.isArray(body.products) ? body.products.slice(0, 8) : [];
+    const messages = Array.isArray(body.messages) ? body.messages.slice(-10) : [];
+    const productSummary = products.map((p: any) => ({
+      id: p?.id, name: p?.name, category: p?.category, subtitle: p?.subtitle, tagline: p?.tagline,
+      dimensions: p?.dimensions, materials: p?.materials,
+      colors: Array.isArray(p?.colors) ? p.colors.map((c: any) => c?.name).filter(Boolean).slice(0, 10) : [],
+      features: Array.isArray(p?.features) ? p.features.slice(0, 8) : []
+    }));
+    const systemInstruction = `Sen İrem Comfort'ın dijital satış danışmanısın. Türkçe, doğal, sıcak ve kısa konuş. Kendini gerçek insanmış gibi tanıtma; ama robotik ve menü gibi de konuşma. Kullanıcı sadece merhaba, nasılsın, ne haber gibi sohbet başlatırsa ürün veya destek formuna atlama; önce normal bir sohbet cevabı ver ve sohbeti açık bırak. Ürün, koleksiyon veya toptan satış sorulursa yalnızca verilen site/ürün bilgilerine dayan. Fiyat, stok, teslimat tarihi veya bulunmayan özellik uydurma. Bilgi eksikse bir kısa soru sor. Aynı soruya tekrar tekrar aynı cümleyi kurma. Kullanıcı açıkça insan/yetkili isterse destek talebine yönlendir. Bir konu birkaç tur boyunca çözülemiyorsa nazikçe yetkili satış ekibine bağlanmayı teklif et. Toptan satış odağını koru ama her mesajı toptan satışa çevirmeye çalışma. Sayfa: ${page}. Aktif ürün: ${activeProduct ? JSON.stringify(productSummary.find((p:any) => p.id === activeProduct.id) || activeProduct) : 'yok'}.`;
+    const contents = messages.map((m: any) => ({
+      role: m?.sender === 'visitor' ? 'user' : 'model',
+      parts: [{ text: String(m?.text || '').slice(0, 1800) }]
+    })).filter((m: any) => m.parts[0].text);
+    if (!contents.length) return res.status(400).json({ success: false, error: 'Sohbet mesajı bulunamadı.' });
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${encodeURIComponent(apiKey)}`;
+    const aiResponse = await fetch(endpoint, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ system_instruction: { parts: [{ text: systemInstruction }] }, contents, generationConfig: { temperature: 0.75, maxOutputTokens: 300 } })
+    });
+    const data: any = await aiResponse.json().catch(() => null);
+    if (!aiResponse.ok) {
+      console.error('Gemini assistant error:', aiResponse.status, data);
+      return res.status(502).json({ success: false, error: 'AI yanıtı alınamadı.' });
+    }
+    const text = data?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text || '').join('').trim();
+    if (!text) return res.status(502).json({ success: false, error: 'AI boş yanıt verdi.' });
+    return res.json({ success: true, text, model: 'gemini-2.5-flash-lite' });
+  } catch (err: any) {
+    console.error('Gemini assistant route error:', err);
+    return res.status(500).json({ success: false, error: 'AI servisi geçici olarak kullanılamıyor.' });
+  }
+});
 
 // Fallback JSON 404 handler for any unmatched API endpoints (prevents HTML response)
 app.all("/api/*", (req, res) => {

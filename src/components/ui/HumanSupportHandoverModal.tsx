@@ -50,7 +50,7 @@ export const HumanSupportHandoverModal: React.FC<HumanSupportHandoverModalProps>
 
     // 2. Submit lead to server endpoint
     try {
-      await fetch('/api/contact/leads', {
+      const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -62,6 +62,7 @@ export const HumanSupportHandoverModal: React.FC<HumanSupportHandoverModalProps>
           newsletterOptIn
         })
       });
+      if (!response.ok) throw new Error('Destek talebi gönderilemedi');
     } catch {
       // Offline / local fallback
     }

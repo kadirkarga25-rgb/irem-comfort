@@ -1,292 +1,40 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogoFull } from '../brand/LogoFull';
-import { Menu, X, PhoneCall, ChevronRight, Globe, ChevronDown } from 'lucide-react';
+import { Menu, X, PhoneCall, ChevronRight, Globe } from 'lucide-react';
+import { CONTACT_DATA } from '../../constants/data';
+import { AnnouncementTicker } from './AnnouncementTicker';
 import { FairInvitationStrip } from './FairInvitationStrip';
 import { useAppImages } from '../../context/ImageContext';
 import { Language } from '../../types';
 
-interface HeaderProps {
-  scrollY: number;
-  activeSection: string;
-  onNavigate: (sectionId: string) => void;
-  onOpenFairModal?: () => void;
-}
+interface HeaderProps { scrollY:number; activeSection:string; onNavigate:(path:string)=>void; onOpenFairModal?:()=>void; }
 
-export const Header: React.FC<HeaderProps> = ({
-  scrollY,
-  activeSection,
-  onNavigate,
-  onOpenFairModal
-}) => {
-  const { sectionOrder, language, setLanguage, t } = useAppImages();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+const links = [
+  ['/','Ana Sayfa'], ['/koleksiyonlar','Koleksiyonlar'], ['/urunler','Ürünler'], ['/markamiz','Markamız'], ['/toptan-satis','Toptan Satış'], ['/atolye','Atölye'], ['/katalog','Katalog'], ['/iletisim','İletişim']
+] as const;
 
-  // Header is always visible
-  const isHeaderVisible = true;
-  const showFullLogoText = true;
-
-  const cycleLanguage = () => {
-    const nextLanguage: Record<Language, Language> = { tr: 'en', en: 'ar', ar: 'tr' };
-    setLanguage(nextLanguage[language]);
-  };
-
-  const SECTION_LABELS: Record<string, string> = {
-    hero: 'Ana Sayfa',
-    'products-page': t.navProductsPage || 'Ürünlerimiz',
-    collection: t.navCollection || 'Koleksiyon',
-    about: t.navAbout || 'Hakkımızda',
-    contact: t.navContact || 'İletişim',
-    craftsmanship: t.navCraftsmanship || 'Zanaat',
-    'why-us': t.navWhyUs || 'Neden Biz',
-    testimonials: t.navTestimonials || 'Referanslar',
-    faq: t.navFaq || 'SSS',
-  };
-
-  // Primary links visible directly on the desktop navbar
-  const primaryIds = ['hero', 'products-page', 'collection', 'about', 'contact'];
-
-  const defaultNavLinks = [
-    { id: 'hero', label: 'Ana Sayfa' },
-    { id: 'products-page', label: t.navProductsPage || 'Ürünlerimiz' },
-    { id: 'collection', label: t.navCollection || 'Koleksiyon' },
-    { id: 'about', label: t.navAbout || 'Hakkımızda' },
-    { id: 'contact', label: t.navContact || 'İletişim' },
-    { id: 'craftsmanship', label: t.navCraftsmanship || 'Zanaat' },
-    { id: 'why-us', label: t.navWhyUs || 'Neden Biz' },
-    { id: 'testimonials', label: t.navTestimonials || 'Referanslar' },
-    { id: 'faq', label: t.navFaq || 'SSS' }
-  ];
-
-  const primaryNavLinks = [
-    { id: 'hero', label: language === 'tr' ? 'Ana Sayfa' : language === 'en' ? 'Home' : 'الرئيسية' },
-    { id: 'collection', label: t.navCollection || (language === 'tr' ? 'Koleksiyon' : language === 'en' ? 'Collection' : 'المجموعة') },
-    { id: 'about', label: t.navAbout || (language === 'tr' ? 'Hakkımızda' : language === 'en' ? 'About' : 'عن الشركة') },
-    { id: 'contact', label: t.navContact || (language === 'tr' ? 'İletişim' : language === 'en' ? 'Contact' : 'اتصل بنا') },
-    { id: 'products-page', label: t.navProductsPage || (language === 'tr' ? 'Ürünlerimiz' : language === 'en' ? 'Products' : 'منتجاتنا') },
-  ];
-
-  const secondaryNavLinks = [
-    { id: 'craftsmanship', label: t.navCraftsmanship || (language === 'tr' ? 'Zanaat & Atölye' : language === 'en' ? 'Workshop' : 'الورشة') },
-    { id: 'why-us', label: t.navWhyUs || (language === 'tr' ? 'Neden İrem Comfort?' : language === 'en' ? 'Why Us' : 'لماذا نحن') },
-    { id: 'testimonials', label: t.navTestimonials || (language === 'tr' ? 'Müşteri Yorumları' : language === 'en' ? 'Reviews' : 'التقييمات') },
-    { id: 'faq', label: t.navFaq || (language === 'tr' ? 'Sıkça Sorulan Sorular' : language === 'en' ? 'FAQ' : 'الأسئلة') },
-  ];
-
-  const handleNavClick = (id: string) => {
-    onNavigate(id);
-    setMobileMenuOpen(false);
-    setMoreMenuOpen(false);
-  };
-
-  return (
-    <>
-      <motion.header
-        initial={{ y: -100, opacity: 0 }}
-        animate={{
-          y: isHeaderVisible ? 0 : -100,
-          opacity: isHeaderVisible ? 1 : 0
-        }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="fixed top-0 left-0 right-0 z-40 transition-all duration-300 shadow-sm"
-      >
-        <div className="glass-header">
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2">
-            
-            {/* Top Left Logo */}
-            <div 
-              onClick={() => handleNavClick('hero')}
-              className="flex items-center cursor-pointer group py-1.5 shrink-0"
-            >
-              <LogoFull 
-                iconSize={32} 
-                color="#0A2D6F" 
-                showText={showFullLogoText} 
-              />
-            </div>
-
-            {/* Center Navigation Links (Desktop) */}
-            <nav className="hidden md:flex items-center space-x-1 lg:space-x-2 shrink">
-              {primaryNavLinks.map((link) => {
-                const isActive = activeSection === link.id;
-                return (
-                  <button
-                    key={link.id}
-                    onClick={() => handleNavClick(link.id)}
-                    className={`relative px-2 lg:px-3 py-1.5 text-[11px] xl:text-xs font-extrabold tracking-wider uppercase transition-colors duration-200 cursor-pointer whitespace-nowrap ${
-                      isActive
-                        ? 'text-[#0A2D6F]'
-                        : 'text-[#111111]/70 hover:text-[#0A2D6F]'
-                    }`}
-                  >
-                    {link.label}
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeNavIndicator"
-                        className="absolute bottom-0 left-2 right-2 h-[2.5px] bg-[#0A2D6F] rounded-full"
-                        transition={{ type: 'spring', stiffness: 500, damping: 35, mass: 0.5 }}
-                      />
-                    )}
-                  </button>
-                );
-              })}
-
-              <a
-                href="/katalog"
-                className="px-2 lg:px-3 py-1.5 text-[11px] xl:text-xs font-extrabold tracking-wider uppercase text-[#111111]/70 hover:text-[#0A2D6F] transition-colors whitespace-nowrap"
-              >
-                Katalog
-              </a>
-
-              {/* "Daha Fazla / More" Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setMoreMenuOpen(!moreMenuOpen)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] xl:text-xs font-bold tracking-wider uppercase text-[#111111]/70 hover:text-[#0A2D6F] transition-colors cursor-pointer whitespace-nowrap rounded-lg hover:bg-[#062050]/5"
-                >
-                  <span>{language === 'tr' ? 'Diğer' : language === 'en' ? 'More' : 'المزيد'}</span>
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${moreMenuOpen ? 'rotate-180 text-[#0A2D6F]' : ''}`} />
-                </button>
-
-                {moreMenuOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-1">
-                    {secondaryNavLinks.map((sec) => (
-                      <button
-                        key={sec.id}
-                        onClick={() => handleNavClick(sec.id)}
-                        className={`w-full px-4 py-2.5 text-left text-xs font-bold flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer ${
-                          activeSection === sec.id ? 'text-[#0A2D6F] bg-blue-50/80 font-extrabold' : 'text-slate-700'
-                        }`}
-                      >
-                        <span>{sec.label}</span>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </nav>
-
-            {/* Right Side: Language Selector, Wholesale Contact & Mobile Toggle */}
-            <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
-              {/* Language Selector — click to cycle: Türkçe → English → العربية → Türkçe */}
-              <button
-                onClick={cycleLanguage}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#062050]/5 hover:bg-[#062050]/10 text-[#062050] text-[11px] font-extrabold transition-all border border-[#062050]/15 cursor-pointer active:scale-95"
-                title="Dili değiştir / Change language / تغيير اللغة"
-                aria-label="Dili değiştir"
-              >
-                <Globe className="w-3 h-3 text-[#062050]" />
-                <span className="uppercase font-mono">{language}</span>
-                <span className="text-xs">
-                  {language === 'tr' ? '🇹🇷' : language === 'en' ? '🇬🇧' : '🇸🇦'}
-                </span>
-              </button>
-
-              <button
-                onClick={() => handleNavClick('contact')}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#082C6C] text-white text-[11px] xl:text-xs font-bold tracking-wider uppercase transition-all duration-300 hover:bg-[#163E87] hover:shadow-md cursor-pointer active:scale-95"
-              >
-                <span>{language === 'tr' ? 'Toptan Sipariş' : language === 'en' ? 'Wholesale' : 'طلب جملة'}</span>
-                <ChevronRight className="w-3.5 h-3.5 text-white/80" />
-              </button>
-
-              {/* Mobile Hamburger Menu Toggle */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 rounded-lg text-[#0A2D6F] hover:bg-[#0A2D6F]/5 transition-colors cursor-pointer"
-                aria-label="Gezinme Menüsünü Aç"
-              >
-                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
-            </div>
-          </div>
-        </div>
-
-
-        {/* Fair Invitation Banner (If active) */}
-        {onOpenFairModal && (
-          <FairInvitationStrip onOpenFairModal={onOpenFairModal} />
-        )}
-      </motion.header>
-
-      {/* Mobile Drawer Menu */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-x-0 top-20 z-30 bg-white/95 backdrop-blur-xl border-b border-[#0A2D6F]/10 shadow-2xl md:hidden px-6 py-8 max-h-[85vh] overflow-y-auto"
-          >
-            <div className="flex flex-col space-y-3">
-              {/* Mobile Language Selector — same one-click cycle as desktop */}
-              <div className="py-2 border-b border-[#0A2D6F]/10">
-                <button
-                  onClick={cycleLanguage}
-                  className="w-full py-3 px-4 rounded-xl text-sm font-extrabold flex items-center justify-between gap-2 bg-[#062050]/5 text-[#062050] border border-[#062050]/10 cursor-pointer active:scale-[0.99] transition-all"
-                  title="Dili değiştir / Change language / تغيير اللغة"
-                >
-                  <span className="flex items-center gap-2">
-                    <Globe className="w-4 h-4" />
-                    <span>{language === 'tr' ? 'Türkçe' : language === 'en' ? 'English' : 'العربية'}</span>
-                  </span>
-                  <span className="text-base">
-                    {language === 'tr' ? '🇹🇷' : language === 'en' ? '🇬🇧' : '🇸🇦'}
-                  </span>
-                </button>
-              </div>
-
-              <a
-                href="/katalog"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-between py-3 px-4 rounded-xl text-left text-sm font-bold text-[#111111] hover:bg-[#0A2D6F]/5"
-              >
-                <span>Katalog</span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-              </a>
-
-              {[...primaryNavLinks, ...secondaryNavLinks].map((link) => {
-                const isActive = activeSection === link.id;
-                return (
-                  <button
-                    key={link.id}
-                    onClick={() => handleNavClick(link.id)}
-                    className={`flex items-center justify-between py-3 px-4 rounded-xl text-left text-sm font-bold transition-all ${
-                      isActive
-                        ? 'bg-[#0A2D6F] text-white'
-                        : 'text-[#111111] hover:bg-[#0A2D6F]/5'
-                    }`}
-                  >
-                    <span>{link.label}</span>
-                    <ChevronRight className={`w-4 h-4 ${isActive ? 'text-white' : 'text-[#0A2D6F]/40'}`} />
-                  </button>
-                );
-              })}
-
-              <div className="pt-4 border-t border-[#0A2D6F]/10 flex flex-col gap-3">
-
-                <button
-                  onClick={() => handleNavClick('contact')}
-                  className="w-full py-3.5 rounded-xl bg-[#082C6C] text-white text-center text-sm font-semibold tracking-wider uppercase shadow-md active:scale-98"
-                >
-                  {language === 'tr' ? 'Toptan İletişim' : language === 'en' ? 'Wholesale Contact' : 'اتصال الجملة'}
-                </button>
-
-                <a
-                  href={`tel:${CONTACT_DATA.phone}`}
-                  className="flex items-center justify-center gap-2 py-3 text-xs font-semibold text-[#0A2D6F] tracking-wide uppercase"
-                >
-                  <PhoneCall className="w-4 h-4" />
-                  <span>{CONTACT_DATA.phoneDisplay}</span>
-                </a>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
-  );
+export const Header: React.FC<HeaderProps> = ({activeSection,onNavigate,onOpenFairModal}) => {
+ const {language,setLanguage}=useAppImages();
+ const [open,setOpen]=useState(false);
+ const cycleLanguage=()=>{const next:Record<Language,Language>={tr:'en',en:'ar',ar:'tr'};setLanguage(next[language]);};
+ const go=(path:string)=>{setOpen(false); if(path!==window.location.pathname){window.history.pushState({},'',path);} onNavigate(path); window.scrollTo({top:0,behavior:'smooth'});};
+ return <>
+  <motion.header initial={{y:-80,opacity:0}} animate={{y:0,opacity:1}} className="fixed top-0 left-0 right-0 z-40">
+   <div className="ic-premium-header bg-white/95 backdrop-blur-xl border-b border-[#102f59]/10 shadow-sm">
+    <div className="max-w-7xl mx-auto px-4 sm:px-7 lg:px-10 h-20 flex items-center justify-between gap-4">
+      <button onClick={()=>go('/')} className="shrink-0" aria-label="İrem Comfort Ana Sayfa"><LogoFull iconSize={34} color="#102f59" showText/></button>
+      <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">{links.map(([path,label])=><button key={path} onClick={()=>go(path)} className={`px-3 py-2 text-[11px] xl:text-xs font-bold uppercase tracking-[.08em] rounded-lg transition ${activeSection===path?'text-[#102f59] bg-[#102f59]/6':'text-slate-600 hover:text-[#102f59] hover:bg-slate-50'}`}>{label}</button>)}</nav>
+      <div className="flex items-center gap-2 shrink-0">
+       <button onClick={cycleLanguage} className="hidden sm:flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-2 text-[11px] font-bold text-[#102f59]"><Globe className="w-3.5 h-3.5"/>{language.toUpperCase()}</button>
+       <button onClick={()=>go('/toptan-satis')} className="hidden md:inline-flex items-center gap-2 rounded-full bg-[#102f59] text-white px-4 py-2.5 text-[11px] font-extrabold shadow-md">Toptan Teklif <ChevronRight className="w-4 h-4"/></button>
+       <button onClick={()=>setOpen(!open)} className="lg:hidden p-2.5 rounded-xl bg-[#102f59]/5 text-[#102f59]" aria-label="Menü">{open?<X/>:<Menu/>}</button>
+      </div>
+    </div>
+   </div>
+   <AnnouncementTicker onContactClick={()=>go('/iletisim')}/>
+   {onOpenFairModal && <FairInvitationStrip onOpenFairModal={onOpenFairModal}/>} 
+  </motion.header>
+  <AnimatePresence>{open&&<motion.div initial={{opacity:0,y:-10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}} className="fixed top-20 inset-x-0 z-30 bg-white border-b border-slate-200 shadow-xl lg:hidden max-h-[80vh] overflow-y-auto"><div className="p-5 grid gap-2">{links.map(([path,label])=><button key={path} onClick={()=>go(path)} className={`flex items-center justify-between rounded-2xl px-4 py-3.5 text-left font-bold ${activeSection===path?'bg-[#102f59] text-white':'bg-slate-50 text-[#102f59]'}`}>{label}<ChevronRight className="w-4 h-4"/></button>)}<button onClick={cycleLanguage} className="rounded-2xl px-4 py-3.5 bg-[#f7f5f1] text-left font-bold text-[#102f59]">Dil: {language.toUpperCase()}</button><a href={`tel:${CONTACT_DATA.phone}`} className="rounded-2xl px-4 py-3.5 bg-[#102f59] text-white font-bold flex items-center gap-2"><PhoneCall className="w-4 h-4"/>{CONTACT_DATA.phoneDisplay}</a></div></motion.div>}</AnimatePresence>
+ </>;
 };

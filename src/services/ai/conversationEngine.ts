@@ -65,6 +65,15 @@ export interface IntentAnalysis {
   targetProductKeywords: string[];
 }
 
+const DIGITAL_ADVISOR_NAMES = ['Elif', 'Derya', 'Selin', 'Merve'];
+
+function getAdvisorName(context: ConversationContextState): string {
+  const seed = `${context.currentPage || 'home'}|${context.conversationHistory.length}`;
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  return DIGITAL_ADVISOR_NAMES[hash % DIGITAL_ADVISOR_NAMES.length];
+}
+
 export class ConversationEngine {
   /**
    * Pipeline Step 1 & 2: Understand visitor's intent & identify primary topic
@@ -89,7 +98,7 @@ export class ConversationEngine {
     // Determine Intent
     let primaryIntent: VisitorIntent = 'general_query';
 
-    if (/^(merhaba|selam|günaydın|iyi günler|iyi akşamlar|iyi çalışmalar|kolay gelsin)$/i.test(qLower)) {
+    if (/^(merhaba|selam|günaydın|iyi günler|iyi akşamlar|iyi çalışmalar|kolay gelsin|nasılsın|nasilsin|ne haber|iyi misin|iyisin)$/i.test(qLower)) {
       primaryIntent = 'greeting';
     } else if (qLower.includes('karşılaştır') || qLower.includes('farkı ne') || qLower.includes('arasındaki fark') || qLower.includes('hangisi daha iyi') || qLower.includes('vs')) {
       primaryIntent = 'comparison_query';
@@ -171,7 +180,7 @@ export class ConversationEngine {
           addUniqueSentence(`Taraklı veya ödemli ayaklar için cırt cırtlı ve ayarlanabilir tokalı terlik modellerimiz ekstra rahatlık sunmaktadır.`);
         }
       } else if (intent.primaryIntent === 'purchase_location' || intent.isExplicitPurchaseRequested) {
-        addUniqueSentence(`"${activeProd.name}" modelimiz için toptan fiyat, stok ve sipariş koşullarını Manisa atölyemizden veya WhatsApp sipariş hattımızdan öğrenebilirsiniz.`);
+        addUniqueSentence(`"${activeProd.name}" modelimiz için toptan fiyat, seri ve stok bilgisi almak isterseniz sizi satış ekibimize yönlendirebilirim.`);
       }
     }
 
@@ -214,7 +223,13 @@ export class ConversationEngine {
   ): string {
     // Handling Greeting Intent
     if (intent.primaryIntent === 'greeting') {
-      let welcomeMsg = 'Merhaba, İrem Comfort Müşteri Danışma Hattına hoş geldiniz 👋\n\n1993 yılından bu yana Manisa Ayakkabıcılar Sitesindeki atölyemizde imal ettiğimiz %100 hakiki deri bayan terlik, sandalet ve ortopedik sabo koleksiyonumuz hakkında size nasıl yardımcı olabilirim?';
+      const advisorName = getAdvisorName(context);
+      const greetings = [
+        `Merhaba 😊 Ben ${advisorName}. İyiyim, teşekkür ederim. Siz nasılsınız? İsterseniz biraz sohbet edebiliriz; isterseniz de İrem Comfort modellerinden, yeni sezondan veya toptan çalışmadan konuşabiliriz.`,
+        `Merhaba! ${advisorName} ben. İrem Comfort'ta mağazanız için doğru modeli bulmanıza yardımcı olacağım. 👋\n\nİsterseniz bir ürünün özelliğini sorabilir, isterseniz doğrudan toptan koleksiyon üzerinden ilerleyebiliriz.`,
+        `Hoş geldiniz 😊 Ben ${advisorName}. Buradayım; ürünleri, koleksiyonları ve toptan çalışma şartlarını birlikte inceleyebiliriz. Aklınızdaki modeli ya da ihtiyacı yazmanız yeterli.`
+      ];
+      let welcomeMsg = greetings[context.conversationHistory.length % greetings.length];
       if (context.viewedProducts.length > 0) {
         welcomeMsg += `\n\nZiyaretiniz sırasında ${context.viewedProducts.length} adet modelimizi incelediniz. Dilerseniz modellerimiz hakkında merak ettiğiniz detayları yanıtlayabilirim.`;
       }
@@ -222,7 +237,8 @@ export class ConversationEngine {
     }
 
     if (combinedSentences.length === 0) {
-      return `Bu konuda size daha doğru yardımcı olabilmemiz için canlı destek ekibimize bağlanabilirsiniz.`;
+      const advisorName = getAdvisorName(context);
+      return `Ben ${advisorName}; bu konuda size yanlış bilgi vermek istemem. Ürün adı, model, toptan sipariş, teslimat ya da mağazanız için koleksiyon seçimiyle ilgili biraz daha ayrıntı verir misiniz? Elimdeki bilgilere göre hemen bakayım.`;
     }
 
     // 1. Direct Answer (first 1-2 core sentences)
@@ -359,8 +375,9 @@ export class ConversationEngine {
     // Step 7 & 8: Generate ONE natural, structured response
     let rawResponseText = this.generateStructuredResponse(intent, knowledge.combinedSentences, knowledge.matchedProducts, context);
 
-    if (knowledge.confidenceScore < 60) {
-      rawResponseText = `Bu konuda size daha doğru yardımcı olabilmemiz için canlı destek ekibimize bağlanabilirsiniz.`;
+    if (knowledge.confidenceScore < 60 && intent.primaryIntent !== 'greeting') {
+      const advisorName = getAdvisorName(context);
+      rawResponseText = `Ben ${advisorName}. Bunu doğrudan cevaplamak için elimde yeterli bilgi yok. İsterseniz biraz daha anlatın; ürün, koleksiyon veya toptan satışla ilgiliyse birlikte bakalım. İsterseniz de sizi yetkili satış ekibine bağlayabilirim.`;
     }
 
     // Step 9: Perform Quality Validation & Silent Self-Review
@@ -388,12 +405,7 @@ export class ConversationEngine {
       { label: 'Atölye İletişim & Konum', type: 'quick_reply', payload: 'Atölyeniz nerede, adres bilgisi alabilir miyim?' },
       { label: 'Canlı Desteğe Bağlan', type: 'quick_reply', payload: 'Canlı destek ekibinizle görüşmek istiyorum.' }
     ];
-    if (intent.isExplicitPurchaseRequested) {
-      actionButtons = [
-        { label: 'Toptan Fiyat Bilgisi', type: 'quick_reply', payload: 'Bu ürünün toptan fiyatı ve sipariş şartları nedir?' },
-        { label: 'Canlı Desteğe Bağlan', type: 'quick_reply', payload: 'Canlı destek ekibinizle görüşmek istiyorum.' }
-      ];
-    } else if (intent.primaryIntent === 'wholesale_inquiry') {
+    if (intent.primaryIntent === 'wholesale_inquiry') {
       actionButtons = [
         { label: 'Toptan Katalog Bilgisi', type: 'quick_reply', payload: 'Toptan sipariş ve koli imalat şartları nelerdir?' },
         { label: 'Canlı Desteğe Bağlan', type: 'quick_reply', payload: 'Canlı destek ekibinizle görüşmek istiyorum.' }
