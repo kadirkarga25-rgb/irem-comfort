@@ -45,7 +45,7 @@
     "signatureModelSub": "Yumuşak Dana Derisi Saya • Anatomik Yumuşak Konfor Taban"
   },
   "images": {
-    "heroImage": "/uploads/gallery/_rem_Comfort_Ana_Logo_Lacivert_Zemin.png",
+    "heroImage": "/uploads/gallery/_rem_Comfort_Sloganl__Logo_Lacivert_Zemin.png",
     "aboutImage": "",
     "craftsmanshipImages": {
       "01": "/uploads/gallery/ChatGPT_Image_4_A_u_2026_15_07_00.png",
@@ -1359,9 +1359,23 @@
       ],
       "image": "https://raw.githubusercontent.com/kadirkarga25-rgb/irem-comfort/main/public/uploads/craftsmanship/craftsmanship_1790154706647_3ljd7.png",
       "iconName": "Award"
+    },
+    {
+      "number": "05",
+      "title": "Son Hazırlık & Sevkiyat",
+      "subtitle": "Mağazanıza Hazır, Düzenli Toptan Sevkiyat",
+      "description": "Kalite kontrolü tamamlanan modeller numara ve renk bazında eşleştirilir, özenle paketlenir ve toptan sipariş planına göre sevkiyata hazırlanır.",
+      "detailPoints": [
+        "Numara ve renk bazında çift kontrolü",
+        "Toptan siparişe göre koli ve etiketleme",
+        "Sevkiyat öncesi son ürün kontrolü",
+        "Mağazanıza düzenli ve güvenli teslimat hazırlığı"
+      ],
+      "image": "",
+      "iconName": "Truck"
     }
   ],
-  "_updatedAt": 1790154897234,
+  "_updatedAt": 1790157750056,
   "faqItems": [
     {
       "q": "Soru 1",
