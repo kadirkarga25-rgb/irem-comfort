@@ -695,13 +695,17 @@ async function sendNewsletterWelcomeEmail(email: string): Promise<boolean> {
   }
 }
 
-const newsletterSubscribers: NewsletterSubscriber[] = [
+let newsletterSubscribers: NewsletterSubscriber[] = [
   { id: 'sub-1', email: 'kargakadir4525@gmail.com', createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), source: 'Web Form' },
   { id: 'sub-2', email: 'info@iremcomfort.com', createdAt: new Date(Date.now() - 86400000 * 5).toISOString(), source: 'Web Form' }
 ];
+let newsletterLoaded = false;
+async function loadNewsletterSubscribers(){ if(newsletterLoaded) return newsletterSubscribers; const data=await readGithubJsonFile(NEWSLETTER_SUBSCRIBERS_PATH,{subscribers:newsletterSubscribers}); if(Array.isArray(data?.subscribers)) newsletterSubscribers=data.subscribers; newsletterLoaded=true; return newsletterSubscribers; }
+async function persistNewsletterSubscribers(){ await writeGithubJsonFile(NEWSLETTER_SUBSCRIBERS_PATH,{subscribers:newsletterSubscribers},'E-bülten abone listesi güncellendi'); }
 
 app.post("/api/newsletter/subscribe", async (req, res) => {
   try {
+    await loadNewsletterSubscribers();
     const { email, source } = req.body || {};
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return res.status(400).json({ success: false, error: "Lütfen geçerli bir e-posta adresi yazınız." });
@@ -725,6 +729,7 @@ app.post("/api/newsletter/subscribe", async (req, res) => {
     };
 
     newsletterSubscribers.unshift(newSub);
+    await persistNewsletterSubscribers();
 
     const welcomeEmailSent = await sendNewsletterWelcomeEmail(cleanEmail);
 
@@ -740,26 +745,28 @@ app.post("/api/newsletter/subscribe", async (req, res) => {
   }
 });
 
-app.get("/api/newsletter/subscribers", (_req, res) => {
-  res.json({ subscribers: newsletterSubscribers });
+app.get("/api/newsletter/subscribers", async (req, res) => {
+  try { if(!getAdminSessionFromRequest(req)) return res.status(401).json({success:false,error:"Yönetici oturumu geçersiz."}); await loadNewsletterSubscribers(); return res.json({ subscribers: newsletterSubscribers }); } catch(err:any){ return res.status(500).json({success:false,error:err?.message||"Abone listesi okunamadı."}); }
 });
 
-app.delete("/api/newsletter/subscribers/:id", (req, res) => {
+app.delete("/api/newsletter/subscribers/:id", async (req, res) => {
   try {
+    if(!getAdminSessionFromRequest(req)) return res.status(401).json({success:false,error:"Yönetici oturumu geçersiz."});
+    await loadNewsletterSubscribers();
     const { id } = req.params;
     const index = newsletterSubscribers.findIndex(s => s.id === id || s.email === id);
     if (index !== -1) {
       const removed = newsletterSubscribers.splice(index, 1);
+      await persistNewsletterSubscribers();
       return res.json({ success: true, message: "Abone başarıyla silindi.", removed: removed[0] });
     }
     return res.status(404).json({ success: false, error: "Abone bulunamadı." });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: "Abone silinirken hata oluştu." });
-  }
+  } catch(err:any){ return res.status(500).json({success:false,error:err?.message||"Abone silinemedi."}); }
 });
 
 app.post("/api/newsletter/send-bulk", async (req, res) => {
   try {
+    await loadNewsletterSubscribers();
     const { subject, htmlBody, targetEmails } = req.body || {};
 
     if (!subject || !htmlBody) {
@@ -967,6 +974,40 @@ async function getGithubAuth(customToken?: string, customRepo?: string, customBr
     : cfg.token;
 
   return { ...cfg, token, usingGithubApp: appConfigured };
+}
+
+
+const PDF_LIBRARY_PATH = 'public/pdf_library.json';
+const NEWSLETTER_SUBSCRIBERS_PATH = 'public/newsletter_subscribers.json';
+
+async function readGithubJsonFile(path: string, fallback: any) {
+  const { token, repo, branch } = await getGithubAuth();
+  if (!token || !repo) return fallback;
+  try {
+    const r = await fetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${encodeURIComponent(branch)}`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'IremComfortApp' }
+    });
+    if (!r.ok) return fallback;
+    const d = await r.json();
+    if (!d?.content) return fallback;
+    return JSON.parse(Buffer.from(String(d.content).replace(/\n/g, ''), 'base64').toString('utf8'));
+  } catch { return fallback; }
+}
+
+async function writeGithubJsonFile(path: string, value: any, message: string) {
+  const { token, repo, branch } = await getGithubAuth();
+  if (!token || !repo) throw new Error('GitHub kimlik doğrulaması yapılamadı.');
+  let sha: string | undefined;
+  const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${encodeURIComponent(branch)}`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'IremComfortApp' }
+  });
+  if (getRes.ok) sha = (await getRes.json())?.sha;
+  const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+    method: 'PUT', headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'Content-Type': 'application/json', 'User-Agent': 'IremComfortApp' },
+    body: JSON.stringify({ message, content: Buffer.from(JSON.stringify(value, null, 2), 'utf8').toString('base64'), branch, ...(sha ? { sha } : {}) })
+  });
+  if (!putRes.ok) throw new Error(`GitHub kayıt hatası (HTTP ${putRes.status}).`);
+  return await putRes.json();
 }
 
 function getGithubConfig(customToken?: string, customRepo?: string, customBranch?: string) {
@@ -2985,6 +3026,66 @@ async function getCatalogSettings(): Promise<any[]> {
   const catalogs = await loadFreshCatalogArchive();
   return normalizeCatalogAssetUrls(catalogs);
 }
+
+
+// --- PDF KÜTÜPHANESİ ---
+app.get('/api/pdf-library/admin/list', async (req, res) => {
+  try {
+    if (!getAdminSessionFromRequest(req)) return res.status(401).json({ success:false, error:'Yönetici oturumu geçersiz.' });
+    const fallback = { files: [] };
+    const data = await readGithubJsonFile(PDF_LIBRARY_PATH, fallback);
+    return res.json({ files: Array.isArray(data?.files) ? data.files : [] });
+  } catch (err:any) { return res.status(500).json({ success:false, error:err?.message || 'PDF kütüphanesi okunamadı.' }); }
+});
+
+app.post('/api/pdf-library/upload-session', async (req, res) => {
+  try {
+    if (!getAdminSessionFromRequest(req)) return res.status(401).json({ success:false, error:'Yönetici oturumu geçersiz.' });
+    const filenameRaw = String(req.body?.filename || '').trim();
+    if (!filenameRaw.toLowerCase().endsWith('.pdf')) return res.status(400).json({ success:false, error:'Sadece PDF dosyaları yüklenebilir.' });
+    const safe = filenameRaw.replace(/[^a-zA-Z0-9._-]+/g,'-').replace(/-+/g,'-').slice(-140);
+    const id = `pdf-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+    const path = `public/pdf-library/${id}/${safe}`;
+    const { token, repo, branch } = await getGithubAuth();
+    if (!token) return res.status(500).json({ success:false, error:'GitHub yükleme yetkisi bulunamadı.' });
+    // The short-lived installation token is used only for the authenticated admin's direct browser upload.
+    // It expires automatically and is not persisted.
+    return res.json({ success:true, id, filename:safe, path, repo, branch, token, expiresIn: 3600 });
+  } catch (err:any) { return res.status(500).json({ success:false, error:err?.message || 'Yükleme oturumu oluşturulamadı.' }); }
+});
+
+app.post('/api/pdf-library/register', async (req, res) => {
+  try {
+    if (!getAdminSessionFromRequest(req)) return res.status(401).json({ success:false, error:'Yönetici oturumu geçersiz.' });
+    const id=String(req.body?.id||''), filename=String(req.body?.filename||''), path=String(req.body?.path||'');
+    const size=Number(req.body?.size||0);
+    if (!id || !filename || !path.startsWith('public/pdf-library/')) return res.status(400).json({success:false,error:'PDF kayıt bilgileri geçersiz.'});
+    const { repo, branch } = await getGithubAuth();
+    const rawUrl=`https://raw.githubusercontent.com/${repo}/${branch}/${path}`;
+    const data=await readGithubJsonFile(PDF_LIBRARY_PATH,{files:[]});
+    const files=Array.isArray(data?.files)?data.files:[];
+    const item={id,name:filename.replace(/\.pdf$/i,''),filename,path,rawUrl,size,createdAt:Date.now(),updatedAt:Date.now()};
+    const next=[item,...files.filter((x:any)=>x?.id!==id && x?.path!==path)];
+    await writeGithubJsonFile(PDF_LIBRARY_PATH,{files:next},`PDF Kütüphanesi kaydı: ${filename}`);
+    return res.json({success:true,file:item});
+  } catch(err:any){return res.status(500).json({success:false,error:err?.message||'PDF kütüphane kaydı oluşturulamadı.'});}
+});
+
+app.post('/api/pdf-library/delete', async (req, res) => {
+  try {
+    if (!getAdminSessionFromRequest(req)) return res.status(401).json({ success:false, error:'Yönetici oturumu geçersiz.' });
+    const id=String(req.body?.id||'');
+    const data=await readGithubJsonFile(PDF_LIBRARY_PATH,{files:[]});
+    const files=Array.isArray(data?.files)?data.files:[];
+    const item=files.find((x:any)=>x?.id===id);
+    if(!item) return res.status(404).json({success:false,error:'PDF bulunamadı.'});
+    const {token,repo,branch}=await getGithubAuth();
+    const meta=await fetch(`https://api.github.com/repos/${repo}/contents/${item.path}?ref=${encodeURIComponent(branch)}`,{headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'IremComfortApp'}});
+    if(meta.ok){const md=await meta.json();const del=await fetch(`https://api.github.com/repos/${repo}/contents/${item.path}`,{method:'DELETE',headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json','User-Agent':'IremComfortApp'},body:JSON.stringify({message:`PDF Kütüphanesi silindi: ${item.filename}`,sha:md.sha,branch})});if(!del.ok)return res.status(502).json({success:false,error:`GitHub PDF silme hatası (HTTP ${del.status}).`});}
+    await writeGithubJsonFile(PDF_LIBRARY_PATH,{files:files.filter((x:any)=>x?.id!==id)},`PDF Kütüphanesi kaydı silindi: ${item.filename}`);
+    return res.json({success:true});
+  } catch(err:any){return res.status(500).json({success:false,error:err?.message||'PDF silinemedi.'});}
+});
 
 app.get('/api/catalogs', async (_req, res) => {
   try {

@@ -1,5 +1,5 @@
 import { CollectionItem, CraftsmanshipStep, WhyUsCard, ContactInfo, FaqItem, TestimonialItem } from '../types';
-export const PREMIUM_PRODUCT_IMAGE_FALLBACKS: Record<string, string> = {};
+
 export const BRAND_NAME = "İrem Comfort";
 export const BRAND_TAGLINE = "Hakiki Deri Bayan Comfort Sandalet & Terlik İmalatı";
 export const BRAND_ESTABLISHED = "1994";
@@ -15,7 +15,6 @@ export const CONTACT_DATA: ContactInfo = {
   email: "info@iremcomfort.com",
   address: "Manisa Ayakkabıcılar Sitesi (Güzelyurt Mahallesi) 5757.Sokak No:21/A Yunusemre / Manisa 45030",
   showroomHours: "Pzt - Cmt: 08:30 - 19:00 | Pazar: Özel Randevu İle",
-  trendyolUrl: "",
   googleMapsUrl: "https://www.google.com/maps/search/?api=1&query=%C4%B0rem+Comfort+Manisa+Ayakkab%C4%B1c%C4%B1lar+Sitesi"
 };
 
@@ -234,20 +233,6 @@ export const CRAFTSMANSHIP_STEPS: CraftsmanshipStep[] = [
     ],
     image: '',
     iconName: 'Award'
-  },
-  {
-    number: '05',
-    title: 'Son Hazırlık & Sevkiyat',
-    subtitle: 'Mağazanıza Hazır, Düzenli Toptan Sevkiyat',
-    description: 'Kalite kontrolü tamamlanan modeller numara ve renk bazında eşleştirilir, özenle paketlenir ve toptan sipariş planına göre sevkiyata hazırlanır.',
-    detailPoints: [
-      'Numara ve renk bazında çift kontrolü',
-      'Toptan siparişe göre koli ve etiketleme',
-      'Sevkiyat öncesi son ürün kontrolü',
-      'Mağazanıza düzenli ve güvenli teslimat hazırlığı'
-    ],
-    image: '',
-    iconName: 'Truck'
   }
 ];
 
@@ -443,3 +428,13 @@ export const DEFAULT_TESTIMONIALS: TestimonialItem[] = [
 
 
 
+
+// Premium product fallbacks used only when the media library does not yet contain a product image.
+export const PREMIUM_PRODUCT_IMAGE_FALLBACKS: string[] = [
+  'https://images.unsplash.com/photo-1603487742131-4160ec999306?auto=format&fit=crop&q=85&w=1200',
+  'https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&q=85&w=1200',
+  'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=85&w=1200',
+  'https://images.unsplash.com/photo-1560343090-f0409e92791a?auto=format&fit=crop&q=85&w=1200',
+  'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&q=85&w=1200',
+  'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&q=85&w=1200'
+];
