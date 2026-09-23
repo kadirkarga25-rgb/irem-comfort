@@ -45,7 +45,7 @@
     "signatureModelSub": "Yumuşak Dana Derisi Saya • Anatomik Yumuşak Konfor Taban"
   },
   "images": {
-    "heroImage": "/uploads/gallery/Ads_z_tasar_m.png",
+    "heroImage": "/uploads/gallery/_rem_Comfort_Ana_Logo_Lacivert_Zemin.png",
     "aboutImage": "",
     "craftsmanshipImages": {
       "01": "/uploads/gallery/ChatGPT_Image_4_A_u_2026_15_07_00.png",
@@ -1358,7 +1358,7 @@
       "iconName": "Award"
     }
   ],
-  "_updatedAt": 1790080533511,
+  "_updatedAt": 1790154573470,
   "faqItems": [
     {
       "q": "Soru 1",
@@ -1509,7 +1509,7 @@
     "smtpHost": "smtp.gmail.com",
     "smtpPort": 465,
     "smtpUser": "info@iremcomfort.com",
-    "smtpPass": "",
+    "smtpPass": "ghlb rtol zvna jtet",
     "smtpSecure": true,
     "adminEmails": "kargakadir4525@gmail.com, info@iremcomfort.com",
     "senderName": "İrem Comfort Ayakkabıcılık",
