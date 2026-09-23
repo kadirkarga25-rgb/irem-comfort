@@ -695,13 +695,14 @@ async function sendNewsletterWelcomeEmail(email: string): Promise<boolean> {
   }
 }
 
-let newsletterSubscribers: NewsletterSubscriber[] = [
-  { id: 'sub-1', email: 'kargakadir4525@gmail.com', createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), source: 'Web Form' },
-  { id: 'sub-2', email: 'info@iremcomfort.com', createdAt: new Date(Date.now() - 86400000 * 5).toISOString(), source: 'Web Form' }
-];
+let newsletterSubscribers: NewsletterSubscriber[] = [];
+let newsletterWriteQueue: Promise<unknown> = Promise.resolve();
 let newsletterLoaded = false;
 async function loadNewsletterSubscribers(){ if(newsletterLoaded) return newsletterSubscribers; const data=await readGithubJsonFile(NEWSLETTER_SUBSCRIBERS_PATH,{subscribers:newsletterSubscribers}); if(Array.isArray(data?.subscribers)) newsletterSubscribers=data.subscribers; newsletterLoaded=true; return newsletterSubscribers; }
-async function persistNewsletterSubscribers(){ await writeGithubJsonFile(NEWSLETTER_SUBSCRIBERS_PATH,{subscribers:newsletterSubscribers},'E-bülten abone listesi güncellendi'); }
+async function persistNewsletterSubscribers(){
+  newsletterWriteQueue = newsletterWriteQueue.then(() => writeGithubJsonFile(NEWSLETTER_SUBSCRIBERS_PATH,{subscribers:newsletterSubscribers},'E-bülten abone listesi güncellendi'));
+  await newsletterWriteQueue;
+}
 
 app.post("/api/newsletter/subscribe", async (req, res) => {
   try {
@@ -3087,6 +3088,36 @@ app.post('/api/pdf-library/delete', async (req, res) => {
   } catch(err:any){return res.status(500).json({success:false,error:err?.message||'PDF silinemedi.'});}
 });
 
+async function sendNewsletterAnnouncement(subject: string, htmlBody: string): Promise<{sentCount:number;failedCount:number;errors:string[];isSimulation:boolean}> {
+  await loadNewsletterSubscribers();
+  const recipients = [...new Set(newsletterSubscribers.map(s => String(s.email || '').trim().toLowerCase()).filter(e => e.includes('@')))];
+  const transporter = getTransporter(currentEmailConfig);
+  let sentCount = 0, failedCount = 0;
+  const errors: string[] = [];
+  if (!transporter) return { sentCount: 0, failedCount: recipients.length, errors: recipients.map(e => `${e}: SMTP yapılandırılmamış`), isSimulation: true };
+  for (const email of recipients) {
+    try {
+      await transporter.sendMail({
+        from: `"${currentEmailConfig.senderName || 'İrem Comfort'}" <${currentEmailConfig.senderEmail || currentEmailConfig.smtpUser}>`,
+        to: email,
+        subject,
+        html: htmlBody,
+      });
+      sentCount++;
+    } catch (err:any) {
+      failedCount++;
+      errors.push(`${email}: ${err?.message || 'Gönderim hatası'}`);
+    }
+  }
+  return { sentCount, failedCount, errors, isSimulation: false };
+}
+
+function buildCatalogAnnouncementHtml(catalog:any): string {
+  const esc = (v:any) => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const url = `https://iremcomfort.com/katalog/${encodeURIComponent(String(catalog.id))}`;
+  return `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head><body style="margin:0;background:#f3f5f8;font-family:Arial,Helvetica,sans-serif;color:#172033"><table width="100%" cellspacing="0" cellpadding="0" style="padding:28px 12px;background:#f3f5f8"><tr><td align="center"><table width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#fff;border-radius:20px;overflow:hidden;border:1px solid #e3e7ec"><tr><td style="background:#0b1f3a;padding:38px 30px;text-align:center"><div style="font-family:Georgia,serif;font-size:29px;font-weight:700;color:#fff">irem <span style="color:#c5a45a">comfort</span></div><div style="margin-top:9px;font-size:11px;font-weight:700;letter-spacing:2px;color:#f2d48a">YENİ KATALOG YAYINDA</div></td></tr><tr><td style="padding:42px 34px 36px"><div style="display:inline-block;background:#f8f0dc;border:1px solid #ead7a7;color:#8a6a25;border-radius:999px;padding:7px 13px;font-size:11px;font-weight:700;letter-spacing:1px">${esc(catalog.season || 'YENİ SEZON')} · ${esc(catalog.year)}</div><h1 style="margin:18px 0 12px;color:#0b1f3a;font-family:Georgia,serif;font-size:28px;line-height:1.25">${esc(catalog.title)}</h1><p style="margin:0 0 22px;font-size:16px;line-height:1.75;color:#475569">${esc(catalog.description || 'Yeni sezon kataloğumuz yayınlandı. Koleksiyonlarımızı dijital katalog üzerinden inceleyebilirsiniz.')}</p><div style="text-align:center;margin:30px 0"><a href="${url}" target="_blank" style="display:inline-block;background:#0b1f3a;color:#fff;text-decoration:none;padding:14px 28px;border-radius:999px;font-size:14px;font-weight:700">Kataloğu İncele →</a></div><p style="margin:26px 0 0;text-align:center;font-size:12px;color:#94a3b8">Bu e-posta İrem Comfort e-bülten aboneliğiniz kapsamında gönderilmiştir.</p></td></tr><tr><td style="background:#111827;padding:27px 28px;text-align:center;color:#9ca3af;font-size:12px;line-height:1.7"><div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:6px">İrem Comfort Ayakkabıcılık</div><div>Hakiki Deri Comfort Terlik &amp; Sandalet</div><div style="margin-top:5px">info@iremcomfort.com • 0533 029 71 25</div></td></tr></table></td></tr></table></body></html>`;
+}
+
 app.get('/api/catalogs', async (_req, res) => {
   try {
     const catalogs = await getCatalogSettings();
@@ -3230,10 +3261,26 @@ app.post('/api/catalogs/save', async (req, res) => {
     delete safeCatalog.pdf;
     delete safeCatalog.pageImages;
     const index = catalogs.findIndex((c: any) => c?.id === safeCatalog.id);
+    const previous = index >= 0 ? catalogs[index] : undefined;
+    const becamePublished = safeCatalog.published === true && previous?.published !== true;
+    const alreadyAnnounced = Boolean(safeCatalog.newsletterAnnouncementSentAt || previous?.newsletterAnnouncementSentAt);
+    if (alreadyAnnounced && !safeCatalog.newsletterAnnouncementSentAt) safeCatalog.newsletterAnnouncementSentAt = previous.newsletterAnnouncementSentAt;
     if (index >= 0) catalogs[index] = safeCatalog; else catalogs.push(safeCatalog);
     const result = await saveCatalogArchive(catalogs, `Katalog: ${safeCatalog.title} güncellendi`);
     if (!result.success) return res.status(500).json({ success: false, error: result.error || 'Katalog kalıcı olarak kaydedilemedi.' });
-    return res.json({ success: true, catalog: safeCatalog, commitSha: result.commitSha, vercelDeployTriggered: result.vercelDeployTriggered === true });
+
+    let newsletterAnnouncement: any = null;
+    if (becamePublished && !alreadyAnnounced) {
+      newsletterAnnouncement = await sendNewsletterAnnouncement(`İrem Comfort — Yeni Katalog: ${safeCatalog.title}`, buildCatalogAnnouncementHtml(safeCatalog));
+      safeCatalog.newsletterAnnouncementSentAt = new Date().toISOString();
+      safeCatalog.newsletterAnnouncementSentCount = newsletterAnnouncement.sentCount;
+      safeCatalog.newsletterAnnouncementFailedCount = newsletterAnnouncement.failedCount;
+      const updated = [...catalogs];
+      const updatedIndex = updated.findIndex((c:any)=>c?.id===safeCatalog.id);
+      if (updatedIndex >= 0) updated[updatedIndex] = safeCatalog;
+      await saveCatalogArchive(updated, `Katalog bülten duyurusu kaydı: ${safeCatalog.title}`);
+    }
+    return res.json({ success: true, catalog: safeCatalog, commitSha: result.commitSha, vercelDeployTriggered: result.vercelDeployTriggered === true, newsletterAnnouncement });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err?.message || 'Katalog kaydedilemedi. Ana site ayarlarına dokunulmadı.' });
   }

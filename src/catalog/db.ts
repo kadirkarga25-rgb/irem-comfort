@@ -1,5 +1,5 @@
 export type Collection = { id:string; name:string; startPage:number; endPage:number; description?:string; coverPage?:number };
-export type Catalog = { pdfLibraryId?:string; id:string; title:string; year:string; season:string; description:string; cover?:string; pdf?:Blob; pdfUrl?:string; pageImages?:string[]; pageTexts?:string[]; pages:number; collections:Collection[]; contents:{title:string;page:number}[]; tags?:string[]; createdAt:number; published:boolean };
+export type Catalog = { pdfLibraryId?:string; id:string; title:string; year:string; season:string; description:string; cover?:string; pdf?:Blob; pdfUrl?:string; pageImages?:string[]; pageTexts?:string[]; pages:number; collections:Collection[]; contents:{title:string;page:number}[]; tags?:string[]; createdAt:number; published:boolean; newsletterAnnouncementSentAt?:string; newsletterAnnouncementSentCount?:number; newsletterAnnouncementFailedCount?:number };
 const TOKEN_KEY='ic_catalog_admin_token';
 const API='/api';
 function clean(raw:any):Catalog{return {...raw,year:String(raw?.year||''),pages:Number(raw?.pages)||raw?.pageImages?.length||1,collections:Array.isArray(raw?.collections)?raw.collections:[],contents:Array.isArray(raw?.contents)?raw.contents:[],tags:Array.isArray(raw?.tags)?raw.tags:[],pageTexts:Array.isArray(raw?.pageTexts)?raw.pageTexts:[]};}
