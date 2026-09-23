@@ -881,7 +881,8 @@
         "Anatomik taban desteği",
         "%100 Hakiki deri saya"
       ],
-      "id": "item-1788604419676"
+      "id": "item-1788604419676",
+      "isFeatured": true
     },
     {
       "name": "İrem Comfort Kadın Topuklu Hakiki Deri Comfort Sandalet",
@@ -998,7 +999,8 @@
         "Anatomik taban desteği",
         "%100 Hakiki deri saya"
       ],
-      "id": "item-1788601630323"
+      "id": "item-1788601630323",
+      "isFeatured": true
     },
     {
       "name": "İrem Comfort Hakiki Deri Kalın Topuklu Bağcıklı Oxford Ayakkabı",
@@ -1162,7 +1164,7 @@
         "Esnek ve hafif ergonomik yazlık taban",
         "Şok emici topuk dolgusu"
       ],
-      "isFeatured": true
+      "isFeatured": false
     },
     {
       "id": "mantar-taban-comfort-terlik",
@@ -1247,7 +1249,8 @@
         "Yumuşak sünger destekli deri iç taban",
         "Bileği sağlam kavrayan esnek tokalı bant",
         "Sarsıntı önleyici hafif poliüretan gövde"
-      ]
+      ],
+      "isFeatured": true
     },
     {
       "id": "cirt-cirtli-genis-terlik",
@@ -1358,7 +1361,7 @@
       "iconName": "Award"
     }
   ],
-  "_updatedAt": 1790154580617,
+  "_updatedAt": 1790154610396,
   "faqItems": [
     {
       "q": "Soru 1",
