@@ -14,6 +14,7 @@ interface ImageSelectModalProps {
   targetTitle?: string;
   recommendedSpecs?: string;
   allowComputerUpload?: boolean;
+  uploadFolder?: string;
 }
 
 export const ImageSelectModal: React.FC<ImageSelectModalProps> = ({
@@ -23,7 +24,8 @@ export const ImageSelectModal: React.FC<ImageSelectModalProps> = ({
   onUploadFromComputer,
   targetTitle = 'Görsel',
   recommendedSpecs = '',
-  allowComputerUpload = true
+  allowComputerUpload = true,
+  uploadFolder = 'gallery'
 }) => {
   const [activeTab, setActiveTab] = useState<'system' | 'upload'>('system');
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
@@ -57,6 +59,11 @@ export const ImageSelectModal: React.FC<ImageSelectModalProps> = ({
     }
   }, [isOpen]);
 
+  const resolveMediaUrl = (file: MediaFile) => {
+    const rawUrl = (file as MediaFile & { url?: string }).url;
+    return rawUrl || (file.path.startsWith('http') ? file.path : `/uploads/${file.folder}/${file.name}`);
+  };
+
   const filteredFiles = mediaFiles.filter(file => {
     const matchesFolder = selectedFolder === 'all' || file.folder === selectedFolder;
     const sTerm = (searchQuery || '').toLowerCase();
@@ -83,7 +90,7 @@ export const ImageSelectModal: React.FC<ImageSelectModalProps> = ({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             image: base64Str,
-            folder: selectedFolder === 'all' ? 'gallery' : selectedFolder,
+            folder: uploadFolder || (selectedFolder === 'all' ? 'gallery' : selectedFolder),
             filename: file.name,
             githubRepo,
             githubToken,
@@ -105,6 +112,7 @@ export const ImageSelectModal: React.FC<ImageSelectModalProps> = ({
       }
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   if (!isOpen) return null;
@@ -252,16 +260,11 @@ export const ImageSelectModal: React.FC<ImageSelectModalProps> = ({
                     {filteredFiles.map((file) => (
                       <div
                         key={file.path}
-                        onClick={() => {
-                          const cleanUrl = file.path.startsWith('http') ? file.path : `/uploads/${file.folder}/${file.name}`;
-                          onSelectSystemImage(cleanUrl);
-                          onClose();
-                        }}
-                        className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md hover:border-[#082C6C] transition cursor-pointer flex flex-col"
+                        className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md hover:border-[#082C6C] transition flex flex-col"
                       >
                         <div className="aspect-square bg-slate-100 relative overflow-hidden flex items-center justify-center">
                           <img
-                            src={file.path.startsWith('http') ? file.path : `/uploads/${file.folder}/${file.name}`}
+                            src={resolveMediaUrl(file)}
                             alt={file.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             onError={(e) => {
@@ -286,6 +289,17 @@ export const ImageSelectModal: React.FC<ImageSelectModalProps> = ({
                           <p className="text-[9px] font-mono text-slate-400 truncate mt-0.5">
                             {file.folder}
                           </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const cleanUrl = file.path.startsWith('http') ? file.path : `/uploads/${file.folder}/${file.name}`;
+                              onSelectSystemImage(cleanUrl);
+                              onClose();
+                            }}
+                            className="mt-2 w-full rounded-lg bg-[#082C6C] text-white px-2.5 py-2 text-[10px] font-bold hover:bg-[#113d8d] transition"
+                          >
+                            Görseli Seç
+                          </button>
                         </div>
                       </div>
                     ))}

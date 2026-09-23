@@ -142,6 +142,8 @@ export interface MediaFile {
   id: string;
   name: string;
   path: string;
+  url?: string;
+  relativePath?: string;
   folder: string;
   size: number;
   updatedAt: string;
