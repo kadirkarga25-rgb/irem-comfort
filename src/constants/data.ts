@@ -1,5 +1,5 @@
 import { CollectionItem, CraftsmanshipStep, WhyUsCard, ContactInfo, FaqItem, TestimonialItem } from '../types';
-
+export const PREMIUM_PRODUCT_IMAGE_FALLBACKS: Record<string, string> = {};
 export const BRAND_NAME = "İrem Comfort";
 export const BRAND_TAGLINE = "Hakiki Deri Bayan Comfort Sandalet & Terlik İmalatı";
 export const BRAND_ESTABLISHED = "1994";
