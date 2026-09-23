@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAppImages } from '../../context/ImageContext';
 import { Check, Image as ImageIcon, Save, Star, Trash2 } from 'lucide-react';
 import { ImageSelectModal } from './ImageSelectModal';
@@ -28,38 +28,19 @@ export const SitePageEditorAdminTab: React.FC<Props> = ({ page }) => {
     heroConfig, updateHeroConfig,
     aboutSlides, updateAboutSlide, deleteAboutSlide,
     craftsmanshipSteps, updateCraftsmanshipStep,
+    updateCraftsmanshipHeroImage,
     collectionItems, updateCollectionItem,
     contactData, updateContactData,
     images,
     faqItems, updateFaqItem, deleteFaqItem,
   } = useAppImages();
   const [saved, setSaved] = useState(false);
-  const [picker, setPicker] = useState<{open:boolean; target:'brand'|'workshop'; id:string; title:string}>({open:false,target:'brand',id:'',title:''});
-  const deviceFileInputRef = useRef<HTMLInputElement | null>(null);
-  const openPicker = (target:'brand'|'workshop', id:string, title:string) => setPicker({open:true,target,id,title});
+  const [picker, setPicker] = useState<{open:boolean; target:'brand'|'workshop'|'workshopHero'; id:string; title:string}>({open:false,target:'brand',id:'',title:''});
+  const openPicker = (target:'brand'|'workshop'|'workshopHero', id:string, title:string) => setPicker({open:true,target,id,title});
   const closePicker = () => setPicker(prev=>({...prev,open:false}));
-  const handleDeviceUpload = () => {
-    deviceFileInputRef.current?.click();
-  };
-
-  const handleDeviceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = String(reader.result || '');
-      if (!dataUrl) return;
-      if (picker.target === 'brand') updateAboutSlide(picker.id, { image: dataUrl });
-      else updateCraftsmanshipStep(picker.id, { image: dataUrl });
-      closePicker();
-      flash();
-    };
-    reader.readAsDataURL(file);
-  };
-
   const selectPickerImage = (url:string) => {
     if (picker.target === 'brand') updateAboutSlide(picker.id,{image:url});
+    else if (picker.target === 'workshopHero') updateCraftsmanshipHeroImage(url);
     else updateCraftsmanshipStep(picker.id,{image:url});
     closePicker();
     flash();
@@ -68,25 +49,11 @@ export const SitePageEditorAdminTab: React.FC<Props> = ({ page }) => {
   const featured = useMemo(() => collectionItems.filter(p => p.isFeatured).slice(0, 6), [collectionItems]);
 
   const flash = () => { setSaved(true); window.setTimeout(() => setSaved(false), 1600); };
-
-  const pickerOverlay = <>
-    <input
-      ref={deviceFileInputRef}
-      type="file"
-      accept="image/*"
-      className="hidden"
-      onChange={handleDeviceFileChange}
-    />
-    <ImageSelectModal
-      isOpen={picker.open}
-      onClose={closePicker}
-      onSelectSystemImage={selectPickerImage}
-      onUploadFromComputer={handleDeviceUpload}
-      targetTitle={picker.title}
-      allowComputerUpload={true}
-      uploadFolder={picker.target === 'brand' ? 'about' : 'craftsmanship'}
-    />
-  </>;
+  const uploadAsDataUrl = (file: File, cb: (url:string)=>void) => {
+    const reader = new FileReader();
+    reader.onload = () => cb(String(reader.result || ''));
+    reader.readAsDataURL(file);
+  };
 
   if (page === 'home') return <div className="space-y-6">
     <Header title={meta.title} description={meta.description} saved={saved} />
@@ -108,19 +75,13 @@ export const SitePageEditorAdminTab: React.FC<Props> = ({ page }) => {
     <FeaturedProducts collectionItems={collectionItems} updateCollectionItem={updateCollectionItem} featured={featured} />
   </div>;
 
-  if (page === 'brand') return <>
-    <div className="space-y-6"><Header title={meta.title} description={meta.description} saved={saved}/><div className="grid gap-4">{aboutSlides.slice(0,4).map((slide,i)=><div key={slide.id} className="bg-white rounded-2xl border border-slate-200 p-5 grid md:grid-cols-[220px_1fr] gap-5"><div><div className="aspect-[4/3] rounded-xl overflow-hidden bg-slate-100"><img src={slide.image} className="w-full h-full object-cover"/></div><button type="button" onClick={()=>openPicker('brand',slide.id,`Markamız görseli ${i+1}`)} className="mt-2 w-full px-3 py-2 rounded-xl bg-[#082C6C] text-white text-xs font-bold">Medya Kütüphanesinden Seç</button></div><div className="space-y-3"><h3 className="font-bold">Marka kartı {i+1}</h3><Field label="Etiket" value={slide.badge} onChange={v=>updateAboutSlide(slide.id,{badge:v})}/><Field label="Başlık" value={slide.title} onChange={v=>updateAboutSlide(slide.id,{title:v})}/><Field label="Alt başlık" value={slide.subtitle} onChange={v=>updateAboutSlide(slide.id,{subtitle:v})} multiline/><button onClick={()=>{updateAboutSlide(slide.id,{alt:slide.title});flash();}} className="px-4 py-2 rounded-xl bg-[#082C6C] text-white text-xs font-bold">Kaydet</button></div></div>)}</div></div>
-    {pickerOverlay}
-  </>;
+  if (page === 'brand') return <div className="space-y-6"><Header title={meta.title} description={meta.description} saved={saved}/><div className="grid gap-4">{aboutSlides.slice(0,4).map((slide,i)=><div key={slide.id} className="bg-white rounded-2xl border border-slate-200 p-5 grid md:grid-cols-[220px_1fr] gap-5"><div><div className="aspect-[4/3] rounded-xl overflow-hidden bg-slate-100"><img src={slide.image} className="w-full h-full object-cover"/></div><button type="button" onClick={()=>openPicker('brand',slide.id,`Markamız görseli ${i+1}`)} className="mt-2 w-full px-3 py-2 rounded-xl bg-[#082C6C] text-white text-xs font-bold">Medya Kütüphanesinden Seç</button></div><div className="space-y-3"><h3 className="font-bold">Marka kartı {i+1}</h3><Field label="Etiket" value={slide.badge} onChange={v=>updateAboutSlide(slide.id,{badge:v})}/><Field label="Başlık" value={slide.title} onChange={v=>updateAboutSlide(slide.id,{title:v})}/><Field label="Alt başlık" value={slide.subtitle} onChange={v=>updateAboutSlide(slide.id,{subtitle:v})} multiline/><button onClick={()=>{updateAboutSlide(slide.id,{alt:slide.title});flash();}} className="px-4 py-2 rounded-xl bg-[#082C6C] text-white text-xs font-bold">Kaydet</button></div></div>)}</div></div>;
 
-  if (page === 'workshop') return <>
-    <div className="space-y-6"><Header title={meta.title} description={meta.description} saved={saved}/><div className="grid gap-4">{craftsmanshipSteps.map(step=><div key={step.number} className="bg-white rounded-2xl border border-slate-200 p-5 grid md:grid-cols-[220px_1fr] gap-5"><div><div className="aspect-[4/3] rounded-xl overflow-hidden bg-slate-100"><img src={step.image} className="w-full h-full object-cover"/></div><button type="button" onClick={()=>openPicker('workshop',step.number,`Atölye aşaması ${step.number}`)} className="mt-2 w-full px-3 py-2 rounded-xl bg-[#082C6C] text-white text-xs font-bold">Medya Kütüphanesinden Seç</button></div><div className="space-y-3"><h3 className="font-bold">Üretim adımı {step.number}</h3><Field label="Başlık" value={step.title} onChange={v=>updateCraftsmanshipStep(step.number,{title:v})}/><Field label="Alt başlık" value={step.subtitle} onChange={v=>updateCraftsmanshipStep(step.number,{subtitle:v})}/><Field label="Açıklama" value={step.description} onChange={v=>updateCraftsmanshipStep(step.number,{description:v})} multiline/><button onClick={flash} className="px-4 py-2 rounded-xl bg-[#082C6C] text-white text-xs font-bold">Kaydet</button></div></div>)}</div></div>
-    {pickerOverlay}
-  </>;
+  if (page === 'workshop') return <div className="space-y-6"><Header title={meta.title} description={meta.description} saved={saved}/><section className="bg-white rounded-2xl border border-slate-200 p-5"><div className="flex items-center justify-between gap-4 mb-4"><div><h3 className="font-bold text-slate-900">Atölye Üst Banner Görseli</h3><p className="text-xs text-slate-500">Atölye sayfasının en üstündeki görsel artık sistemin sabit fotoğrafı değil; buradan seçilir.</p></div><button type="button" onClick={()=>openPicker('workshopHero','hero','Atölye üst banner görseli')} className="px-4 py-2 rounded-xl bg-[#082C6C] text-white text-xs font-bold">Medya Kütüphanesinden Seç</button></div><div className="h-48 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200">{images.craftsmanshipHeroImage ? <img src={images.craftsmanshipHeroImage} className="w-full h-full object-cover" alt="Atölye üst banner"/> : <div className="h-full flex items-center justify-center text-xs text-slate-400">Henüz özel banner seçilmedi.</div>}</div></section><div className="grid gap-4">{craftsmanshipSteps.map(step=><div key={step.number} className="bg-white rounded-2xl border border-slate-200 p-5 grid md:grid-cols-[220px_1fr] gap-5"><div><div className="aspect-[4/3] rounded-xl overflow-hidden bg-slate-100"><img src={step.image} className="w-full h-full object-cover"/></div><button type="button" onClick={()=>openPicker('workshop',step.number,`Atölye aşaması ${step.number}`)} className="mt-2 w-full px-3 py-2 rounded-xl bg-[#082C6C] text-white text-xs font-bold">Medya Kütüphanesinden Seç</button></div><div className="space-y-3"><h3 className="font-bold">Üretim adımı {step.number}</h3><Field label="Başlık" value={step.title} onChange={v=>updateCraftsmanshipStep(step.number,{title:v})}/><Field label="Alt başlık" value={step.subtitle} onChange={v=>updateCraftsmanshipStep(step.number,{subtitle:v})}/><Field label="Açıklama" value={step.description} onChange={v=>updateCraftsmanshipStep(step.number,{description:v})} multiline/><button onClick={flash} className="px-4 py-2 rounded-xl bg-[#082C6C] text-white text-xs font-bold">Kaydet</button></div></div>)}</div></div>;
 
   if (page === 'wholesale') return <div className="space-y-6"><Header title={meta.title} description={meta.description} saved={saved}/><div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3"><h3 className="font-bold">Öne Çıkan Toptan Ürünler</h3><p className="text-xs text-slate-500">En fazla 6 ürün seçin. Seçilenler ana sayfada ve toptan satış sayfasında öne çıkar.</p><FeaturedProducts collectionItems={collectionItems} updateCollectionItem={updateCollectionItem} featured={featured}/></div></div>;
 
-  return <div className="space-y-6"><Header title={meta.title} description={meta.description} saved={saved}/><div className="bg-white rounded-2xl border border-slate-200 p-5 grid md:grid-cols-2 gap-4"><Field label="Telefon" value={contactData.phoneDisplay || contactData.phone} onChange={v=>updateContactData({phoneDisplay:v,phone:v})}/><Field label="E-posta" value={contactData.email} onChange={v=>updateContactData({email:v})}/><Field label="WhatsApp" value={contactData.whatsappDisplay || contactData.whatsapp} onChange={v=>updateContactData({whatsappDisplay:v,whatsapp:v})}/><Field label="Adres" value={contactData.address} onChange={v=>updateContactData({address:v})} multiline/></div><div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4"><div><h3 className="font-bold">Kısa SSS</h3><p className="text-xs text-slate-500">İletişim sayfasında 4–6 kısa soru kullanın; uzun listeyi burada tutmayın.</p></div>{faqItems.slice(0,6).map(f=><div key={f.id} className="grid md:grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl"><Field label="Soru" value={f.question} onChange={v=>updateFaqItem(f.id,{question:v})}/><Field label="Cevap" value={f.answer} onChange={v=>updateFaqItem(f.id,{answer:v})} multiline/></div>)}<button onClick={()=>{faqItems.slice(6).forEach(f=>deleteFaqItem(f.id));flash();}} className="px-4 py-2 rounded-xl bg-[#082C6C] text-white text-xs font-bold">Kısa SSS'yi Kaydet</button></div>{pickerOverlay}</div>;
+  return <div className="space-y-6"><Header title={meta.title} description={meta.description} saved={saved}/><div className="bg-white rounded-2xl border border-slate-200 p-5 grid md:grid-cols-2 gap-4"><Field label="Telefon" value={contactData.phoneDisplay || contactData.phone} onChange={v=>updateContactData({phoneDisplay:v,phone:v})}/><Field label="E-posta" value={contactData.email} onChange={v=>updateContactData({email:v})}/><Field label="WhatsApp" value={contactData.whatsappDisplay || contactData.whatsapp} onChange={v=>updateContactData({whatsappDisplay:v,whatsapp:v})}/><Field label="Adres" value={contactData.address} onChange={v=>updateContactData({address:v})} multiline/></div><div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4"><div><h3 className="font-bold">Kısa SSS</h3><p className="text-xs text-slate-500">İletişim sayfasında 4–6 kısa soru kullanın; uzun listeyi burada tutmayın.</p></div>{faqItems.slice(0,6).map(f=><div key={f.id} className="grid md:grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl"><Field label="Soru" value={f.question} onChange={v=>updateFaqItem(f.id,{question:v})}/><Field label="Cevap" value={f.answer} onChange={v=>updateFaqItem(f.id,{answer:v})} multiline/></div>)}<button onClick={()=>{faqItems.slice(6).forEach(f=>deleteFaqItem(f.id));flash();}} className="px-4 py-2 rounded-xl bg-[#082C6C] text-white text-xs font-bold">Kısa SSS'yi Kaydet</button></div><ImageSelectModal isOpen={picker.open} onClose={closePicker} onSelectSystemImage={selectPickerImage} onUploadFromComputer={()=>{}} targetTitle={picker.title} allowComputerUpload={true}/></div>;
 };
 
 const Header = ({title,description,saved}:{title:string;description:string;saved:boolean}) => <div className="bg-[#062050] text-white rounded-2xl p-6 flex items-center justify-between gap-4"><div><h2 className="text-xl font-bold">{title}</h2><p className="text-xs text-blue-100 mt-1">{description}</p></div>{saved && <span className="text-xs font-bold flex items-center gap-1"><Check className="w-4 h-4"/> Kaydedildi</span>}</div>;

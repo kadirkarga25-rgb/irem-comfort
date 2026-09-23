@@ -104,6 +104,7 @@ export interface AppImages {
   heroImage: string;
   aboutImage: string;
   craftsmanshipImages: Record<string, string>; // step number -> image url
+  craftsmanshipHeroImage: string; // Atölye sayfası üst banner görseli
   collectionImages: Record<string, { image: string; secondaryImage?: string }>; // item id -> images
 }
 
@@ -187,6 +188,7 @@ const getDefaultImages = (): AppImages => {
     heroImage: DEFAULT_HERO_IMAGE,
     aboutImage: DEFAULT_ABOUT_IMAGE,
     craftsmanshipImages: craftMap,
+    craftsmanshipHeroImage: '',
     collectionImages: collMap
   };
 };
@@ -208,6 +210,7 @@ interface ImageContextType {
   updateHeroImage: (url: string) => void;
   updateAboutImage: (url: string) => void;
   updateCraftsmanshipImage: (stepNumber: string, url: string) => void;
+  updateCraftsmanshipHeroImage: (url: string) => void;
   updateCollectionImage: (itemId: string, field: 'image' | 'secondaryImage', url: string) => void;
   resetAllImages: () => void;
   
@@ -741,6 +744,16 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           [stepNumber]: cleanUrl
         }
       };
+      saveSection('images', { images: next });
+      return next;
+    });
+  };
+
+  const updateCraftsmanshipHeroImage = async (url: string) => {
+    setIsDirty(true);
+    const cleanUrl = await uploadImageToGithub(url, 'craftsmanship');
+    setImages(prev => {
+      const next = { ...prev, craftsmanshipHeroImage: cleanUrl };
       saveSection('images', { images: next });
       return next;
     });
@@ -1423,6 +1436,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateHeroImage,
         updateAboutImage,
         updateCraftsmanshipImage,
+        updateCraftsmanshipHeroImage,
         updateCollectionImage,
         resetAllImages,
         heroConfig: displayHeroConfig,
