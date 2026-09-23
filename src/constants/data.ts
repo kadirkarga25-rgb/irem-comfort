@@ -234,6 +234,20 @@ export const CRAFTSMANSHIP_STEPS: CraftsmanshipStep[] = [
     ],
     image: '',
     iconName: 'Award'
+  },
+  {
+    number: '05',
+    title: 'Son Hazırlık & Sevkiyat',
+    subtitle: 'Mağazanıza Hazır, Düzenli Toptan Sevkiyat',
+    description: 'Kalite kontrolü tamamlanan modeller numara ve renk bazında eşleştirilir, özenle paketlenir ve toptan sipariş planına göre sevkiyata hazırlanır.',
+    detailPoints: [
+      'Numara ve renk bazında çift kontrolü',
+      'Toptan siparişe göre koli ve etiketleme',
+      'Sevkiyat öncesi son ürün kontrolü',
+      'Mağazanıza düzenli ve güvenli teslimat hazırlığı'
+    ],
+    image: '',
+    iconName: 'Truck'
   }
 ];
 
@@ -429,7 +443,3 @@ export const DEFAULT_TESTIMONIALS: TestimonialItem[] = [
 
 
 
-
-
-/** Optional per-product fallback images. Real gallery images take precedence. */
-export const PREMIUM_PRODUCT_IMAGE_FALLBACKS: Record<string, string> = {};

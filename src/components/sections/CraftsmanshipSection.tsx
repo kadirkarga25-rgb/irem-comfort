@@ -62,10 +62,10 @@ export const CraftsmanshipSection: React.FC = () => {
             className="text-base text-[#111111]/70 font-light"
           >
             {language === 'tr'
-              ? 'İlk deri seçiminden son cila dokunuşuna kadar her bir İrem Comfort tasarımı dört hassas zanaat aşamasından geçer.'
+              ? 'İlk deri seçiminden son cila dokunuşuna kadar her bir İrem Comfort tasarımı beş hassas zanaat aşamasından geçer.'
               : language === 'en'
-              ? 'From the first leather selection to the final touch, every İrem Comfort design passes through four precise craftsmanship stages.'
-              : 'من اختيار الجلد الأول حتى اللمسة الأخيرة، يمر كل تصميم من إيرم كومفورت بأربع مراحل حرفية دقيقة.'}
+              ? 'From the first leather selection to the final touch, every İrem Comfort design passes through five precise craftsmanship stages.'
+              : 'من اختيار الجلد الأول حتى اللمسة الأخيرة، يمر كل تصميم من إيرم كومفورت بخمس مراحل حرفية دقيقة.'}
           </motion.p>
         </div>
 
@@ -149,7 +149,7 @@ export const CraftsmanshipSection: React.FC = () => {
                     </div>
                   )}
                   <div className="absolute top-4 right-4 px-4 py-1.5 rounded-full bg-[#0A2D6F] text-white text-xs font-bold tracking-widest uppercase">
-                    {language === 'tr' ? `Aşama ${activeStep.number} / 04` : language === 'en' ? `Stage ${activeStep.number} / 04` : `المرحلة ${activeStep.number} / 04`}
+                    {language === 'tr' ? `Aşama ${activeStep.number} / 05` : language === 'en' ? `Stage ${activeStep.number} / 05` : `المرحلة ${activeStep.number} / 05`}
                   </div>
                 </div>
 

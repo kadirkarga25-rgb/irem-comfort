@@ -13,6 +13,7 @@ interface ImageSelectModalProps {
   onUploadFromComputer: () => void;
   targetTitle?: string;
   recommendedSpecs?: string;
+  allowComputerUpload?: boolean;
 }
 
 export const ImageSelectModal: React.FC<ImageSelectModalProps> = ({
@@ -21,7 +22,8 @@ export const ImageSelectModal: React.FC<ImageSelectModalProps> = ({
   onSelectSystemImage,
   onUploadFromComputer,
   targetTitle = 'Görsel',
-  recommendedSpecs = ''
+  recommendedSpecs = '',
+  allowComputerUpload = true
 }) => {
   const [activeTab, setActiveTab] = useState<'system' | 'upload'>('system');
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
@@ -159,7 +161,7 @@ export const ImageSelectModal: React.FC<ImageSelectModalProps> = ({
               <span>Sistemdeki Görseller ({filteredFiles.length})</span>
             </button>
 
-            <button
+            {allowComputerUpload && <button
               onClick={() => setActiveTab('upload')}
               className={`px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all flex items-center gap-2 cursor-pointer ${
                 activeTab === 'upload'
@@ -169,7 +171,7 @@ export const ImageSelectModal: React.FC<ImageSelectModalProps> = ({
             >
               <Upload className="w-4 h-4 text-emerald-600" />
               <span>Cihazdan/Bilgisayardan Yükle</span>
-            </button>
+            </button>}
           </div>
 
           {/* Content Area */}
@@ -239,7 +241,7 @@ export const ImageSelectModal: React.FC<ImageSelectModalProps> = ({
                       Bu kategoride henüz sistem görseli bulunamadı.
                     </p>
                     <button
-                      onClick={() => onUploadFromComputer()}
+                      onClick={() => allowComputerUpload && onUploadFromComputer()}
                       className="px-4 py-2 bg-[#082C6C] text-white text-xs font-bold rounded-xl hover:bg-[#113d8d] transition cursor-pointer"
                     >
                       Bilgisayardan Yeni Görsel Yükle

@@ -19,6 +19,16 @@ import {
   getTranslatedAnnouncements 
 } from '../utils/dynamicTranslator';
 
+
+const normalizeCraftsmanshipSteps = (steps: CraftsmanshipStep[] | undefined | null): CraftsmanshipStep[] => {
+  const incoming = Array.isArray(steps) ? steps : [];
+  const defaults = CRAFTSMANSHIP_STEPS;
+  return defaults.map((fallback) => {
+    const existing = incoming.find((step) => String(step?.number) === String(fallback.number));
+    return existing ? deepMerge(fallback, existing) : fallback;
+  });
+};
+
 export const detectInitialLanguage = (): Language => {
   if (typeof window === 'undefined' || !window.location) return 'tr';
 
@@ -567,7 +577,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (s.contactData) setContactData(({...s.contactData} as any));
         if (s.announcements) setAnnouncements(s.announcements.filter((x:any)=>!String(x).toLowerCase().includes('trendyol')));
         if (s.collectionItems) setCollectionItems(s.collectionItems);
-        if (s.craftsmanshipSteps) setCraftsmanshipSteps(s.craftsmanshipSteps);
+        if (s.craftsmanshipSteps) setCraftsmanshipSteps(normalizeCraftsmanshipSteps(s.craftsmanshipSteps));
         if (s.faqItems) setFaqItems(s.faqItems);
         if (s.aboutSlides) setAboutSlides(s.aboutSlides);
         if (s.systemConfig) setSystemConfig(prev => ({ ...prev, ...s.systemConfig }));
@@ -646,7 +656,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             if (s.contactData) setContactData(({...s.contactData} as any));
             if (s.announcements) setAnnouncements(s.announcements.filter((x:any)=>!String(x).toLowerCase().includes('trendyol')));
             if (s.collectionItems) setCollectionItems(s.collectionItems);
-            if (s.craftsmanshipSteps) setCraftsmanshipSteps(s.craftsmanshipSteps);
+            if (s.craftsmanshipSteps) setCraftsmanshipSteps(normalizeCraftsmanshipSteps(s.craftsmanshipSteps));
             if (s.faqItems) setFaqItems(s.faqItems);
             if (s.aboutSlides) setAboutSlides(s.aboutSlides);
             if (s.systemConfig) setSystemConfig(prev => ({ ...prev, ...s.systemConfig }));
@@ -1212,7 +1222,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setContactData(restoredContactData);
     setAnnouncements(restoredAnnouncements);
     setCollectionItems(restoredCollectionItems);
-    setCraftsmanshipSteps(restoredCraftsmanshipSteps);
+    setCraftsmanshipSteps(normalizeCraftsmanshipSteps(restoredCraftsmanshipSteps));
     setFaqItems(restoredFaqItems);
     setAboutSlides(restoredAboutSlides);
     setTestimonials(restoredTestimonials);
@@ -1310,7 +1320,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (s.contactData) setContactData(({...s.contactData} as any));
         if (s.announcements) setAnnouncements(s.announcements.filter((x:any)=>!String(x).toLowerCase().includes('trendyol')));
         if (s.collectionItems) setCollectionItems(s.collectionItems);
-        if (s.craftsmanshipSteps) setCraftsmanshipSteps(s.craftsmanshipSteps);
+        if (s.craftsmanshipSteps) setCraftsmanshipSteps(normalizeCraftsmanshipSteps(s.craftsmanshipSteps));
         if (s.faqItems) setFaqItems(s.faqItems);
         if (s.aboutSlides) setAboutSlides(s.aboutSlides);
         if (s.systemConfig) setSystemConfig(s.systemConfig);
