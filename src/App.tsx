@@ -19,6 +19,7 @@ import { WholesalePage } from './pages/WholesalePage';
 import { BrandPage } from './pages/BrandPage';
 import { WorkshopPage } from './pages/WorkshopPage';
 import { ContactPage } from './pages/ContactPage';
+import { PublicEngagementPopups } from './components/ui/PublicEngagementPopups';
 
 function MainAppContent() {
   const { isSettingsLoaded, systemConfig } = useAppImages();
@@ -66,6 +67,7 @@ function MainAppContent() {
 
   return <>
     {content}
+    <PublicEngagementPopups />
     <LegalModal isOpen={Boolean(legalDoc)} initialType={legalDoc || 'privacy'} onClose={()=>setLegalDoc(null)} />
   </>;
 }

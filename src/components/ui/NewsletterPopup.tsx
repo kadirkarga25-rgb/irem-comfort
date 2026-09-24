@@ -1,11 +1,13 @@
 import React,{useEffect,useState} from 'react';
 import {Mail,X,ArrowRight,CheckCircle2} from 'lucide-react';
 
-export const NewsletterPopup:React.FC=()=>{
+interface NewsletterPopupProps { forceOpen?: boolean; onClose?: () => void; }
+
+export const NewsletterPopup:React.FC<NewsletterPopupProps>=({forceOpen=false,onClose})=>{
  const [open,setOpen]=useState(false); const [email,setEmail]=useState(''); const [busy,setBusy]=useState(false); const [done,setDone]=useState(false); const [error,setError]=useState('');
- useEffect(()=>{ if(localStorage.getItem('ic_newsletter_popup_closed_v2')==='1') return; const t=window.setTimeout(()=>setOpen(true),7000); return()=>window.clearTimeout(t); },[]);
+ useEffect(()=>{ if(forceOpen){setOpen(true);return;} const t=window.setTimeout(()=>setOpen(true),7000); return()=>window.clearTimeout(t); },[forceOpen]);
  if(!open) return null;
- const close=()=>{setOpen(false);localStorage.setItem('ic_newsletter_popup_closed_v2','1')};
+ const close=()=>{setOpen(false);onClose?.()};
  const submit=async(e:React.FormEvent)=>{e.preventDefault(); if(!email.includes('@')){setError('Geçerli bir e-posta adresi yazın.');return;} setBusy(true);setError(''); try{const r=await fetch('/api/newsletter/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,source:'Ana sayfa teklif ve katalog bildirimi'})}); const d=await r.json().catch(()=>({})); if(!r.ok||d.success===false) throw new Error(d.error||'Kayıt tamamlanamadı.'); setDone(true); setTimeout(close,1800);}catch(err:any){setError(err?.message||'Kayıt tamamlanamadı.');}finally{setBusy(false)}};
  return <div className="fixed right-4 bottom-24 sm:right-6 sm:bottom-28 z-[55] w-[min(92vw,380px)]">
   <div className="relative overflow-hidden rounded-3xl border border-[#102f59]/10 bg-white shadow-[0_24px_70px_rgba(16,47,89,.22)]">

@@ -107,16 +107,48 @@ export function detectStructure(pageTexts:string[], pageCount:number) {
 }
 
 const documentCache=new Map<any,any>();
+const pageImageCache=new Map<string,string>();
 export async function renderPdfPage(source:Blob|string,pageNumber:number,scale=1){
   if(typeof window==='undefined')throw new Error('PDF sayfası yalnızca tarayıcıda oluşturulabilir.');
-  const cacheKey = typeof source === 'string' ? source : source;
-  let pdf=documentCache.get(cacheKey as any);
+  const documentKey = typeof source === 'string' ? source : source;
+  const imageKey = `${typeof source === 'string' ? source : 'blob'}::${pageNumber}::${scale}`;
+  const cachedImage = pageImageCache.get(imageKey);
+  if(cachedImage) return cachedImage;
+  let pdf=documentCache.get(documentKey as any);
   if(!pdf){
     pdf=await openPdf(typeof source === 'string' ? source : await source.arrayBuffer());
-    documentCache.set(cacheKey as any,pdf);
+    documentCache.set(documentKey as any,pdf);
   }
   const page=await pdf.getPage(pageNumber); const viewport=page.getViewport({scale});
   const canvas=document.createElement('canvas'); canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
   const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas context oluşturulamadı.');
-  await page.render({canvasContext:ctx,viewport}).promise; return canvas.toDataURL('image/jpeg',scale<.5?.5:.72);
+  await page.render({canvasContext:ctx,viewport}).promise;
+  const image=canvas.toDataURL('image/jpeg',scale<.5?.5:.72);
+  pageImageCache.set(imageKey,image);
+  return image;
+}
+
+export async function preloadPdfPages(
+  source: Blob | string,
+  totalPages: number,
+  options: { startPage?: number; signal?: AbortSignal; scale?: number; onProgress?: (loaded: number, total: number) => void } = {}
+) {
+  const startPage = Math.max(1, options.startPage ?? 1);
+  const scale = options.scale ?? 1;
+  const total = Math.max(0, totalPages);
+  let loaded = 0;
+
+  for (let page = startPage; page <= total; page++) {
+    if (options.signal?.aborted) return;
+    try {
+      await renderPdfPage(source, page, scale);
+      loaded += 1;
+      options.onProgress?.(loaded, total - startPage + 1);
+    } catch {
+      // One broken page must not stop the remaining pages from preloading.
+    }
+    if (options.signal?.aborted) return;
+    // Give the browser a paint opportunity before starting the next PDF page.
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+  }
 }
