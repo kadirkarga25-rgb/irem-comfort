@@ -128,7 +128,7 @@ export const FairModal: React.FC<FairModalProps> = ({ isOpen, onClose }) => {
   const qrSrc = fairConfig.qrCodeUrl || 
     `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent('https://wa.me/' + (fairConfig.whatsappContact || '905336688329'))}`;
 
-  const logoUrl = heroConfig?.logoUrl || '/logo.png';
+  const logoUrl = '/images/irem-comfort-logo-full.svg';
 
   return (
     <AnimatePresence>
