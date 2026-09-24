@@ -1,6 +1,12 @@
 {
   "subscribers": [
     {
+      "id": "sub-1790247567799-grtwj",
+      "email": "kargakadir4525@gmail.com",
+      "createdAt": "2026-09-24T10:59:27.799Z",
+      "source": "Ana sayfa teklif ve katalog bildirimi"
+    },
+    {
       "id": "sub-1790241087467-jof8o",
       "email": "kargakr452577@gmail.com",
       "createdAt": "2026-09-24T09:11:27.467Z",
