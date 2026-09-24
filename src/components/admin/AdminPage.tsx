@@ -702,24 +702,30 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
       });
       const data = await res.json();
       if (data.success) {
-        showToast('E-posta abonesi eklendi!');
+        showToast(data.created === false ? 'Bu e-posta zaten bültene kayıtlı.' : 'E-posta abonesi kalıcı olarak kaydedildi!');
         setNewSubEmail('');
         if (data.subscriber) {
           setSubscribers(prev => [data.subscriber, ...prev.filter(s => s.email !== data.subscriber.email)]);
         }
+      } else {
+        throw new Error(data.error || 'Abone kaydedilemedi.');
       }
-    } catch (e) {
-      alert('Ekleme işlemi başarısız.');
+    } catch (e: any) {
+      alert(e?.message || 'Ekleme işlemi başarısız.');
     }
   };
 
   const handleDeleteSubscriber = async (id: string) => {
     try {
-      await fetch(`/api/newsletter/subscribers/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/newsletter/subscribers/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Abone silinemedi.');
+      }
       setSubscribers(prev => prev.filter(s => s.id !== id && s.email !== id));
-      showToast('Abone silindi.');
-    } catch (e) {
-      console.error('Silme hatası', e);
+      showToast('Abone kalıcı olarak silindi.');
+    } catch (e: any) {
+      alert(e?.message || 'Silme işlemi başarısız.');
     }
   };
 

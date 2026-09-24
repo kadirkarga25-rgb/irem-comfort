@@ -634,7 +634,7 @@ app.get("/api/contact/leads", (_req, res) => {
   res.json({ leads: contactLeads });
 });
 
-// Newsletter Memory Store & Endpoints
+// Newsletter persistent store & endpoints
 export interface NewsletterSubscriber {
   id: string;
   email: string;
@@ -647,36 +647,18 @@ const NEWSLETTER_WELCOME_SUBJECT = 'İrem Comfort — E-Bültenimize Hoş Geldin
 function buildNewsletterWelcomeHtml(email: string): string {
   const safeEmail = String(email).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   return `<!DOCTYPE html>
-<html lang="tr">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>İrem Comfort — Hoş Geldiniz</title></head>
+<html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>İrem Comfort — Hoş Geldiniz</title></head>
 <body style="margin:0;padding:0;background:#f3f5f8;font-family:Arial,Helvetica,sans-serif;color:#172033;">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f3f5f8;padding:28px 12px;">
-<tr><td align="center">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f3f5f8;padding:28px 12px;"><tr><td align="center">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:640px;background:#fff;border-radius:20px;overflow:hidden;border:1px solid #e3e7ec;">
-<tr><td style="background:#0b1f3a;padding:38px 30px;text-align:center;">
-<div style="font-family:Georgia,serif;font-size:29px;font-weight:700;letter-spacing:1.5px;color:#fff;">irem <span style="color:#c5a45a;">comfort</span></div>
-<div style="margin-top:9px;font-size:11px;font-weight:700;letter-spacing:2px;color:#f2d48a;text-transform:uppercase;">E-BÜLTEN &amp; YENİ KOLEKSİYON</div>
-</td></tr>
-<tr><td style="padding:42px 34px 36px;">
-<div style="display:inline-block;background:#f8f0dc;border:1px solid #ead7a7;color:#8a6a25;border-radius:999px;padding:7px 13px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">HOŞ GELDİNİZ</div>
+<tr><td style="background:#0b1f3a;padding:38px 30px;text-align:center;"><div style="font-family:Georgia,serif;font-size:29px;font-weight:700;letter-spacing:1.5px;color:#fff;">irem <span style="color:#c5a45a;">comfort</span></div><div style="margin-top:9px;font-size:11px;font-weight:700;letter-spacing:2px;color:#f2d48a;text-transform:uppercase;">E-BÜLTEN &amp; YENİ KOLEKSİYON</div></td></tr>
+<tr><td style="padding:42px 34px 36px;"><div style="display:inline-block;background:#f8f0dc;border:1px solid #ead7a7;color:#8a6a25;border-radius:999px;padding:7px 13px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">HOŞ GELDİNİZ</div>
 <h1 style="margin:18px 0 12px;color:#0b1f3a;font-family:Georgia,serif;font-size:28px;line-height:1.25;">İrem Comfort ailesine hoş geldiniz!</h1>
 <p style="margin:0 0 18px;font-size:16px;line-height:1.75;color:#475569;">E-bülten listemize başarıyla kaydoldunuz. Bundan sonra yeni koleksiyonlarımızı, sezon modellerimizi, fuar davetlerimizi ve önemli katalog güncellemelerimizi doğrudan e-posta adresinizden takip edebilirsiniz.</p>
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:26px 0;background:#f7f9fc;border-radius:14px;border:1px solid #e7ebf0;">
-<tr><td style="padding:22px 22px 18px;">
-<div style="font-size:13px;font-weight:800;color:#0b1f3a;margin-bottom:12px;">Sizi neler bekliyor?</div>
-<div style="font-size:14px;line-height:1.9;color:#526071;">✓ Yeni sezon ürün ve koleksiyon duyuruları<br>✓ Toptan katalog ve bayi bilgilendirmeleri<br>✓ Fuar davetleri ve etkinlik haberleri<br>✓ Özel kampanya ve fırsatlardan haberdar olma</div>
-</td></tr></table>
 <div style="text-align:center;margin:30px 0 8px;"><a href="https://iremcomfort.com" target="_blank" style="display:inline-block;background:#0b1f3a;color:#fff;text-decoration:none;padding:14px 28px;border-radius:999px;font-size:14px;font-weight:700;">Web Sitemizi Ziyaret Edin →</a></div>
-<p style="margin:26px 0 0;text-align:center;font-size:12px;line-height:1.6;color:#94a3b8;">Bu e-posta, <strong>${safeEmail}</strong> adresinin İrem Comfort e-bülten listesine kaydolması üzerine gönderilmiştir.</p>
-</td></tr>
-<tr><td style="background:#111827;padding:27px 28px;text-align:center;color:#9ca3af;font-size:12px;line-height:1.7;">
-<div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:6px;">İrem Comfort Ayakkabıcılık</div>
-<div>Hakiki Deri Comfort Terlik &amp; Sandalet</div>
-<div style="margin-top:5px;">info@iremcomfort.com • 0533 029 71 25</div>
-</td></tr>
-</table>
-</td></tr></table>
-</body></html>`;
+<p style="margin:26px 0 0;text-align:center;font-size:12px;line-height:1.6;color:#94a3b8;">Bu e-posta, <strong>${safeEmail}</strong> adresinin İrem Comfort e-bülten listesine kaydolması üzerine gönderilmiştir.</p></td></tr>
+<tr><td style="background:#111827;padding:27px 28px;text-align:center;color:#9ca3af;font-size:12px;line-height:1.7;"><div style="color:#fff;font-weight:700;font-size:14px;margin-bottom:6px;">İrem Comfort Ayakkabıcılık</div><div>Hakiki Deri Comfort Terlik &amp; Sandalet</div><div style="margin-top:5px;">info@iremcomfort.com • 0533 029 71 25</div></td></tr>
+</table></td></tr></table></body></html>`;
 }
 
 async function sendNewsletterWelcomeEmail(email: string): Promise<boolean> {
@@ -697,96 +679,149 @@ async function sendNewsletterWelcomeEmail(email: string): Promise<boolean> {
 }
 
 let newsletterSubscribers: NewsletterSubscriber[] = [];
-let newsletterWriteQueue: Promise<unknown> = Promise.resolve();
+let newsletterWriteQueue: Promise<any> = Promise.resolve();
 let newsletterLoaded = false;
-async function loadNewsletterSubscribers(){ if(newsletterLoaded) return newsletterSubscribers; const data=await readGithubJsonFile(NEWSLETTER_SUBSCRIBERS_PATH,{subscribers:newsletterSubscribers}); if(Array.isArray(data?.subscribers)) newsletterSubscribers=data.subscribers; newsletterLoaded=true; return newsletterSubscribers; }
-async function persistNewsletterSubscribers(){
-  newsletterWriteQueue = newsletterWriteQueue.then(() => writeGithubJsonFile(NEWSLETTER_SUBSCRIBERS_PATH,{subscribers:newsletterSubscribers},'E-bülten abone listesi güncellendi'));
-  await newsletterWriteQueue;
+
+function normalizeNewsletterSubscribers(value: any): NewsletterSubscriber[] {
+  const rows = Array.isArray(value?.subscribers) ? value.subscribers : [];
+  const seen = new Set<string>();
+  const result: NewsletterSubscriber[] = [];
+  for (const row of rows) {
+    const email = String(row?.email || '').trim().toLowerCase();
+    if (!email || !email.includes('@') || seen.has(email)) continue;
+    seen.add(email);
+    result.push({
+      id: String(row?.id || `sub-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`),
+      email,
+      createdAt: String(row?.createdAt || new Date().toISOString()),
+      ...(row?.source ? { source: String(row.source) } : {})
+    });
+  }
+  return result;
+}
+
+async function refreshNewsletterSubscribers() {
+  const data = await readGithubJsonFile(NEWSLETTER_SUBSCRIBERS_PATH, { subscribers: [] });
+  newsletterSubscribers = normalizeNewsletterSubscribers(data);
+  newsletterLoaded = true;
+  return newsletterSubscribers;
+}
+
+/**
+ * Mutations always re-read the GitHub file before writing.
+ * This prevents one Vercel instance from overwriting subscribers written by another instance.
+ * A GitHub 409 is retried against the newest file.
+ */
+async function mutateNewsletterSubscribers<T>(mutator: (current: NewsletterSubscriber[]) => { next: NewsletterSubscriber[]; result: T }) {
+  newsletterWriteQueue = newsletterWriteQueue.then(async () => {
+    let lastError: any = null;
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      const current = await refreshNewsletterSubscribers();
+      const mutation = mutator([...current]);
+      try {
+        await writeGithubJsonFile(
+          NEWSLETTER_SUBSCRIBERS_PATH,
+          { subscribers: mutation.next },
+          'E-bülten abone listesi güncellendi'
+        );
+        newsletterSubscribers = mutation.next;
+        newsletterLoaded = true;
+        return mutation.result;
+      } catch (err: any) {
+        lastError = err;
+        if (!String(err?.message || '').includes('HTTP 409') || attempt === 5) throw err;
+        await new Promise(resolve => setTimeout(resolve, 150 * attempt));
+      }
+    }
+    throw lastError || new Error('E-bülten kaydı güncellenemedi.');
+  });
+  return newsletterWriteQueue as Promise<T>;
 }
 
 app.post("/api/newsletter/subscribe", async (req, res) => {
   try {
-    await loadNewsletterSubscribers();
     const { email, source } = req.body || {};
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return res.status(400).json({ success: false, error: "Lütfen geçerli bir e-posta adresi yazınız." });
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const existing = newsletterSubscribers.find(s => s.email === cleanEmail);
-    if (existing) {
-      return res.json({
-        success: true,
-        message: "E-posta adresiniz zaten bülten aboneliğimize kayıtlıdır.",
-        subscriber: existing
-      });
-    }
+    let created = false;
+    const result = await mutateNewsletterSubscribers(current => {
+      const existing = current.find(s => s.email === cleanEmail);
+      if (existing) return { next: current, result: { subscriber: existing } };
 
-    const newSub: NewsletterSubscriber = {
-      id: `sub-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      email: cleanEmail,
-      createdAt: new Date().toISOString(),
-      source: source || 'Web Form'
-    };
+      const newSub: NewsletterSubscriber = {
+        id: `sub-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        email: cleanEmail,
+        createdAt: new Date().toISOString(),
+        source: source || 'Web Form'
+      };
+      created = true;
+      return { next: [newSub, ...current], result: { subscriber: newSub } };
+    });
 
-    newsletterSubscribers.unshift(newSub);
-    await persistNewsletterSubscribers();
-
-    const welcomeEmailSent = await sendNewsletterWelcomeEmail(cleanEmail);
-
+    const welcomeEmailSent = created ? await sendNewsletterWelcomeEmail(cleanEmail) : false;
     return res.json({
       success: true,
-      message: "İrem Comfort e-bülten ve katalog bilgilendirme listesine kaydınız başarıyla oluşturuldu!",
-      subscriber: newSub,
-      welcomeEmailSent
+      message: created
+        ? "İrem Comfort e-bülten ve katalog bilgilendirme listesine kaydınız başarıyla oluşturuldu!"
+        : "E-posta adresiniz zaten bülten aboneliğimize kayıtlıdır.",
+      subscriber: result.subscriber,
+      welcomeEmailSent,
+      created
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Error in /api/newsletter/subscribe:", err);
-    return res.status(500).json({ success: false, error: "Sunucu hatası oluştu." });
+    return res.status(500).json({ success: false, error: err?.message || "Abonelik kaydedilemedi. GitHub kayıt bağlantısını kontrol edin." });
   }
 });
 
 app.get("/api/newsletter/subscribers", async (req, res) => {
-  try { if(!getAdminSessionFromRequest(req)) return res.status(401).json({success:false,error:"Yönetici oturumu geçersiz."}); await loadNewsletterSubscribers(); return res.json({ subscribers: newsletterSubscribers }); } catch(err:any){ return res.status(500).json({success:false,error:err?.message||"Abone listesi okunamadı."}); }
+  try {
+    if (!getAdminSessionFromRequest(req)) return res.status(401).json({ success: false, error: "Yönetici oturumu geçersiz." });
+    // Always fetch the latest file; never serve a stale serverless-memory list.
+    const subscribers = await refreshNewsletterSubscribers();
+    return res.json({ subscribers });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || "Abone listesi okunamadı." });
+  }
 });
 
 app.delete("/api/newsletter/subscribers/:id", async (req, res) => {
   try {
-    if(!getAdminSessionFromRequest(req)) return res.status(401).json({success:false,error:"Yönetici oturumu geçersiz."});
-    await loadNewsletterSubscribers();
+    if (!getAdminSessionFromRequest(req)) return res.status(401).json({ success: false, error: "Yönetici oturumu geçersiz." });
     const { id } = req.params;
-    const index = newsletterSubscribers.findIndex(s => s.id === id || s.email === id);
-    if (index !== -1) {
-      const removed = newsletterSubscribers.splice(index, 1);
-      await persistNewsletterSubscribers();
-      return res.json({ success: true, message: "Abone başarıyla silindi.", removed: removed[0] });
-    }
-    return res.status(404).json({ success: false, error: "Abone bulunamadı." });
-  } catch(err:any){ return res.status(500).json({success:false,error:err?.message||"Abone silinemedi."}); }
+    const result = await mutateNewsletterSubscribers(current => {
+      const index = current.findIndex(s => s.id === id || s.email === id);
+      if (index === -1) return { next: current, result: { found: false as const } };
+      const next = [...current];
+      const removed = next.splice(index, 1)[0];
+      return { next, result: { found: true as const, removed } };
+    });
+
+    if (!result.found) return res.status(404).json({ success: false, error: "Abone bulunamadı." });
+    return res.json({ success: true, message: "Abone başarıyla silindi.", removed: result.removed });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || "Abone silinemedi. Kayıt GitHub'a yazılamadı." });
+  }
 });
 
 app.post("/api/newsletter/send-bulk", async (req, res) => {
   try {
-    await loadNewsletterSubscribers();
+    await refreshNewsletterSubscribers();
     const { subject, htmlBody, targetEmails } = req.body || {};
-
-    if (!subject || !htmlBody) {
-      return res.status(400).json({ success: false, error: "Konu başlığı ve e-posta içeriği gereklidir." });
-    }
+    if (!subject || !htmlBody) return res.status(400).json({ success: false, error: "Konu başlığı ve e-posta içeriği gereklidir." });
 
     const recipients: string[] = Array.isArray(targetEmails) && targetEmails.length > 0
-      ? targetEmails
+      ? targetEmails.map((e: any) => String(e).trim().toLowerCase()).filter((e: string) => e.includes('@'))
       : newsletterSubscribers.map(s => s.email);
 
-    if (recipients.length === 0) {
-      return res.status(400).json({ success: false, error: "E-posta gönderilecek kayıtlı abone bulunamadı." });
-    }
+    if (recipients.length === 0) return res.status(400).json({ success: false, error: "E-posta gönderilecek kayıtlı abone bulunamadı." });
 
     let sentCount = 0;
     let failedCount = 0;
     const errors: string[] = [];
-
     const transporter = getTransporter(currentEmailConfig);
 
     for (const email of recipients) {
@@ -795,7 +830,7 @@ app.post("/api/newsletter/send-bulk", async (req, res) => {
           await transporter.sendMail({
             from: `"${currentEmailConfig.senderName || 'İrem Comfort'}" <${currentEmailConfig.senderEmail || currentEmailConfig.smtpUser}>`,
             to: email,
-            subject: subject,
+            subject,
             html: htmlBody,
           });
           sentCount++;
@@ -810,7 +845,7 @@ app.post("/api/newsletter/send-bulk", async (req, res) => {
 
     return res.json({
       success: true,
-      message: transporter 
+      message: transporter
         ? `${sentCount} aboneye e-posta bülteni başarıyla iletildi.${failedCount > 0 ? ` (${failedCount} tanesi iletilemedi)` : ''}`
         : `${sentCount} aboneye simülasyon modunda işlendi. Gerçek e-posta gönderimi için lütfen 'E-Posta & SMTP' sekmesinden SMTP şifrenizi giriniz.`,
       sentCount,
