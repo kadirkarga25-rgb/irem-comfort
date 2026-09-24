@@ -39,7 +39,7 @@ export const PublicEngagementPopups: React.FC = () => {
   return (
     <>
       <FairModal isOpen={fairOpen} onClose={closeFair} />
-      <NewsletterPopup forceOpen={newsletterOpen} onClose={() => setNewsletterOpen(false)} />
+      <NewsletterPopup forceOpen={newsletterOpen} autoOpen={false} onClose={() => setNewsletterOpen(false)} />
     </>
   );
 };

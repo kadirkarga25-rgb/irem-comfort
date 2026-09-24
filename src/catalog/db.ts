@@ -12,15 +12,15 @@ export async function listPdfLibraryForCatalog(){
   const d=await r.json();
   return Array.isArray(d?.files)?d.files:[];
 }
-async function withPdf(c:Catalog){
-  // PDF is stored as a real file in GitHub. Do not download it through the
-  // Vercel API here; the viewer will let PDF.js read pdfUrl directly with
-  // HTTP range requests. This keeps large PDFs out of the serverless memory
-  // path and avoids the old 302/502/"PDF indirilemedi" failure mode.
+async function withPdf(c:Catalog, publicViewer=false){
+  // Public viewers always read through our same-origin range proxy. This avoids
+  // mobile Safari/Chrome CORS and cross-origin PDF range quirks while still
+  // keeping the large PDF out of the catalog JSON and loading it incrementally.
+  if (publicViewer && c.pdfUrl) return {...c, pdfUrl:`${API}/catalogs/${encodeURIComponent(c.id)}/pdf`};
   return c;
 }
 export async function listCatalogs(admin=false){const r=await fetch(admin?`${API}/catalogs/admin/list`:`${API}/catalogs`,{cache:'no-store',headers:admin?{Authorization:`Bearer ${getCatalogAdminToken()}`} : undefined});if(!r.ok)return [];const d=await r.json();return(d.catalogs||[]).map(clean).sort((a:Catalog,b:Catalog)=>Number(b.year)-Number(a.year)||b.createdAt-a.createdAt);}
-export async function getCatalog(id:string,admin=false){const r=await fetch(`${API}/catalogs/${admin?`admin/${encodeURIComponent(id)}`:encodeURIComponent(id)}`,{cache:'no-store',headers:admin?{Authorization:`Bearer ${getCatalogAdminToken()}`} : undefined});if(!r.ok)return undefined;const d=await r.json();return d.catalog?withPdf(clean(d.catalog)):undefined;}
+export async function getCatalog(id:string,admin=false){const r=await fetch(`${API}/catalogs/${admin?`admin/${encodeURIComponent(id)}`:encodeURIComponent(id)}`,{cache:'no-store',headers:admin?{Authorization:`Bearer ${getCatalogAdminToken()}`} : undefined});if(!r.ok)return undefined;const d=await r.json();return d.catalog?withPdf(clean(d.catalog), !admin):undefined;}
 async function uploadData(id:string,data:Blob,filename:string){const bytes=new Uint8Array(await data.arrayBuffer());let binary='';const chunk=0x8000;for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));const base64=btoa(binary);const r=await fetch(`${API}/catalogs/upload`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${getCatalogAdminToken()}`},body:JSON.stringify({id,data:`data:${data.type||'application/octet-stream'};base64,${base64}`,filename})});const d=await r.json();if(!r.ok||!d.success)throw new Error(d.error||'Dosya yüklenemedi.');return (d.rawUrl || d.url) as string;}
 export async function saveCatalog(catalog:Catalog){const value:any={...catalog};if(value.pdfLibraryId){
   delete value.pdf;
