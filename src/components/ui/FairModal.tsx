@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import confetti from 'canvas-confetti';
 import { useAppImages } from '../../context/ImageContext';
 import { 
   Calendar, MapPin, QrCode, X, Clock, Send, ExternalLink, 
@@ -34,16 +33,6 @@ export const FairModal: React.FC<FairModalProps> = ({ isOpen, onClose }) => {
       setIsEnvelopeOpened(false);
       setCutProgress(0);
       if (trackEvent) trackEvent('fairModalOpens');
-      try {
-        confetti({
-          particleCount: 70,
-          spread: 60,
-          origin: { y: 0.6 },
-          colors: ['#062050', '#082C6C', '#2563EB', '#3B82F6', '#FFFFFF', '#10B981']
-        });
-      } catch (err) {
-        console.warn('Confetti launch skipped:', err);
-      }
     }
   }, [isOpen, fairConfig.enabled, trackEvent]);
 
@@ -86,16 +75,6 @@ export const FairModal: React.FC<FairModalProps> = ({ isOpen, onClose }) => {
     if (trackEvent) trackEvent('fairCuts');
     setTimeout(() => {
       setIsEnvelopeOpened(true);
-      try {
-        confetti({
-          particleCount: 150,
-          spread: 100,
-          origin: { y: 0.5 },
-          colors: ['#062050', '#082C6C', '#2563EB', '#3B82F6', '#FFFFFF', '#10B981']
-        });
-      } catch {
-        // Confetti fallback
-      }
     }, 250);
   };
 

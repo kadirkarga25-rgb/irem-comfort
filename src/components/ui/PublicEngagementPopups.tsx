@@ -5,8 +5,8 @@ import { useAppImages } from '../../context/ImageContext';
 
 /**
  * Public-site engagement sequence.
- * Every fresh site load gets a new sequence; localStorage is intentionally not used.
- * 1) Fair invitation after 5s (when enabled)
+ * The fair invitation is shown once per browser session.
+ * 1) Fair invitation after 5s (when enabled and not already shown in this session)
  * 2) Newsletter 10s after the fair closes
  *    If there is no active fair, newsletter appears 10s after page load.
  */
@@ -17,8 +17,11 @@ export const PublicEngagementPopups: React.FC = () => {
 
   useEffect(() => {
     let newsletterTimer: number | undefined;
+    const fairAlreadyShown = sessionStorage.getItem('iremcomfort_fair_seen_session') === '1';
+
     const fairTimer = window.setTimeout(() => {
-      if (fairConfig?.enabled) {
+      if (fairConfig?.enabled && !fairAlreadyShown) {
+        sessionStorage.setItem('iremcomfort_fair_seen_session', '1');
         setFairOpen(true);
       } else {
         newsletterTimer = window.setTimeout(() => setNewsletterOpen(true), 10000);
@@ -39,7 +42,7 @@ export const PublicEngagementPopups: React.FC = () => {
   return (
     <>
       <FairModal isOpen={fairOpen} onClose={closeFair} />
-      <NewsletterPopup forceOpen={newsletterOpen} autoOpen={false} onClose={() => setNewsletterOpen(false)} />
+      <NewsletterPopup forceOpen={newsletterOpen} onClose={() => setNewsletterOpen(false)} />
     </>
   );
 };
