@@ -668,12 +668,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
       const loadSubscribers = async () => {
         setIsSubscribersLoading(true);
         try {
-          const res = await fetch('/api/newsletter/subscribers');
-          if (res.ok) {
-            const data = await res.json();
-            if (data.subscribers && Array.isArray(data.subscribers)) {
-              setSubscribers(data.subscribers);
-            }
+          const res = await fetch('/api/newsletter/subscribers', {
+            headers: sessionToken ? { Authorization: `Bearer ${sessionToken}` } : undefined,
+            cache: 'no-store'
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data?.error || `Abone listesi alınamadı (HTTP ${res.status}).`);
+          }
+          if (Array.isArray(data?.subscribers)) {
+            setSubscribers(data.subscribers);
           }
         } catch (e) {
           console.log('Subscriber fetch error');
@@ -686,7 +690,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
       loadEmailConfig();
       loadSubscribers();
     }
-  }, [isAuthenticated, activeTab]);
+  }, [isAuthenticated, activeTab, sessionToken]);
 
   const handleAddSubscriber = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -717,7 +721,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
   const handleDeleteSubscriber = async (id: string) => {
     try {
-      const res = await fetch(`/api/newsletter/subscribers/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const res = await fetch(`/api/newsletter/subscribers/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: sessionToken ? { Authorization: `Bearer ${sessionToken}` } : undefined
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
         throw new Error(data.error || 'Abone silinemedi.');
