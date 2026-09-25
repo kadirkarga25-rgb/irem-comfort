@@ -700,9 +700,52 @@ function normalizeNewsletterSubscribers(value: any): NewsletterSubscriber[] {
   return result;
 }
 
+/**
+ * Newsletter has its own canonical JSON file, just like site_settings.json.
+ * IMPORTANT: unlike the generic JSON reader, this reader NEVER converts a GitHub
+ * read/auth/network error into an empty list. An empty fallback here would be
+ * dangerous because the next save could overwrite the real subscriber list.
+ */
+async function readNewsletterSubscribersFromGithub(): Promise<NewsletterSubscriber[]> {
+  const { token, repo, branch } = await getGithubAuth();
+  if (!token || !repo) {
+    throw new Error('E-bülten kalıcı kayıt kaynağına erişilemedi: GitHub kimlik doğrulaması yok.');
+  }
+
+  const url = `https://api.github.com/repos/${repo}/contents/${NEWSLETTER_SUBSCRIBERS_PATH}?ref=${encodeURIComponent(branch)}`;
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'IremComfortApp',
+      'Cache-Control': 'no-cache'
+    }
+  });
+
+  if (response.status === 404) {
+    // File has never existed: this is the only case where an empty list is safe.
+    return [];
+  }
+
+  if (!response.ok) {
+    throw new Error(`E-bülten kayıt dosyası okunamadı (GitHub HTTP ${response.status}).`);
+  }
+
+  const data = await response.json();
+  if (!data?.content) throw new Error('E-bülten kayıt dosyasının içeriği alınamadı.');
+
+  try {
+    const parsed = JSON.parse(Buffer.from(String(data.content).replace(/\n/g, ''), 'base64').toString('utf8'));
+    return normalizeNewsletterSubscribers(parsed);
+  } catch {
+    throw new Error('E-bülten kayıt dosyası bozuk veya geçersiz JSON içeriyor.');
+  }
+}
+
 async function refreshNewsletterSubscribers() {
-  const data = await readGithubJsonFile(NEWSLETTER_SUBSCRIBERS_PATH, { subscribers: [] });
-  newsletterSubscribers = normalizeNewsletterSubscribers(data);
+  const subscribers = await readNewsletterSubscribersFromGithub();
+  newsletterSubscribers = subscribers;
   newsletterLoaded = true;
   return newsletterSubscribers;
 }
@@ -711,9 +754,10 @@ async function refreshNewsletterSubscribers() {
  * Mutations always re-read the GitHub file before writing.
  * This prevents one Vercel instance from overwriting subscribers written by another instance.
  * A GitHub 409 is retried against the newest file.
+ * A previous failed mutation must NOT permanently poison the queue.
  */
 async function mutateNewsletterSubscribers<T>(mutator: (current: NewsletterSubscriber[]) => { next: NewsletterSubscriber[]; result: T }) {
-  newsletterWriteQueue = newsletterWriteQueue.then(async () => {
+  newsletterWriteQueue = newsletterWriteQueue.catch(() => undefined).then(async () => {
     let lastError: any = null;
     for (let attempt = 1; attempt <= 5; attempt++) {
       const current = await refreshNewsletterSubscribers();
@@ -721,7 +765,11 @@ async function mutateNewsletterSubscribers<T>(mutator: (current: NewsletterSubsc
       try {
         await writeGithubJsonFile(
           NEWSLETTER_SUBSCRIBERS_PATH,
-          { subscribers: mutation.next },
+          {
+            version: 1,
+            updatedAt: new Date().toISOString(),
+            subscribers: mutation.next
+          },
           'E-bülten abone listesi güncellendi'
         );
         newsletterSubscribers = mutation.next;
@@ -792,7 +840,7 @@ app.delete("/api/newsletter/subscribers/:id", async (req, res) => {
   try {
     if (!getAdminSessionFromRequest(req)) return res.status(401).json({ success: false, error: "Yönetici oturumu geçersiz." });
     const { id } = req.params;
-    const result = await mutateNewsletterSubscribers(current => {
+    const result = await mutateNewsletterSubscribers<{ found: boolean; removed?: NewsletterSubscriber }>(current => {
       const index = current.findIndex(s => s.id === id || s.email === id);
       if (index === -1) return { next: current, result: { found: false as const } };
       const next = [...current];
@@ -3125,7 +3173,7 @@ app.post('/api/pdf-library/delete', async (req, res) => {
 });
 
 async function sendNewsletterAnnouncement(subject: string, htmlBody: string): Promise<{sentCount:number;failedCount:number;errors:string[];isSimulation:boolean}> {
-  await loadNewsletterSubscribers();
+  await refreshNewsletterSubscribers();
   const recipients = [...new Set(newsletterSubscribers.map(s => String(s.email || '').trim().toLowerCase()).filter(e => e.includes('@')))];
   const transporter = getTransporter(currentEmailConfig);
   let sentCount = 0, failedCount = 0;
