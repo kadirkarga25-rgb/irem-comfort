@@ -1,3 +1,17 @@
+export interface FairTemplateConfig {
+  enabled?: boolean;
+  name?: string;
+  location?: string;
+  standNumber?: string;
+  startDate?: string;
+  endDate?: string;
+  description?: string;
+  posterUrl?: string;
+  qrCodeUrl?: string;
+  badgeText?: string;
+  whatsappContact?: string;
+}
+
 export interface EmailTemplateParams {
   title: string;
   subtitle?: string;
@@ -11,64 +25,182 @@ export interface EmailTemplateParams {
   contactEmail?: string;
   contactAddress?: string;
   specialOfferBox?: string;
+  fairConfig?: FairTemplateConfig;
 }
 
-export const EMAIL_TEMPLATES = [
+const FALLBACK_BANNER = 'https://www.iremcomfort.com/images/irem-comfort-logo-full.svg';
+
+const formatDate = (value?: string) => {
+  if (!value) return '';
+  const parsed = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'long', year: 'numeric' }).format(parsed);
+};
+
+const dateRange = (start?: string, end?: string) => {
+  const a = formatDate(start);
+  const b = formatDate(end);
+  if (a && b) return `${a} – ${b}`;
+  return a || b || '';
+};
+
+const fairWhatsappUrl = (phone?: string) => {
+  const clean = (phone || '').replace(/\D/g, '');
+  return clean ? `https://wa.me/${clean}` : 'https://www.iremcomfort.com/#iletisim';
+};
+
+export interface EmailTemplateDefinition {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  accent: string;
+  defaultSubject: string;
+  defaultBadge: string;
+  defaultTitle: string;
+  defaultSubtitle: string;
+  defaultBody: string;
+  defaultCtaText: string;
+  defaultCtaUrl: string;
+  defaultBanner: string;
+  defaultSpecialOfferBox?: string;
+}
+
+export const EMAIL_TEMPLATES: EmailTemplateDefinition[] = [
   {
     id: 'catalog',
-    name: '👠 Yeni Sezon Koleksiyonu & Katalog Bülteni',
-    description: 'En son çıkan deri terlik ve sandalet modellerini müşterilerinize ve bayilerinize duyurmak için şık katalog e-postası.',
-    defaultSubject: 'İrem Comfort 2026-2027 Yeni Sezon Hakiki Deri Koleksiyon Kataloğu Yayınlandı!',
-    defaultBadge: 'YENİ SEZON KATALOĞU',
-    defaultTitle: '2026-2027 Bayan Comfort Sandalet & Terlik Koleksiyonumuzu Keşfedin!',
-    defaultSubtitle: 'Manisa Ayakkabıcılar Sitesi İmalat Atölyemizden %100 Hakiki Deri Kalitesi',
-    defaultBody: `Değerli Müşterimiz ve İş Ortağımız,\n\nİrem Comfort olarak Manisa Ayakkabıcılar Sitesindeki atölyemizde özenle imal ettiğimiz %100 hakiki deri, anatomik yumuşak tabanlı bayan comfort terlik ve sandalet koleksiyonumuzun yeni sezon kataloğu hazırlandı.\n\nUzun saatler ayakta kalan kadınlar için geliştirilen ortopedik sabo modellerimiz, çift tokalı zamansız klasiklerimiz ve şık yazlık sandaletlerimizi incelemek için sizleri online kataloğumuza bekliyoruz.`,
-    defaultCtaText: 'Koleksiyonu & Kataloğu İnceleyin',
-    defaultCtaUrl: 'https://iremcomfort.com/#collection',
-    defaultBanner: 'https://images.unsplash.com/photo-1603808033176-9d134e6f2c74?auto=format&fit=crop&q=80&w=1200'
+    name: 'Yeni Sezon • Katalog',
+    category: 'Koleksiyon',
+    accent: 'blue',
+    description: 'Yeni sezonu, koleksiyonları ve dijital kataloğu premium bir vitrin düzeninde duyurur.',
+    defaultSubject: 'İrem Comfort | 2026–2027 Yeni Sezon Koleksiyonu Yayında',
+    defaultBadge: 'YENİ SEZON',
+    defaultTitle: 'Mağazanızın yeni comfort koleksiyonu hazır.',
+    defaultSubtitle: 'Hakiki deri • Konfor odaklı üretim • Manisa',
+    defaultBody: `Değerli Müşterimiz ve İş Ortağımız,\n\nİrem Comfort 2026–2027 yeni sezon koleksiyonumuzu sizlerle buluşturuyoruz. Hakiki deri terlik, sandalet ve comfort modellerimizi mağazanız için tek bir dijital katalogda inceleyebilirsiniz.\n\nYeni modelleri, koleksiyon detaylarını ve üretim yaklaşımımızı keşfetmek için sizi kataloğumuza bekliyoruz.`,
+    defaultCtaText: 'Yeni Sezon Kataloğunu Aç',
+    defaultCtaUrl: 'https://www.iremcomfort.com/katalog',
+    defaultBanner: 'https://images.unsplash.com/photo-1603808033176-9d134e6f2c74?auto=format&fit=crop&q=85&w=1400'
   },
   {
     id: 'fair',
-    name: '🏛️ Fuar Davetiyesi & Stand Ziyareti (AYMOD / İFM)',
-    description: 'Sektör fuarları için bayilerinizi ve müşterilerinizi standınıza davet eden resmi fuar e-postası.',
-    defaultSubject: 'Davetiye: AYMOD Uluslararası Ayakkabı Moda Fuarı - İrem Comfort Standı',
-    defaultBadge: 'RESMİ FUAR DAVETİYESİ',
-    defaultTitle: 'AYMOD Fuarı Standımıza Davetlisiniz!',
-    defaultSubtitle: 'İstanbul Fuar Merkezi (İFM) Yeşilköy | Hall 4 - Stand B214',
-    defaultBody: `Sayın Sektör Temsilcisi ve Değerli Müşterimiz,\n\n20-23 Ağustos 2026 tarihlerinde İstanbul Fuar Merkezi (İFM) Yeşilköy'de düzenlenecek olan AYMOD Uluslararası Ayakkabı Moda Fuarı'nda sizleri ağırlamaktan onur duyarız.\n\n2026-2027 Sezonu Kadın & Erkek Hakiki Deri Terlik, Sandalet ve Ortopedik Comfort ürünlerimizi canlı incelemek, özel toptan sipariş şartlarımızı görüşmek üzere sizleri standımıza bekliyoruz.`,
-    defaultCtaText: 'Fuar Stand Konumu & Ücretsiz Davetiye',
-    defaultCtaUrl: 'https://iremcomfort.com/#fair',
-    defaultBanner: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&q=80&w=1200',
-    defaultStandInfo: 'Hall 4 - Stand B214 | İstanbul Fuar Merkezi'
+    name: 'Fuar • Davetiye',
+    category: 'Fuar',
+    accent: 'gold',
+    description: 'Fuar modülündeki güncel isim, tarih, salon/stand, konum, açıklama, afiş ve WhatsApp bilgilerini otomatik kullanır.',
+    defaultSubject: 'İrem Comfort | Fuar Standımıza Davetlisiniz',
+    defaultBadge: 'FUAR DAVETİYESİ',
+    defaultTitle: 'Yeni sezonu fuarda birlikte keşfedelim.',
+    defaultSubtitle: 'Güncel fuar bilgileri otomatik olarak buraya gelir.',
+    defaultBody: `Değerli İş Ortağımız,\n\nİrem Comfort olarak yeni sezon koleksiyonumuzu fuarda sizlerle buluşturuyoruz. Standımızda modellerimizi yakından inceleyebilir, toptan sipariş ve iş birliği detaylarını ekibimizle görüşebilirsiniz.\n\nSizi standımızda ağırlamaktan memnuniyet duyarız.`,
+    defaultCtaText: 'Fuar Bilgilerini Gör',
+    defaultCtaUrl: 'https://www.iremcomfort.com/#fair',
+    defaultBanner: FALLBACK_BANNER
   },
   {
     id: 'wholesale',
-    name: '💼 Toptan Sipariş & Özel Bayi İndirimi Bülteni',
-    description: 'Mağaza sahipleri ve toptan alıcılar için özel serili seri sipariş ve toptan fiyat avantajı duyurusu.',
-    defaultSubject: 'Toptan Bayi Fırsatı: İrem Comfort Hakiki Deri Terlik & Sandalet İmalat Fiyatları',
-    defaultBadge: 'TOPTAN & BAYİ ÖZEL DANIŞMA',
-    defaultTitle: 'Doğrudan İmalatçıdan Mağazanıza Özel Toptan Fiyatlar',
-    defaultSubtitle: 'Aracısız Üretim Güvencesi | Seri Sipariş & Özel Etiket İmalatı',
-    defaultBody: `Sayın Mağaza Yetkilisi,\n\nİrem Comfort olarak Manisa atölyemizden doğrudan mağazanıza yüksek marjlı ve yüksek kaliteli %100 hakiki deri bayan terlik ve sandalet tedariği sağlıyoruz.\n\nBu aya özel toptan koli siparişlerinde avantajlı nakliye ve özel seri indirimlerimiz başlamıştır. Detaylı ürün kataloğu ve toptan fiyat listemiz için doğrudan WhatsApp hattımızdan bizimle iletişime geçebilirsiniz.`,
-    defaultCtaText: 'WhatsApp Toptan İletişim Hattı',
-    defaultCtaUrl: 'https://wa.me/905330297125?text=Merhaba,%20toptan%20fiyat%20listesi%20almak%20istiyorum.',
-    defaultBanner: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&q=80&w=1200',
-    defaultSpecialOfferBox: '⚡ Bu Ay Verilecek Toptan Seri Siparişlerinde Ücretsiz Kargo & Özel Mağaza Teşhir Standı Hediye!'
+    name: 'Toptan • İş Ortaklığı',
+    category: 'B2B',
+    accent: 'navy',
+    description: 'Mağaza sahiplerine yönelik üretici, toptan sipariş ve WhatsApp iletişim odaklı profesyonel duyuru.',
+    defaultSubject: 'İrem Comfort | Mağazanız için Toptan Comfort Koleksiyonu',
+    defaultBadge: 'TOPTAN İŞ ORTAKLIĞI',
+    defaultTitle: 'Üreticiden mağazanıza, düzenli comfort tedariki.',
+    defaultSubtitle: 'Manisa merkezli üretim • Mağaza odaklı çalışma',
+    defaultBody: `Sayın Mağaza Yetkilisi,\n\nİrem Comfort olarak kadın comfort terlik ve sandalet koleksiyonlarımızı üreticiden doğrudan mağazalara sunuyoruz. Koleksiyon, seri sipariş ve tedarik planlaması hakkında ekibimizden bilgi alabilirsiniz.\n\nSize uygun modelleri birlikte belirlemek için bizimle iletişime geçmeniz yeterli.`,
+    defaultCtaText: 'Toptan Bilgi Al',
+    defaultCtaUrl: 'https://wa.me/905330297125?text=Merhaba%2C%20toptan%20koleksiyon%20hakkında%20bilgi%20almak%20istiyorum.',
+    defaultBanner: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&q=85&w=1400'
+  },
+  {
+    id: 'collection',
+    name: 'Koleksiyon • Vitrin',
+    category: 'Ürün',
+    accent: 'ivory',
+    description: 'Tek bir koleksiyonu veya seçili modelleri sade, ürün odaklı bir vitrin mantığında öne çıkarır.',
+    defaultSubject: 'İrem Comfort | Mağazanız için Yeni Modeller',
+    defaultBadge: 'KOLEKSİYON SEÇKİSİ',
+    defaultTitle: 'Mağazanızın vitrinine yeni modeller.',
+    defaultSubtitle: 'Seçili comfort modellerini şimdi inceleyin.',
+    defaultBody: `Değerli İş Ortağımız,\n\nBu bültende mağazanız için öne çıkan modellerimizi bir araya getirdik. Ürünleri inceleyerek koleksiyonunuz için uygun modelleri seçebilir, sipariş detayları için bizimle iletişime geçebilirsiniz.`,
+    defaultCtaText: 'Modelleri İncele',
+    defaultCtaUrl: 'https://www.iremcomfort.com/urunler',
+    defaultBanner: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=85&w=1400'
+  },
+  {
+    id: 'announcement',
+    name: 'Duyuru • Kurumsal',
+    category: 'Duyuru',
+    accent: 'slate',
+    description: 'Firma duyuruları, çalışma takvimi, önemli bilgilendirmeler ve özel haberler için temiz kurumsal şablon.',
+    defaultSubject: 'İrem Comfort | Önemli Duyuru',
+    defaultBadge: 'İREM COMFORT DUYURU',
+    defaultTitle: 'Sizin için önemli bir gelişmemiz var.',
+    defaultSubtitle: 'Güncel bilgilendirmeler ve iş ortaklarımız için notlar.',
+    defaultBody: `Değerli Müşterilerimiz ve İş Ortaklarımız,\n\nİrem Comfort ile ilgili önemli gelişmeleri, çalışma takvimimizi veya yeni hizmetlerimizi sizlerle paylaşmak istiyoruz.\n\nSorularınız ve talepleriniz için iletişim kanallarımızdan bize ulaşabilirsiniz.`,
+    defaultCtaText: 'İletişime Geç',
+    defaultCtaUrl: 'https://www.iremcomfort.com/iletisim',
+    defaultBanner: FALLBACK_BANNER
   },
   {
     id: 'custom',
-    name: '📝 Serbest Duyuru & Özel Müşteri E-Postası',
-    description: 'Konu, içerik ve butonunu tamamen özgürce yazabileceğiniz kurumsal şablon.',
-    defaultSubject: 'İrem Comfort - Önemli Duyuru & Bilgilendirme',
-    defaultBadge: 'İREM COMFORT DUYURU',
-    defaultTitle: 'İrem Comfort Özel Bilgilendirme',
-    defaultSubtitle: 'Hakiki Deri Bayan Comfort Terlik & Sandalet İmalatı',
-    defaultBody: `Değerli Müşterilerimiz,\n\nAtölyemiz ve koleksiyonumuzla ilgili en güncel gelişmeleri paylaşmaktan mutluluk duyuyoruz. Tüm soru, görüş ve sipariş talepleriniz için iletişim kanallarımızdan bize dilediğiniz zaman ulaşabilirsiniz.`,
-    defaultCtaText: 'Web Sitemizi Ziyaret Edin',
-    defaultCtaUrl: 'https://iremcomfort.com',
-    defaultBanner: 'https://images.unsplash.com/photo-1603808033176-9d134e6f2c74?auto=format&fit=crop&q=80&w=1200'
+    name: 'Özel • Serbest Şablon',
+    category: 'Özel',
+    accent: 'dark',
+    description: 'Başlık, metin, görsel ve butonları tamamen sizin belirlediğiniz boş ama premium kurumsal temel.',
+    defaultSubject: 'İrem Comfort | Yeni Bilgilendirme',
+    defaultBadge: 'İREM COMFORT',
+    defaultTitle: 'İrem Comfort’tan size özel bir bilgilendirme.',
+    defaultSubtitle: 'Hakiki deri comfort ürünleri • Manisa',
+    defaultBody: `Değerli Müşterimiz,\n\nBu alanı kendi duyurunuz için özgürce düzenleyebilirsiniz.`,
+    defaultCtaText: 'Web Sitesini Ziyaret Et',
+    defaultCtaUrl: 'https://www.iremcomfort.com',
+    defaultBanner: FALLBACK_BANNER
   }
 ];
+
+export const getFairTemplateDefaults = (fair: FairTemplateConfig): Partial<EmailTemplateDefinition> => {
+  const name = fair.name?.trim() || 'İrem Comfort Fuar Katılımı';
+  const location = fair.location?.trim() || 'Fuar bilgileri yönetim panelinden güncellenecek.';
+  const stand = fair.standNumber?.trim() || '';
+  const dates = dateRange(fair.startDate, fair.endDate);
+  const badge = fair.badgeText?.trim() || 'FUAR DAVETİYESİ';
+  const description = fair.description?.trim();
+  const title = `${name} • Standımıza Davetlisiniz`;
+  const subtitleParts = [location, stand, dates].filter(Boolean);
+  const whatsapp = fairWhatsappUrl(fair.whatsappContact);
+
+  return {
+    defaultSubject: `İrem Comfort | ${name} - Standımıza Davetlisiniz`,
+    defaultBadge: badge,
+    defaultTitle: title,
+    defaultSubtitle: subtitleParts.join(' • '),
+    defaultBody: `Değerli İş Ortağımız,\n\nİrem Comfort olarak ${name} kapsamında sizleri standımıza davet ediyoruz.\n\n${description || 'Yeni sezon koleksiyonumuzu yakından inceleyebilir, modellerimiz ve toptan iş birliği seçeneklerimiz hakkında ekibimizden bilgi alabilirsiniz.'}\n\nSizi standımızda ağırlamaktan memnuniyet duyarız.`,
+    defaultCtaText: 'Fuar Detayları & Standımız',
+    defaultCtaUrl: 'https://www.iremcomfort.com/#fair',
+    defaultBanner: fair.posterUrl?.trim() || FALLBACK_BANNER,
+    defaultSpecialOfferBox: [
+      dates ? `📅 ${dates}` : '',
+      location ? `📍 ${location}` : '',
+      stand ? `📌 ${stand}` : ''
+    ].filter(Boolean).join('   •   '),
+    fairConfig: fair as any,
+    whatsappUrl: whatsapp
+  } as any;
+};
+
+export const getEmailTemplateDefaults = (tplId: string, fair?: FairTemplateConfig) => {
+  const tpl = EMAIL_TEMPLATES.find(t => t.id === tplId) || EMAIL_TEMPLATES[0];
+  if (tpl.id !== 'fair' || !fair) return tpl;
+  return { ...tpl, ...getFairTemplateDefaults(fair) };
+};
+
+const escapeHtml = (value: string = '') => value
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;');
 
 export function renderEmailHtml(params: EmailTemplateParams): string {
   const {
@@ -79,19 +211,25 @@ export function renderEmailHtml(params: EmailTemplateParams): string {
     ctaUrl,
     bannerImage,
     badgeText,
-    specialOfferBox,
+    standInfo,
     contactPhone = '0533 029 71 25',
     contactEmail = 'info@iremcomfort.com',
-    contactAddress = 'Manisa Ayakkabıcılar Sitesi 5757.Sk No:21/A Yunusemre/Manisa'
+    contactAddress = 'Manisa Ayakkabıcılar Sitesi 5757.Sk No:21/A Yunusemre/Manisa',
+    specialOfferBox,
+    fairConfig
   } = params;
 
-  // Convert plain text line breaks to HTML paragraphs
   const paragraphsHtml = bodyText
     .split('\n\n')
     .map(p => p.trim())
     .filter(Boolean)
-    .map(p => `<p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #334155;">${p.replace(/\n/g, '<br/>')}</p>`)
+    .map(p => `<p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#334155;">${escapeHtml(p).replace(/\n/g, '<br/>')}</p>`)
     .join('');
+
+  const fairDates = dateRange(fairConfig?.startDate, fairConfig?.endDate);
+  const fairWhatsapp = fairWhatsappUrl(fairConfig?.whatsappContact);
+  const hasFairDetails = Boolean(fairConfig && (fairConfig.name || fairConfig.location || fairConfig.standNumber || fairDates));
+  const heroImage = bannerImage || FALLBACK_BANNER;
 
   return `
 <!DOCTYPE html>
@@ -99,111 +237,54 @@ export function renderEmailHtml(params: EmailTemplateParams): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
+  <title>${escapeHtml(title)}</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
-  
-  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f1f5f9; padding: 20px 10px;">
-    <tr>
-      <td align="center">
-        
-        <!-- Main Card Container -->
-        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 620px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08); border: 1px solid #e2e8f0;">
-          
-          <!-- Header Banner -->
-          <tr>
-            <td style="background-color: #082C6C; padding: 28px 32px; text-align: center;">
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
-                <tr>
-                  <td align="center">
-                    <span style="font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: 1.5px; text-transform: uppercase; font-family: 'Georgia', serif;">İREM COMFORT</span>
-                    <div style="font-size: 11px; color: #fcd34d; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-top: 4px;">HAKİKİ DERİ BAYAN COMFORT TERLİK & SANDALET</div>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+<body style="margin:0;padding:0;background:#eef2f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#0f172a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#eef2f6;padding:22px 10px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:680px;background:#fff;border:1px solid #e2e8f0;border-radius:22px;overflow:hidden;">
+        <tr>
+          <td style="background:#082C6C;padding:22px 28px 20px;text-align:center;">
+            <div style="font-family:Georgia,serif;font-size:23px;line-height:1;font-weight:800;letter-spacing:2px;color:#fff;">İREM COMFORT</div>
+            <div style="margin-top:8px;font-size:10px;letter-spacing:2px;color:#f3c969;font-weight:800;">HAKİKİ DERİ • COMFORT • MANİSA</div>
+          </td>
+        </tr>
+        <tr><td><img src="${heroImage}" alt="${escapeHtml(title)}" style="display:block;width:100%;height:260px;object-fit:cover;background:#f8fafc;" /></td></tr>
+        <tr><td style="padding:34px 34px 28px;">
+          ${badgeText ? `<div style="display:inline-block;padding:7px 11px;border-radius:999px;background:#f7ecd1;color:#72520b;border:1px solid #e7cf91;font-size:10px;font-weight:900;letter-spacing:1.2px;">${escapeHtml(badgeText)}</div>` : ''}
+          <h1 style="margin:16px 0 9px;font-size:29px;line-height:1.18;color:#082C6C;font-weight:850;">${escapeHtml(title)}</h1>
+          ${subtitle ? `<div style="font-size:14px;line-height:1.6;color:#64748b;font-weight:650;">${escapeHtml(subtitle)}</div>` : ''}
+          <div style="height:1px;background:#e8edf3;margin:25px 0 24px;"></div>
+          ${paragraphsHtml}
 
-          ${bannerImage ? `
-          <!-- Image Banner -->
-          <tr>
-            <td>
-              <img src="${bannerImage}" alt="${title}" style="width: 100%; max-height: 280px; object-fit: cover; display: block;" />
-            </td>
-          </tr>
-          ` : ''}
+          ${hasFairDetails ? `
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:24px 0;background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;">
+            <tr><td style="padding:18px 18px 14px;">
+              <div style="font-size:10px;letter-spacing:1.5px;color:#9a741d;font-weight:900;margin-bottom:8px;">FUAR BİLGİLERİ</div>
+              ${fairConfig?.name ? `<div style="font-size:17px;font-weight:850;color:#082C6C;margin-bottom:8px;">${escapeHtml(fairConfig.name)}</div>` : ''}
+              ${fairDates ? `<div style="font-size:13px;color:#334155;margin-top:5px;">📅 <strong>${escapeHtml(fairDates)}</strong></div>` : ''}
+              ${fairConfig?.location ? `<div style="font-size:13px;color:#334155;margin-top:5px;">📍 ${escapeHtml(fairConfig.location)}</div>` : ''}
+              ${fairConfig?.standNumber ? `<div style="font-size:13px;color:#334155;margin-top:5px;">📌 <strong>${escapeHtml(fairConfig.standNumber)}</strong></div>` : ''}
+              ${fairConfig?.whatsappContact ? `<div style="font-size:13px;color:#334155;margin-top:5px;">💬 WhatsApp: ${escapeHtml(fairConfig.whatsappContact)}</div>` : ''}
+              ${fairConfig?.qrCodeUrl ? `<div style="margin-top:14px;text-align:center;"><img src="${escapeHtml(fairConfig.qrCodeUrl)}" alt="Fuar WhatsApp QR" width=120 height=120 style="display:inline-block;width:120px;height:120px;object-fit:contain;background:#fff;padding:6px;border:1px solid #e2e8f0;border-radius:12px;" /><div style="font-size:10px;color:#64748b;margin-top:5px;">WhatsApp / Fuar Bilgi QR</div></div>` : ''}
+            </td></tr>
+          </table>` : ''}
 
-          <!-- Body Content Area -->
-          <tr>
-            <td style="padding: 36px 32px 28px 32px;">
-              
-              ${badgeText ? `
-              <div style="display: inline-block; background-color: #fef3c7; color: #92400e; font-size: 11px; font-weight: 800; padding: 5px 12px; border-radius: 6px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; border: 1px solid #fde68a;">
-                ${badgeText}
-              </div>
-              ` : ''}
+          ${specialOfferBox ? `<div style="margin:22px 0;padding:15px 17px;background:#fff9eb;border:1px solid #ead39b;border-left:4px solid #b58a2b;border-radius:12px;font-size:13px;line-height:1.6;color:#62480c;font-weight:750;">${escapeHtml(specialOfferBox)}</div>` : ''}
 
-              <h1 style="margin: 0 0 8px 0; font-size: 22px; font-weight: 800; color: #0a2d6f; line-height: 1.3;">
-                ${title}
-              </h1>
-
-              ${subtitle ? `
-              <h2 style="margin: 0 0 20px 0; font-size: 14px; font-weight: 600; color: #64748b; line-height: 1.4;">
-                ${subtitle}
-              </h2>
-              ` : ''}
-
-              <div style="border-bottom: 2px solid #f1f5f9; margin-bottom: 24px;"></div>
-
-              <!-- Paragraphs -->
-              ${paragraphsHtml}
-
-              ${specialOfferBox ? `
-              <!-- Special Highlight Box -->
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #eff6ff; border-left: 4px solid #082C6C; border-radius: 8px; margin: 24px 0;">
-                <tr>
-                  <td style="padding: 16px 20px; font-size: 13px; font-weight: 700; color: #1e3a8a; line-height: 1.5;">
-                    ${specialOfferBox}
-                  </td>
-                </tr>
-              </table>
-              ` : ''}
-
-              ${(ctaText && ctaUrl) ? `
-              <!-- CTA Button -->
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 28px; margin-bottom: 12px;">
-                <tr>
-                  <td align="center">
-                    <a href="${ctaUrl}" target="_blank" style="display: inline-block; background-color: #082C6C; color: #ffffff; font-size: 14px; font-weight: 800; text-decoration: none; padding: 14px 28px; border-radius: 10px; box-shadow: 0 4px 12px rgba(8, 44, 108, 0.25); letter-spacing: 0.5px;">
-                      ${ctaText} &rarr;
-                    </a>
-                  </td>
-                </tr>
-              </table>
-              ` : ''}
-
-            </td>
-          </tr>
-
-          <!-- Footer Area -->
-          <tr>
-            <td style="background-color: #0f172a; padding: 28px 32px; color: #94a3b8; font-size: 12px; line-height: 1.6; text-align: center;">
-              <div style="font-size: 13px; font-weight: 700; color: #ffffff; margin-bottom: 6px;">İrem Comfort Deri San. ve Tic.</div>
-              <div>📍 ${contactAddress}</div>
-              <div style="margin-top: 4px;">📞 Bilgi Hattı: <a href="tel:${contactPhone.replace(/\s+/g, '')}" style="color: #fcd34d; text-decoration: none; font-weight: bold;">${contactPhone}</a> | ✉️ ${contactEmail}</div>
-              <div style="margin-top: 16px; pt-12; border-top: 1px solid #334155; font-size: 11px; color: #64748b;">
-                Bu e-posta, İrem Comfort e-bülten veya katalog listesine kayıtlı e-posta adresinize gönderilmiştir.
-              </div>
-            </td>
-          </tr>
-
-        </table>
-
-      </td>
-    </tr>
+          ${ctaText && ctaUrl ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:28px 0 4px;"><tr><td align="center"><a href="${escapeHtml(ctaUrl)}" target="_blank" style="display:inline-block;background:#082C6C;color:#fff;text-decoration:none;padding:15px 28px;border-radius:12px;font-size:14px;font-weight:850;letter-spacing:.2px;">${escapeHtml(ctaText)} &nbsp;→</a></td></tr></table>` : ''}
+          ${fairConfig?.whatsappContact ? `<div style="text-align:center;margin-top:14px;"><a href="${fairWhatsapp}" target="_blank" style="font-size:12px;color:#082C6C;text-decoration:none;font-weight:750;">WhatsApp ile bilgi al →</a></div>` : ''}
+        </td></tr>
+        <tr><td style="background:#0b1728;padding:25px 28px;text-align:center;color:#9eacbd;font-size:11px;line-height:1.7;">
+          <div style="font-size:13px;color:#fff;font-weight:800;margin-bottom:5px;">İrem Comfort</div>
+          <div>📍 ${escapeHtml(contactAddress)}</div>
+          <div style="margin-top:4px;">📞 ${escapeHtml(contactPhone)} &nbsp;•&nbsp; ✉️ ${escapeHtml(contactEmail)}</div>
+          ${standInfo ? `<div style="margin-top:9px;color:#d8b56a;font-weight:700;">${escapeHtml(standInfo)}</div>` : ''}
+          <div style="margin-top:15px;padding-top:12px;border-top:1px solid #263447;color:#66758a;">Bu e-posta İrem Comfort haber bülteni listenizde kayıtlı adresinize gönderilmiştir.</div>
+        </td></tr>
+      </table>
+    </td></tr>
   </table>
-
 </body>
-</html>
-  `.trim();
+</html>`.trim();
 }

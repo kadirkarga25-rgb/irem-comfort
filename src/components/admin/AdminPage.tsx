@@ -26,7 +26,7 @@ import { ConversationLogsAdminTab } from './ConversationLogsAdminTab';
 import { CatalogAdminTab } from './CatalogAdminTab';
 import { TestimonialsAdminTab } from './TestimonialsAdminTab';
 import { FirstTimeSetupModal } from './FirstTimeSetupModal';
-import { EMAIL_TEMPLATES, renderEmailHtml } from '../../utils/emailTemplates';
+import { EMAIL_TEMPLATES, getEmailTemplateDefaults, renderEmailHtml } from '../../utils/emailTemplates';
 import { 
   Lock, Key, User, LogOut, ExternalLink, Image as ImageIcon, BookOpen, 
   Upload, RotateCcw, Check, Sparkles, Sliders, Layers, Eye, Link, 
@@ -598,7 +598,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
   // Function to apply default values for selected email template
   const applyTemplateDefaults = (tplId: string) => {
-    const tpl = EMAIL_TEMPLATES.find(t => t.id === tplId) || EMAIL_TEMPLATES[0];
+    const tpl = getEmailTemplateDefaults(tplId, fairConfig);
     setSelectedTemplateId(tpl.id);
     setNewsletterSubject(tpl.defaultSubject);
     setNewsletterBadge(tpl.defaultBadge || '');
@@ -613,7 +613,24 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
 
   useEffect(() => {
     applyTemplateDefaults('catalog');
+    // İlk açılışta hazır şablonun gerçek fuar ayarlarını kullanabilmesi için fairConfig mevcut olmalı.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Fuar şablonu seçiliyken fuar modülündeki güncel bilgiler e-posta içeriğine otomatik yansır.
+  useEffect(() => {
+    if (selectedTemplateId !== 'fair') return;
+    const tpl = getEmailTemplateDefaults('fair', fairConfig);
+    setNewsletterSubject(tpl.defaultSubject || '');
+    setNewsletterBadge(tpl.defaultBadge || '');
+    setNewsletterTitle(tpl.defaultTitle || '');
+    setNewsletterSubtitle(tpl.defaultSubtitle || '');
+    setNewsletterBody(tpl.defaultBody || '');
+    setNewsletterCtaText(tpl.defaultCtaText || '');
+    setNewsletterCtaUrl(tpl.defaultCtaUrl || '');
+    setNewsletterBanner(tpl.defaultBanner || '');
+    setNewsletterOfferBox(tpl.defaultSpecialOfferBox || '');
+  }, [fairConfig, selectedTemplateId]);
 
   // Email Config State
   const [emailConfig, setEmailConfig] = useState({
@@ -799,6 +816,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
       bannerImage: newsletterBanner,
       badgeText: newsletterBadge,
       specialOfferBox: newsletterOfferBox,
+      fairConfig: selectedTemplateId === 'fair' ? fairConfig : undefined,
       contactPhone: contactData.phoneDisplay,
       contactEmail: contactData.email,
       contactAddress: contactData.address
@@ -849,6 +867,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
       bannerImage: newsletterBanner,
       badgeText: newsletterBadge,
       specialOfferBox: newsletterOfferBox,
+      fairConfig: selectedTemplateId === 'fair' ? fairConfig : undefined,
       contactPhone: contactData.phoneDisplay,
       contactEmail: contactData.email,
       contactAddress: contactData.address
@@ -3382,40 +3401,51 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
               <div className="space-y-6">
                 
                 {/* 1. Template Chooser Cards */}
-                <div className="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                  <div>
-                    <h3 className="font-bold text-[#111111] text-base flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-amber-500" />
-                      <span>Hazır HTML E-Posta Şablonları</span>
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Aşağıdaki hazır şablonlardan birini seçerek metinlerini, ürün başlıklarını ve bağlantılarını düzenleyebilirsiniz.
-                    </p>
+                <div className="relative overflow-hidden p-6 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-5">
+                  <div className="absolute -right-16 -top-20 w-48 h-48 rounded-full bg-[#082C6C]/5 blur-2xl pointer-events-none" />
+                  <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-9 h-9 rounded-xl bg-[#082C6C] flex items-center justify-center shadow-sm">
+                          <Sparkles className="w-4.5 h-4.5 text-amber-300" />
+                        </div>
+                        <div>
+                          <h3 className="font-extrabold text-slate-950 text-base">Hazır E-Posta Şablonları</h3>
+                          <p className="text-[11px] text-slate-500 mt-0.5">İrem Comfort kimliğine göre hazırlanmış premium HTML şablonları.</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl">
+                      {EMAIL_TEMPLATES.length} hazır şablon • Mobil uyumlu
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="relative grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                     {EMAIL_TEMPLATES.map((tpl) => {
                       const isSelected = selectedTemplateId === tpl.id;
+                      const accentClass = tpl.accent === 'gold' ? 'from-amber-50 to-white border-amber-200' : tpl.accent === 'navy' ? 'from-blue-50 to-white border-blue-200' : tpl.accent === 'ivory' ? 'from-[#faf7f2] to-white border-stone-200' : 'from-slate-50 to-white border-slate-200';
                       return (
-                        <div
+                        <button
                           key={tpl.id}
+                          type="button"
                           onClick={() => applyTemplateDefaults(tpl.id)}
-                          className={`p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
-                            isSelected
-                              ? 'bg-blue-50/70 border-[#082C6C] shadow-md ring-2 ring-[#082C6C]/20'
-                              : 'bg-white border-slate-200 hover:border-[#082C6C]/40 hover:bg-slate-50'
-                          }`}
+                          className={`group text-left p-4 rounded-2xl border bg-gradient-to-br transition-all cursor-pointer ${accentClass} ${isSelected ? 'ring-2 ring-[#082C6C]/20 border-[#082C6C] shadow-lg -translate-y-0.5' : 'hover:-translate-y-0.5 hover:shadow-md'}`}
                         >
-                          <div>
-                            <h4 className="font-bold text-slate-900 text-xs sm:text-sm">{tpl.name}</h4>
-                            <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">{tpl.description}</p>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black ${isSelected ? 'bg-[#082C6C] text-white' : 'bg-white text-[#082C6C] border border-slate-200'}`}>
+                              {tpl.id === 'fair' ? 'F' : tpl.id === 'catalog' ? 'K' : tpl.id === 'wholesale' ? 'B2B' : tpl.id === 'collection' ? 'Ü' : tpl.id === 'announcement' ? 'D' : 'Ö'}
+                            </div>
+                            <span className={`text-[9px] uppercase tracking-widest font-black px-2 py-1 rounded-full ${isSelected ? 'bg-[#082C6C] text-white' : 'bg-white/80 text-slate-500 border border-slate-200'}`}>{isSelected ? 'Seçili' : tpl.category}</span>
                           </div>
-                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded w-fit ${
-                            isSelected ? 'bg-[#082C6C] text-white' : 'bg-slate-100 text-slate-600'
-                          }`}>
-                            {isSelected ? '✓ Seçili Şablon' : 'Şablonu Seç'}
-                          </span>
-                        </div>
+                          <h4 className="mt-3 font-extrabold text-slate-900 text-sm">{tpl.name}</h4>
+                          <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed min-h-[34px]">{tpl.description}</p>
+                          {tpl.id === 'fair' && (
+                            <div className="mt-3 flex items-center gap-1.5 text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+                              <Calendar className="w-3 h-3" />
+                              Fuar modülünden otomatik bilgi alır
+                            </div>
+                          )}
+                        </button>
                       );
                     })}
                   </div>
@@ -3435,6 +3465,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                         Dinamik HTML
                       </span>
                     </div>
+
+                    {selectedTemplateId === 'fair' && (
+                      <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-900 leading-relaxed flex gap-2">
+                        <Calendar className="w-4 h-4 shrink-0 mt-0.5" />
+                        <span><strong>Fuar şablonu otomatik bağlı.</strong> Fuar & Etkinlik Modülü'ndeki isim, tarih, konum, salon/stand, açıklama, afiş ve WhatsApp bilgileri güncellendikçe bu şablona yansır.</span>
+                      </div>
+                    )}
 
                     <div className="space-y-3.5 text-xs">
                       <div>
@@ -3635,6 +3672,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
                             bannerImage: newsletterBanner,
                             badgeText: newsletterBadge,
                             specialOfferBox: newsletterOfferBox,
+                            fairConfig: selectedTemplateId === 'fair' ? fairConfig : undefined,
                             contactPhone: contactData.phoneDisplay,
                             contactEmail: contactData.email,
                             contactAddress: contactData.address
