@@ -1,21 +1,30 @@
-# Gizli katalog grupları
+# Gizli katalog grupları — GitHub depolaması
 
-Bu değişiklik mevcut İrem Comfort deposunda ayrı bir dalda hazırlanmıştır; ana `main` dalına doğrudan gönderilmemiştir.
+Bu özellik mevcut İrem Comfort deposuna eklenmiştir. Vercel Blob kullanılmaz. Özel katalog PDF parçaları ve grup kayıtları, aynı GitHub deposundaki ayrı `${PRIVATE_CATALOG_DATA_BRANCH}` dalında **AES-256-GCM ile şifrelenmiş** olarak tutulur. Bu veri dalı public depoda görünse bile içerikler şifreleme anahtarı olmadan okunamaz. Dosya adları ve grup kayıtları da şifrelenir.
 
-## Vercel ortam ayarları
-1. Vercel projesinde Storage bölümünden bir **Blob** store oluşturup projeye bağla. `BLOB_READ_WRITE_TOKEN` ortam değişkeni tanımlı olmalı.
-2. `ADMIN_SESSION_SECRET` değerini yönetici oturum tokenini imzalarken kullanılan değerle aynı ayarla. Proje `ADMIN_PASSWORD` üzerinden imza atıyorsa bu değer yedek olarak okunur.
-3. Projede paketler `@vercel/blob` ve `@vercel/node` olarak eklenmiştir. Lockfile kullanıyorsan `npm install` çalıştırıp lockfile değişikliğini de ekle.
-4. Preview ortamına deploy edip yönetici panelinden test etmeden Production'a alma.
+## Vercel ortam değişkenleri
+
+Vercel > Project > Settings > Environment Variables bölümüne ekle:
+
+- `GITHUB_PRIVATE_CATALOG_TOKEN`: GitHub fine-grained personal access token. Yalnızca `kadirkarga25-rgb/irem-comfort` deposuna **Contents: Read and write** izni ver. Token'ı asla istemci koduna ekleme.
+- `PRIVATE_CATALOG_ENCRYPTION_KEY`: 32 rastgele baytın Base64 karşılığı. Güvenli bir yerde üretip sakla; kaybolursa şifrelenmiş PDF'ler geri açılamaz. Örnek üretim komutu: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`
+- `ADMIN_SESSION_SECRET`: mevcut yönetici oturum tokenini imzalamakta kullanılan değerle aynı olmalı. Uygulama `ADMIN_PASSWORD` üzerinden imza atıyorsa mevcut fallback kullanılabilir.
+- İsteğe bağlı: `PRIVATE_CATALOG_GITHUB_OWNER=kadirkarga25-rgb`, `PRIVATE_CATALOG_GITHUB_REPO=irem-comfort`, `PRIVATE_CATALOG_DATA_BRANCH=private-catalog-data`.
+
+İlk API çağrısında uygulama `private-catalog-data` dalını (yoksa) `main` dalından oluşturur. Vercel ortam değişkenlerini kaydettikten sonra Preview ve Production deployment'larını yeniden dağıt.
 
 ## Özellikler
-- Yönetici panelinden gizli grup oluşturma.
-- Her grup için ayrı paylaşım bağlantısı.
-- Bir gruba birden fazla PDF yükleme ve PDF kaldırma.
-- Paylaşımı kapatma/açma, bağlantıyı yenileme ve grubu silme.
-- Müşteri sayfası: `/katalog-ozel/<token>`.
-- Gizli PDF'ler `public/` klasörüne veya GitHub deposuna eklenmez; Blob private depolamasına yüklenir.
-- PDF sunma endpoint'i, her istekte aktif paylaşım tokenini doğrular ve doğrudan Blob URL'si müşteriye gösterilmez.
 
-## Güvenlik ve test notu
-Paylaşım linki bir erişim anahtarı gibi davranır. Linki alan kişiler PDF'yi görüntüleyebilir ve dosyayı kaydedebilir; bunu tamamen engellemek mümkün değildir. Bu özellik henüz gerçek Vercel Blob store ve yönetici oturumuyla Preview ortamında doğrulanmalıdır. Özellikle Blob private `get`/upload callback davranışı ve mevcut oturum tokeninin süresi deployment öncesi test edilmelidir.
+- Yönetici panelinden grup oluşturma ve birden fazla PDF ekleme/kaldırma.
+- Her grup için ayrı paylaşım bağlantısı; bağlantıyı yenileme, kapatma/açma ve grubu silme.
+- Müşteri sayfası: `/katalog-ozel/<token>`.
+- PDF'ler public `public/` klasörüne veya açık PDF olarak GitHub'a konmaz; küçük parçalara bölünüp şifrelenerek GitHub'a kaydedilir.
+- PDF indirme endpoint'i aktif paylaşım tokenini doğrular ve sunucu tarafında şifreyi çözer.
+- Yükleme sınırı: PDF başına 80 MB.
+
+## Önemli güvenlik notları
+
+- Public GitHub deposunda yalnızca şifreli dosyalar yer alır. Güvenlik, `PRIVATE_CATALOG_ENCRYPTION_KEY` değerinin yalnızca Vercel sunucusunda tutulmasına bağlıdır.
+- Paylaşım bağlantısı bir erişim anahtarıdır. Linki alan kişi PDF'yi görüntüleyebilir/kaydedebilir.
+- Git geçmişine daha önce yazılmış şifreli parçalar silme işleminden sonra geçmişte kalabilir; şifreleme anahtarı korunmalı, asla GitHub'a commit edilmemeli.
+- Bu özellik gerçek Vercel ortamında henüz uçtan uca doğrulanmadı. Önce Preview'da grup oluşturma, PDF yükleme/görüntüleme, link yenileme ve silme testleri yapılmalı.
