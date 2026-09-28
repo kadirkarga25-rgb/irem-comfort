@@ -52,6 +52,8 @@ async function readStore():Promise<Store>{
  try{return JSON.parse(unseal(f.bytes).toString('utf8')) as Store;}catch{throw new Error('Özel katalog kayıtları çözülemedi. Şifreleme anahtarını kontrol et.');}
 }
 async function writeStore(store:Store){await writeFile(STORE_PATH,seal(Buffer.from(JSON.stringify(store),'utf8')),'Update encrypted private catalog metadata');}
+async function deleteFile(path:string){const old=await readFile(path);if(!old)return;const r=await gh(`/contents/${path}`,{method:'DELETE',body:JSON.stringify({message:'Remove private catalog encrypted object',branch:DATA_BRANCH,sha:old.sha})});if(!r.ok&&r.status!==404)throw new Error(`GitHub dosyası silinemedi (${r.status}).`);}
+async function deletePdfChunks(groupId:string,p:Pdf){for(let i=0;i<p.chunks;i++)await deleteFile(pathForChunk(groupId,p.id,i));}
 async function readCatalogPdf(groupId:string,p:Pdf){
  const chunks:Buffer[]=[];
  for(let i=0;i<p.chunks;i++){const f=await readFile(pathForChunk(groupId,p.id,i));if(!f)throw new Error('PDF parçası eksik.');chunks.push(unseal(f.bytes));}
@@ -101,7 +103,6 @@ export default async function handler(req:VercelRequest,res:VercelResponse){
     const g=store.groups.find(x=>x.id===b.groupId);if(!g)return reply(res,404,{error:'Grup bulunamadı.'});
     const fileId=String(b.fileId||''),chunks=Number(b.chunks),size=Number(b.size),filename=filenameSafe(String(b.filename||'Katalog.pdf'));
     if(!/^[a-f0-9-]{20,40}$/i.test(fileId)||!Number.isInteger(chunks)||chunks<1||chunks>200||!Number.isFinite(size)||size<=0)return reply(res,400,{error:'Yükleme bilgileri geçersiz.'});
-    for(let i=0;i<chunks;i++)if(!(await readFile(pathForChunk(g.id,fileId,i))))return reply(res,400,{error:`PDF parçası eksik: ${i+1}.`});
     g.catalogs.push({id:fileId,title:filename.replace(/\.pdf$/i,''),filename,size,chunks});await writeStore(store);return reply(res,201,{ok:true});
    }
    return reply(res,400,{error:'Bilinmeyen işlem.'});
@@ -111,8 +112,8 @@ export default async function handler(req:VercelRequest,res:VercelResponse){
    if(action==='rotate-link')g.shareToken=randomBytes(32).toString('base64url');
    else if(action==='disable-group')g.enabled=false;
    else if(action==='enable-group')g.enabled=true;
-   else if(action==='delete-group'){store.groups=store.groups.filter(x=>x.id!==groupId);await writeStore(store);return reply(res,200,{ok:true});}
-   else if(typeof action==='string'&&action.startsWith('remove-pdf:'))g.catalogs=g.catalogs.filter(x=>x.id!==action.slice('remove-pdf:'.length));
+   else if(action==='delete-group'){for(const p of g.catalogs)await deletePdfChunks(g.id,p);store.groups=store.groups.filter(x=>x.id!==groupId);await writeStore(store);return reply(res,200,{ok:true});}
+   else if(typeof action==='string'&&action.startsWith('remove-pdf:')){const id=action.slice('remove-pdf:'.length);const p=g.catalogs.find(x=>x.id===id);if(p)await deletePdfChunks(g.id,p);g.catalogs=g.catalogs.filter(x=>x.id!==id);}
    else return reply(res,400,{error:'Bilinmeyen işlem.'});
    await writeStore(store);return reply(res,200,{ok:true});
   }
