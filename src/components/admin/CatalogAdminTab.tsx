@@ -2,6 +2,7 @@ import React from 'react';
 import { BookOpen, ShieldCheck, ExternalLink } from 'lucide-react';
 import { CatalogAdminPanel } from '../../catalog/CatalogAdmin';
 import { PdfLibraryAdminTab } from './PdfLibraryAdminTab';
+import { PrivateCatalogGroupsAdmin } from './PrivateCatalogGroupsAdmin';
 import '../../catalog/catalog.css';
 
 interface Props { sessionToken: string | null; }
@@ -20,5 +21,6 @@ export const CatalogAdminTab: React.FC<Props> = ({ sessionToken }) => {
       <div className="min-w-0"><CatalogAdminPanel sessionToken={sessionToken} /></div>
       <div className="min-w-0"><PdfLibraryAdminTab /></div>
     </div>
+    <PrivateCatalogGroupsAdmin sessionToken={sessionToken} />
   </div>;
 };

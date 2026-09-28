@@ -1,8 +1,21 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/toptananket", "destination": "/toptananket.html" },
-    { "source": "/api/(.*)", "destination": "/api/index.ts" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/api/private-catalogs",
+      "destination": "/api/private-catalogs.ts"
+    },
+    {
+      "source": "/toptananket",
+      "destination": "/toptananket.html"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.ts"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
   ]
 }
