@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Copy, Link2, LockKeyhole, Plus, RefreshCw, Trash2, Upload, ShieldCheck } from 'lucide-react';
-import { upload } from '@vercel/blob/client';
 
 type Pdf = { id: string; title: string; filename: string; size: number };
 type Group = { id: string; name: string; description: string; enabled: boolean; shareToken: string; catalogs: Pdf[] };
@@ -26,16 +25,25 @@ export function PrivateCatalogGroupsAdmin({ sessionToken }: { sessionToken: stri
     if(!file)return;
     if(!file.name.toLowerCase().endsWith('.pdf') || (file.type && file.type!=='application/pdf')) {setError('Yalnızca PDF yükleyebilirsin.');return;}
     if(!sessionToken){setError('Yönetici oturumu bulunamadı.');return;}
+    if(file.size>80*1024*1024){setError('PDF en fazla 80 MB olabilir.');return;}
     setBusy(true);setError('');
+    const call = async (body:unknown) => {
+      const r=await fetch('/api/private-catalogs',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${sessionToken}`},body:JSON.stringify(body),cache:'no-store'});
+      const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||`İstek başarısız (${r.status})`);return d;
+    };
     try {
-      const safeName = file.name.replace(/[^\w.\- ()ğüşöçıİĞÜŞÖÇ]/gi,'_').slice(0,160);
-      await upload(`irem-comfort-private-catalogs/${group.id}/${Date.now()}-${safeName}`,file,{
-        access:'private',
-        handleUploadUrl:'/api/private-catalogs',
-        clientPayload:JSON.stringify({groupId:group.id,filename:file.name,size:file.size,adminToken:sessionToken}),
-      });
+      const meta=await call({action:'upload-init',groupId:group.id,filename:file.name,size:file.size});
+      const bytes=new Uint8Array(await file.arrayBuffer());
+      const chunkSize=meta.chunkSize as number;
+      const total=Math.ceil(bytes.length/chunkSize);
+      for(let index=0;index<total;index++){
+        const part=bytes.subarray(index*chunkSize,Math.min((index+1)*chunkSize,bytes.length));
+        let binary='';for(let i=0;i<part.length;i++)binary+=String.fromCharCode(part[i]);
+        await call({action:'upload-chunk',groupId:group.id,fileId:meta.fileId,index,total,chunkBase64:btoa(binary)});
+      }
+      await call({action:'upload-finish',groupId:group.id,fileId:meta.fileId,chunks:total,size:file.size,filename:meta.filename});
       await load();
-    } catch(e:any) { setError(e?.message || 'PDF yüklenemedi. Blob ayarlarını kontrol et.'); }
+    } catch(e:any) { setError(e?.message || 'PDF yüklenemedi. GitHub erişim ayarlarını kontrol et.'); }
     finally {setBusy(false);}
   };
   return <section style={{marginTop:24,padding:20,border:'1px solid #e7dfd5',borderRadius:16,background:'#fff'}}>
