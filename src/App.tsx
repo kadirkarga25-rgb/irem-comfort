@@ -4,6 +4,7 @@ import { ConversationProvider } from './context/ConversationContext';
 import { IcLoader } from './components/ui/IcLoader';
 import { AdminPage } from './components/admin/AdminPage';
 import { CatalogApp } from './catalog/CatalogApp';
+import { PrivateCatalogViewer } from './catalog/PrivateCatalogViewer';
 import { SurveyPage } from './components/secret/SurveyPage';
 import { PasswordResetPage } from './components/secret/PasswordResetPage';
 import { RemoteManagementPage } from './components/secret/RemoteManagementPage';
@@ -44,6 +45,8 @@ function MainAppContent() {
   if (!isSettingsLoaded) return <IcLoader fullscreen label="İrem Comfort yükleniyor" />;
 
   const isAdmin = path === '/admin' || window.location.hash === '#admin' || new URLSearchParams(window.location.search).has('admin');
+  const privateCatalogMatch = path.match(/^\/katalog-ozel\/([^/]+)$/);
+  if (privateCatalogMatch) return <PrivateCatalogViewer token={decodeURIComponent(privateCatalogMatch[1])} />;
   const isCatalog = path === '/katalog' || path.startsWith('/katalog/');
   if (isCatalog) return <CatalogApp />;
   if (isAdmin) return <AdminPage onReturnToSite={() => navigate('/')} />;
