@@ -108,6 +108,16 @@ export function detectStructure(pageTexts:string[], pageCount:number) {
 
 const documentCache=new Map<any,any>();
 const pageImageCache=new Map<string,string>();
+export async function getPdfPageCount(source:Blob|string){
+  const documentKey = typeof source === 'string' ? source : source;
+  let pdf=documentCache.get(documentKey as any);
+  if(!pdf){
+    pdf=await openPdf(typeof source === 'string' ? source : await source.arrayBuffer());
+    documentCache.set(documentKey as any,pdf);
+  }
+  return Number(pdf.numPages)||1;
+}
+
 export async function renderPdfPage(source:Blob|string,pageNumber:number,scale=1){
   if(typeof window==='undefined')throw new Error('PDF sayfası yalnızca tarayıcıda oluşturulabilir.');
   const documentKey = typeof source === 'string' ? source : source;
