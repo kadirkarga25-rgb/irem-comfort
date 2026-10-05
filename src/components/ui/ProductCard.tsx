@@ -12,6 +12,7 @@ interface ProductCardProps {
   onSelect: (item: CollectionItem, initialColor?: string) => void;
   onInquire: (productName: string) => void;
   onShare: (e: React.MouseEvent, item: CollectionItem) => void;
+  onAddToQuote: (item: CollectionItem, color?: string) => void;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -20,7 +21,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   t,
   onSelect,
   onInquire,
-  onShare
+  onShare,
+  onAddToQuote
 }) => {
   const { language } = useAppImages();
   const defaultImage = images.collectionImages[item.id]?.image || item.image || PREMIUM_PRODUCT_IMAGE_FALLBACKS[item.id] || '';
@@ -180,6 +182,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </span>
 
           <div className="flex items-center gap-2">
+            <button onClick={(e)=>{e.stopPropagation();onAddToQuote(item,activeColorName)}} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 hover:bg-amber-200 text-[#102f59] text-[11px] font-extrabold uppercase transition-all cursor-pointer">Sepete Ekle</button>
             <a
               href={`/urunler/${encodeURIComponent(item.id)}`}
               onClick={(e) => e.stopPropagation()}
