@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAppImages } from '../../context/ImageContext';
 import { CollectionItem } from '../../types';
@@ -19,6 +19,7 @@ import {
   ArrowUpRight,
   Ruler
 } from 'lucide-react';
+import { addToWholesaleCart } from '../../utils/wholesaleCart';
 
 interface ProductsPageProps {
   onBackToHome: () => void;
