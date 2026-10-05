@@ -36,6 +36,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
   const [selectedColorForModal, setSelectedColorForModal] = useState<string | undefined>(undefined);
   const [copiedItemId, setCopiedItemId] = useState<string | null>(null);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
 
   const categories = [
     { id: 'Tümü', label: language === 'tr' ? 'Tümü' : language === 'en' ? 'All' : 'الكل' },
@@ -44,6 +45,8 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
     { id: 'Sabo & Ortopedik Terlik', label: language === 'tr' ? 'Sabo & Ortopedik Terlik' : language === 'en' ? 'Clogs & Orthopedic' : 'قباقيب ونعال طبية' },
     { id: 'Mantar Taban Terlik', label: language === 'tr' ? 'Mantar Taban Terlik' : language === 'en' ? 'Cork Sole Slippers' : 'نعال نعل فلين' }
   ];
+
+  useEffect(() => { const load=()=>setCartCount(JSON.parse(localStorage.getItem('irem_wholesale_quote_cart')||'[]').reduce((n:any,x:any)=>n+(x.quantity||0),0)); load(); window.addEventListener('wholesale-cart-updated',load); return()=>window.removeEventListener('wholesale-cart-updated',load); }, []);
 
   const itemsToDisplay = collectionItems && collectionItems.length > 0 ? collectionItems : COLLECTION_ITEMS;
 
@@ -133,6 +136,8 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
               <Ruler className="w-4 h-4 text-[#D4AF37]" />
               <span>{language === 'tr' ? 'Beden Rehberi' : language === 'en' ? 'Size Guide' : 'دليل المقاسات'}</span>
             </button>
+
+            <a href="/toptan-sepet" className="px-4 py-2.5 rounded-2xl bg-[#102f59] text-white text-xs font-bold border border-[#102f59]">🛒 Teklif Sepeti ({cartCount})</a>
 
             <span className="px-4 py-2.5 rounded-2xl bg-blue-50 text-[#062050] text-xs font-bold border border-blue-100">
               🛍️ {filteredItems.length} {language === 'tr' ? 'Model Bulundu' : language === 'en' ? 'Models Found' : 'موديل'}
@@ -228,6 +233,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({
                 }}
                 onInquire={onInquireProduct}
                 onShare={handleShareProduct}
+                onAddToQuote={(product,color)=>{addToWholesaleCart(product,color); setCartCount((n)=>n+1);}}
               />
             ))}
           </div>
