@@ -22,6 +22,7 @@ import { WorkshopPage } from './pages/WorkshopPage';
 import { ContactPage } from './pages/ContactPage';
 import { AppointmentPage } from './pages/AppointmentPage';
 import { WholesaleApplicationPage } from './pages/WholesaleApplicationPage';
+import { WholesaleQuoteCartPage } from './pages/WholesaleQuoteCartPage';
 import { PublicEngagementPopups } from './components/ui/PublicEngagementPopups';
 
 function MainAppContent() {
@@ -67,6 +68,7 @@ function MainAppContent() {
   else if (path === '/markamiz') content = <BrandPage {...shared}/>;
   else if (path === '/toptan-satis') content = <WholesalePage {...shared}/>;
   else if (path === '/toptan-basvuru') content = <WholesaleApplicationPage {...shared}/>;
+  else if (path === '/toptan-sepet') content = <WholesaleQuoteCartPage {...shared}/>;
   else if (path === '/atolye') content = <WorkshopPage {...shared}/>;
   else if (path === '/iletisim') content = <ContactPage {...shared}/>;
   else if (path === '/randevu') content = <AppointmentPage {...shared}/>;
