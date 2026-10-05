@@ -21,7 +21,7 @@ export const WholesalePage: React.FC<{ onAdminClick?:()=>void; openLegal?:(d:any
           <div className="text-[11px] uppercase tracking-[.2em] text-[#d6b46a] font-bold">MAĞAZA İŞ ORTAKLIĞI</div>
           <h2 className="mt-3 text-3xl sm:text-4xl font-serif-luxury font-semibold">Koleksiyonunuzu birlikte oluşturalım.</h2>
           <p className="mt-5 text-sm sm:text-base text-white/75 leading-relaxed">Koleksiyonları inceleyin, beğendiğiniz modelleri ürün bağlantılarıyla paylaşın ve mağazanız için toptan teklif isteyin.</p>
-          <div className="mt-7 flex flex-wrap gap-3"><a href="/urunler" className="rounded-full bg-white text-[#102f59] px-5 py-3 font-bold text-sm">Ürünleri İncele</a><a href={`https://wa.me/${CONTACT_DATA.whatsapp}`} className="rounded-full border border-white/30 px-5 py-3 font-bold text-sm inline-flex gap-2 items-center"><MessageCircle className="w-4 h-4"/> Toptan WhatsApp</a></div>
+          <div className="mt-7 flex flex-wrap gap-3"><a href="/toptan-basvuru" className="rounded-full bg-[#d6b46a] text-[#102f59] px-5 py-3 font-bold text-sm">Toptan Başvuru</a><a href="/urunler" className="rounded-full bg-white text-[#102f59] px-5 py-3 font-bold text-sm">Ürünleri İncele</a><a href={`https://wa.me/${CONTACT_DATA.whatsapp}`} className="rounded-full border border-white/30 px-5 py-3 font-bold text-sm inline-flex gap-2 items-center"><MessageCircle className="w-4 h-4"/> Toptan WhatsApp</a></div>
         </div>
         <div className="bg-white rounded-[2rem] border border-slate-200 p-8 sm:p-10">
           <h2 className="text-2xl font-serif-luxury font-bold text-[#102f59]">Toptan süreç</h2>
