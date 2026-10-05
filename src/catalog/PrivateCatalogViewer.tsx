@@ -168,9 +168,11 @@ export function PrivateCatalogViewer({ token }: { token: string }) {
       'Bu modelin model kodu, renkleri, numaraları ve toptan fiyat bilgisi hakkında yardımcı olabilir misiniz?',
       '',
       'Teşekkür ederim.'
-    ].join('\\n');
+    ].join(String.fromCharCode(10));
     window.open('https://wa.me/?text='+encodeURIComponent(message),'_blank','noopener,noreferrer');
-  };\n\n  const onTouchStart=(e:React.TouchEvent)=>{const t=e.touches[0];touchStart.current={x:t.clientX,y:t.clientY};};
+  };
+
+  const onTouchStart=(e:React.TouchEvent)=>{const t=e.touches[0];touchStart.current={x:t.clientX,y:t.clientY};};
   const onTouchEnd=(e:React.TouchEvent)=>{const s=touchStart.current;touchStart.current=null;if(!s)return;const t=e.changedTouches[0],dx=t.clientX-s.x,dy=t.clientY-s.y;if(Math.abs(dx)<50||Math.abs(dx)<Math.abs(dy)*1.2)return;if(dx<0)movePage(1);else movePage(-1);};
 
   return <div className="private-catalog-page"><style>{styles}</style>
