@@ -46,7 +46,9 @@ export const CrmAdminTab: React.FC = () => {
             };
           });
 
-          setCustomers(convertedLeads);
+          const saved=JSON.parse(localStorage.getItem('irem_crm_overrides')||'{}');
+          const merged=convertedLeads.map((x:any)=>saved[x.id]?{...x,...saved[x.id],notes:saved[x.id].notes||x.notes,tags:saved[x.id].tags||x.tags}:x);
+          setCustomers(merged);
           if (convertedLeads.length > 0) {
             setSelectedCustomer(convertedLeads[0]);
           }
@@ -69,6 +71,8 @@ export const CrmAdminTab: React.FC = () => {
     return matchesSearch && matchesType;
   });
 
+  const persist=(customer:CustomerProfile)=>{const all=JSON.parse(localStorage.getItem('irem_crm_overrides')||'{}');all[customer.id]=customer;localStorage.setItem('irem_crm_overrides',JSON.stringify(all));};
+
   const handleAddNote = () => {
     if (!selectedCustomer || !newNoteText.trim()) return;
     const newNote = {
@@ -85,6 +89,7 @@ export const CrmAdminTab: React.FC = () => {
 
     setCustomers(prev => prev.map(c => c.id === selectedCustomer.id ? updated : c));
     setSelectedCustomer(updated);
+    persist(updated);
     setNewNoteText('');
   };
 
@@ -99,6 +104,7 @@ export const CrmAdminTab: React.FC = () => {
 
     setCustomers(prev => prev.map(c => c.id === selectedCustomer.id ? updated : c));
     setSelectedCustomer(updated);
+    persist(updated);
     setNewTagInput('');
   };
 
@@ -107,6 +113,7 @@ export const CrmAdminTab: React.FC = () => {
     const updated = { ...selectedCustomer, status: newStatus };
     setCustomers(prev => prev.map(c => c.id === selectedCustomer.id ? updated : c));
     setSelectedCustomer(updated);
+    persist(updated);
   };
 
   return (
