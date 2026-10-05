@@ -20,6 +20,7 @@ import { WholesalePage } from './pages/WholesalePage';
 import { BrandPage } from './pages/BrandPage';
 import { WorkshopPage } from './pages/WorkshopPage';
 import { ContactPage } from './pages/ContactPage';
+import { AppointmentPage } from './pages/AppointmentPage';
 import { PublicEngagementPopups } from './components/ui/PublicEngagementPopups';
 
 function MainAppContent() {
@@ -66,6 +67,7 @@ function MainAppContent() {
   else if (path === '/toptan-satis') content = <WholesalePage {...shared}/>;
   else if (path === '/atolye') content = <WorkshopPage {...shared}/>;
   else if (path === '/iletisim') content = <ContactPage {...shared}/>;
+  else if (path === '/randevu') content = <AppointmentPage {...shared}/>;
   else content = <NotFoundPage onReturnToSite={()=>navigate('/')}/>;
 
   return <>
