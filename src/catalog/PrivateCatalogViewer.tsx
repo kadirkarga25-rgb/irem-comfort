@@ -153,7 +153,24 @@ export function PrivateCatalogViewer({ token }: { token: string }) {
     window.open('https://wa.me/?text='+encodeURIComponent(message),'_blank','noopener,noreferrer');
   };
 
-  const requestPage=()=>{if(!selected)return;const message=`Merhaba İrem Comfort,\n\n“${selected.title}” kataloğunda ${page}. sayfadaki modeli incelemek istiyorum.\n\nKatalog grubu: ${group?.name||''}\nKatalog: ${selected.title}\nSayfa: ${page}\nBağlantı: ${location.href}\n\nBu modelin model kodu, renkleri, numaraları ve toptan fiyat bilgisi hakkında yardımcı olabilir misiniz?\n\nTeşekkür ederim.`;window.open('https://wa.me/?text='+encodeURIComponent(message),'_blank','noopener,noreferrer')};\n\n  const onTouchStart=(e:React.TouchEvent)=>{const t=e.touches[0];touchStart.current={x:t.clientX,y:t.clientY};};
+  const requestPage=()=>{
+    if(!selected)return;
+    const message=[
+      'Merhaba İrem Comfort,',
+      '',
+      '“'+selected.title+'” kataloğunda '+page+'. sayfadaki modeli incelemek istiyorum.',
+      '',
+      'Katalog grubu: '+(group?.name||''),
+      'Katalog: '+selected.title,
+      'Sayfa: '+page,
+      'Bağlantı: '+location.href,
+      '',
+      'Bu modelin model kodu, renkleri, numaraları ve toptan fiyat bilgisi hakkında yardımcı olabilir misiniz?',
+      '',
+      'Teşekkür ederim.'
+    ].join('\\n');
+    window.open('https://wa.me/?text='+encodeURIComponent(message),'_blank','noopener,noreferrer');
+  };\n\n  const onTouchStart=(e:React.TouchEvent)=>{const t=e.touches[0];touchStart.current={x:t.clientX,y:t.clientY};};
   const onTouchEnd=(e:React.TouchEvent)=>{const s=touchStart.current;touchStart.current=null;if(!s)return;const t=e.changedTouches[0],dx=t.clientX-s.x,dy=t.clientY-s.y;if(Math.abs(dx)<50||Math.abs(dx)<Math.abs(dy)*1.2)return;if(dx<0)movePage(1);else movePage(-1);};
 
   return <div className="private-catalog-page"><style>{styles}</style>
