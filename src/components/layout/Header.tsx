@@ -11,7 +11,7 @@ import { Language } from '../../types';
 interface HeaderProps { scrollY:number; activeSection:string; onNavigate:(path:string)=>void; onOpenFairModal?:()=>void; }
 
 const links = [
-  ['/','Ana Sayfa'], ['/koleksiyonlar','Koleksiyonlar'], ['/urunler','Ürünler'], ['/markamiz','Markamız'], ['/toptan-satis','Toptan Satış'], ['/atolye','Atölye'], ['/katalog','Katalog'], ['/randevu','Randevu'], ['/iletisim','İletişim']
+  ['/','Ana Sayfa'], ['/koleksiyonlar','Koleksiyonlar'], ['/urunler','Ürünler'], ['/markamiz','Markamız'], ['/toptan-satis','Toptan Satış'], ['/atolye','Atölye'], ['/katalog','Katalog'], ['/randevu','Randevu'], ['/toptan-basvuru','B2B Başvuru'], ['/iletisim','İletişim']
 ] as const;
 
 export const Header: React.FC<HeaderProps> = ({activeSection,onNavigate,onOpenFairModal}) => {
