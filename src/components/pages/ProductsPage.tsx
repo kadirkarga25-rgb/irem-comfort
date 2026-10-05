@@ -24,6 +24,7 @@ import { addToWholesaleCart } from '../../utils/wholesaleCart';
 interface ProductsPageProps {
   onBackToHome: () => void;
   onInquireProduct: (productName: string) => void;
+  onAddToQuote?: (item: CollectionItem, color?: string) => void;
 }
 
 export const ProductsPage: React.FC<ProductsPageProps> = ({
