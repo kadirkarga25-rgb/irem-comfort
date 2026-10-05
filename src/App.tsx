@@ -21,6 +21,7 @@ import { BrandPage } from './pages/BrandPage';
 import { WorkshopPage } from './pages/WorkshopPage';
 import { ContactPage } from './pages/ContactPage';
 import { AppointmentPage } from './pages/AppointmentPage';
+import { WholesaleApplicationPage } from './pages/WholesaleApplicationPage';
 import { PublicEngagementPopups } from './components/ui/PublicEngagementPopups';
 
 function MainAppContent() {
@@ -65,6 +66,7 @@ function MainAppContent() {
   else if (path.startsWith('/urunler/')) content = <ProductDetailPage productId={decodeURIComponent(path.split('/').slice(2).join('/'))} {...shared}/>;
   else if (path === '/markamiz') content = <BrandPage {...shared}/>;
   else if (path === '/toptan-satis') content = <WholesalePage {...shared}/>;
+  else if (path === '/toptan-basvuru') content = <WholesaleApplicationPage {...shared}/>;
   else if (path === '/atolye') content = <WorkshopPage {...shared}/>;
   else if (path === '/iletisim') content = <ContactPage {...shared}/>;
   else if (path === '/randevu') content = <AppointmentPage {...shared}/>;
