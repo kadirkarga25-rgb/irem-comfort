@@ -6,6 +6,10 @@
       "destination": "/api/private-catalogs.ts"
     },
     {
+      "source": "/api/appointments",
+      "destination": "/api/appointments.ts"
+    },
+    {
       "source": "/toptananket",
       "destination": "/toptananket.html"
     },
