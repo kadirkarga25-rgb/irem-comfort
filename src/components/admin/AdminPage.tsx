@@ -25,6 +25,7 @@ import { InfrastructureAdminTab } from './InfrastructureAdminTab';
 import { ConversationLogsAdminTab } from './ConversationLogsAdminTab';
 import { CatalogAdminTab } from './CatalogAdminTab';
 import { TestimonialsAdminTab } from './TestimonialsAdminTab';
+import { AppointmentsAdminTab } from './AppointmentsAdminTab';
 import { FirstTimeSetupModal } from './FirstTimeSetupModal';
 import { EMAIL_TEMPLATES, getEmailTemplateDefaults, renderEmailHtml } from '../../utils/emailTemplates';
 import { 
@@ -191,7 +192,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   // that old heartbeat could incorrectly log an active admin out.
 
   // Admin Panel Tabs
-  const [activeTab, setActiveTab] = useState<'overview' | 'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'page_builder' | 'presets' | 'leads' | 'crm' | 'testimonials' | 'newsletter' | 'email' | 'system' | 'media' | 'deployment_exp' | 'seo' | 'appearance' | 'analytics' | 'security' | 'ai_arch' | 'live_monitor' | 'backup' | 'ai_training' | 'infrastructure' | 'conv_logs' | 'site_home' | 'site_brand' | 'site_workshop' | 'site_wholesale' | 'site_contact'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'appointments' | 'fair' | 'general' | 'collection' | 'craftsmanship' | 'faq' | 'contact' | 'page_builder' | 'presets' | 'leads' | 'crm' | 'testimonials' | 'newsletter' | 'email' | 'system' | 'media' | 'deployment_exp' | 'seo' | 'appearance' | 'analytics' | 'security' | 'ai_arch' | 'live_monitor' | 'backup' | 'ai_training' | 'infrastructure' | 'conv_logs' | 'site_home' | 'site_brand' | 'site_workshop' | 'site_wholesale' | 'site_contact'>('overview');
 
   // Sidebar Layout States
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
@@ -201,6 +202,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
   const getActiveTabTitle = (tab: string) => {
     switch (tab) {
       case 'overview': return 'Control Center (Dashboard)';
+      case 'appointments': return 'Randevu Yönetimi';
       case 'page_builder': return 'CMS Sayfa Oluşturucu';
       case 'site_home': return 'Ana Sayfa';
       case 'site_brand': return 'Markamız';
@@ -1303,6 +1305,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
         { id: 'site_workshop', label: 'Atölye', icon: Sparkles, badgeColor: 'text-amber-400' },
         { id: 'site_wholesale', label: 'Toptan Satış', icon: ShoppingBag, badgeColor: 'text-emerald-400' },
         { id: 'site_contact', label: 'İletişim', icon: Phone, badgeColor: 'text-blue-400' },
+        { id: 'appointments', label: 'Randevu Yönetimi', icon: Calendar, badgeColor: 'text-amber-400' },
         { id: 'page_builder', label: 'Sayfa Yerleşimi / CMS', icon: Layout, badgeColor: 'text-amber-400' },
         { id: 'fair', label: 'Fuar & Etkinlik', icon: Calendar, hasPulse: true },
         { id: 'appearance', label: 'Görünüm & Tema', icon: Palette, badgeColor: 'text-[#D4AF37]' },
@@ -4621,7 +4624,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onReturnToSite }) => {
         {activeTab === 'site_workshop' && <SitePageEditorAdminTab page="workshop" />}
         {activeTab === 'site_wholesale' && <SitePageEditorAdminTab page="wholesale" />}
         {activeTab === 'site_contact' && <SitePageEditorAdminTab page="contact" />}
-        {activeTab === 'overview' && <DashboardOverviewAdminTab />}
+        {activeTab === 'overview' && <DashboardOverviewAdminTab />} 
+        {activeTab === 'appointments' && <AppointmentsAdminTab sessionToken={sessionToken} />}
 
         {/* Page Builder Tab */}
         {activeTab === 'page_builder' && <PageBuilderAdminTab />}
