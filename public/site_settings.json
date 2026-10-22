@@ -1375,7 +1375,7 @@
       "iconName": "Truck"
     }
   ],
-  "_updatedAt": 1790597439910,
+  "_updatedAt": 1792655835372,
   "faqItems": [
     {
       "q": "Soru 1",
@@ -1385,8 +1385,8 @@
   "fairConfig": {
     "enabled": true,
     "name": "Master Shoes Ayakkabı Fuarı",
-    "location": "Konya Fuar Merkezi",
-    "standNumber": "Hall 5 - Stand F108",
+    "location": "Konya TÜYAP Fuar Merkezi",
+    "standNumber": "Hall 5 - Stand F106",
     "startDate": "2026-10-21",
     "endDate": "2026-10-24",
     "description": "İrem Comfort olarak 2026-2027 Sezonu Erkek & Kadın Hakiki Deri Terlik, Sandalet ve Ortopedik Comfort koleksiyonumuzu sergiliyoruz. Tüm iş ortaklarımızı standımıza bekleriz.",
