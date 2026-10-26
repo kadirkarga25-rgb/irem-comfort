@@ -1375,7 +1375,7 @@
       "iconName": "Truck"
     }
   ],
-  "_updatedAt": 1792655865965,
+  "_updatedAt": 1792996659360,
   "faqItems": [
     {
       "q": "Soru 1",
@@ -1383,7 +1383,7 @@
     }
   ],
   "fairConfig": {
-    "enabled": true,
+    "enabled": false,
     "name": "Master Shoes Ayakkabı Fuarı",
     "location": "Konya TÜYAP Fuar Merkezi",
     "standNumber": "Hall 5 - Stand F106",
